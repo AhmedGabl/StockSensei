@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { User } from "@/lib/types";
 
 interface BotpressChatProps {
@@ -11,35 +10,74 @@ interface BotpressChatProps {
 }
 
 export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressChatProps) {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const webchatRef = useRef<HTMLDivElement>(null);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!isInitialized) {
+    if (!isCollapsed && !isInitializedRef.current && webchatRef.current) {
       initializeBotpress();
-      setIsInitialized(true);
+      isInitializedRef.current = true;
     }
-  }, [isInitialized]);
+  }, [isCollapsed]);
 
   const initializeBotpress = () => {
+    // Load CSS styles for embedded webchat
+    const style = document.createElement('style');
+    style.textContent = `
+      #webchat .bpWebchat {
+        position: unset !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+      
+      #webchat .bpFab {
+        display: none !important;
+      }
+      
+      #webchat .bpWebchat iframe {
+        border-radius: 0 !important;
+      }
+    `;
+    document.head.appendChild(style);
+
     // Load Botpress webchat script
     const script = document.createElement('script');
-    script.src = 'https://cdn.botpress.cloud/webchat/v1/inject.js';
+    script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
     script.onload = () => {
-      // Initialize Botpress
+      // Initialize Botpress with the configuration you provided
       const initScript = document.createElement('script');
       initScript.innerHTML = `
-        window.botpressWebChat.init({
-          botId: "${import.meta.env.VITE_BOTPRESS_BOT_ID || "your-bot-id"}",
-          hostUrl: "${import.meta.env.VITE_BOTPRESS_WEBCHAT_HOST || "https://cdn.botpress.cloud/webchat/v1"}",
-          messagingUrl: "${import.meta.env.VITE_BOTPRESS_MESSAGING_URL || "https://messaging.botpress.cloud"}",
-          clientId: "${import.meta.env.VITE_BOTPRESS_CLIENT_ID || "your-client-id"}",
-          stylesheet: "",
-          composerPlaceholder: "Ask about SOPs, VOIP, curriculum…",
-          showCloseButton: true,
-          hideWidget: false,
-          useSessionStorage: true,
-          userData: { email: "${user.email}" }
-        });
+        if (window.botpress) {
+          window.botpress.on("webchat:ready", () => {
+            window.botpress.open();
+          });
+          
+          window.botpress.init({
+            "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+            "configuration": {
+              "version": "v1",
+              "website": {},
+              "email": {},
+              "phone": {},
+              "termsOfService": {},
+              "privacyPolicy": {},
+              "color": "#3276EA",
+              "variant": "solid",
+              "headerVariant": "glass",
+              "themeMode": "light",
+              "fontFamily": "inter",
+              "radius": 4,
+              "feedbackEnabled": false,
+              "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)"
+            },
+            "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
+            "selector": "#webchat"
+          });
+        }
       `;
       document.head.appendChild(initScript);
     };
@@ -79,54 +117,14 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
         </Button>
       </CardHeader>
 
-      <CardContent className="flex-1 p-4 overflow-y-auto space-y-4">
-        {/* Demo messages - replace with actual Botpress integration */}
-        <div className="flex items-start space-x-2">
-          <div className="w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <i className="fas fa-robot text-xs"></i>
-          </div>
-          <div className="bg-slate-100 rounded-lg rounded-tl-none p-3 max-w-xs">
-            <p className="text-sm text-slate-700">
-              Hi! I'm here to help with your CM training. How can I assist you today?
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start space-x-2 justify-end">
-          <div className="bg-primary text-white rounded-lg rounded-tr-none p-3 max-w-xs">
-            <p className="text-sm">I just completed a practice call. What should I do next?</p>
-          </div>
-          <div className="w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-medium text-slate-600">
-              {user.name?.charAt(0) || user.email.charAt(0)}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-start space-x-2">
-          <div className="w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <i className="fas fa-robot text-xs"></i>
-          </div>
-          <div className="bg-slate-100 rounded-lg rounded-tl-none p-3 max-w-xs">
-            <p className="text-sm text-slate-700">
-              Great work! I'd recommend taking the SOP 4th Call quiz to test your knowledge. Would you like me to start it for you?
-            </p>
-          </div>
-        </div>
+      <CardContent className="flex-1 p-0 overflow-hidden">
+        {/* Botpress embedded webchat */}
+        <div 
+          ref={webchatRef}
+          id="webchat" 
+          className="w-full h-full"
+        />
       </CardContent>
-
-      <div className="p-4 border-t border-slate-200">
-        <div className="flex space-x-2">
-          <Input
-            type="text"
-            placeholder="Ask about SOPs, VOIP, curriculum..."
-            className="flex-1"
-          />
-          <Button className="px-3">
-            <i className="fas fa-paper-plane text-sm"></i>
-          </Button>
-        </div>
-      </div>
     </Card>
   );
 }
