@@ -109,17 +109,19 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
           <div class="flex-1 p-4 overflow-y-auto space-y-3">
             <div class="flex justify-start">
               <div class="bg-slate-100 rounded-lg p-3 max-w-xs">
-                <p class="text-sm text-slate-700">Hello! I'm your CM Training Assistant. How can I help you today?</p>
+                <p class="text-sm text-slate-700">Hello! I'm your 51Talk CM Assistant. How can I help you today?</p>
               </div>
             </div>
             <div class="flex justify-start">
               <div class="bg-slate-100 rounded-lg p-3 max-w-xs">
                 <p class="text-sm text-slate-700">I can help with:</p>
                 <ul class="text-xs text-slate-600 mt-1 space-y-1">
-                  <li>• Training questions</li>
-                  <li>• Policy guidance</li>
-                  <li>• Best practices</li>
-                  <li>• Scenario advice</li>
+                  <li>• CEJ curriculum questions (Levels S-9)</li>
+                  <li>• Class consumption policy explanations</li>
+                  <li>• Teacher points system clarification</li>
+                  <li>• Parent communication strategies</li>
+                  <li>• CEFR alignment details</li>
+                  <li>• Common CM scenarios</li>
                 </ul>
               </div>
             </div>
@@ -163,9 +165,26 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
           setTimeout(() => {
             const botMsg = document.createElement('div');
             botMsg.className = 'flex justify-start';
+            
+            // Generate contextual response based on user input
+            let response = "Thanks for your question! ";
+            const msg = input.value.toLowerCase();
+            
+            if (msg.includes('consumption') || msg.includes('12 classes')) {
+              response = "The 12 classes/month rule is based on the Ebbinghaus Forgetting Curve. Regular practice is essential for language retention. Would you like me to explain the learning loop: Preview → Class → Review → Test?";
+            } else if (msg.includes('level') || msg.includes('cej')) {
+              response = "CEJ has 11 levels (S-9) aligned with CEFR standards. Each level builds systematically: Level S focuses on 216 vocabulary words, while higher levels include complex grammar patterns. Which level are you asking about?";
+            } else if (msg.includes('teacher') || msg.includes('points')) {
+              response = "All 51Talk teachers pass a 3% screening rate and complete 100+ hours of training. Points reflect experience level, not quality. Filipino teachers offer clear accents with no time difference. Need help explaining this to a parent?";
+            } else if (msg.includes('progress') || msg.includes('improvement')) {
+              response = "Language progress typically shows in 2-3 months with regular classes. 51Talk tracks vocabulary acquisition (216-432 words per level) and grammar patterns. Have you shown the parent recorded class comparisons?";
+            } else {
+              response += "As a 51Talk CM, I can help with curriculum details, policy explanations, or parent communication strategies. What specific situation are you dealing with?";
+            }
+            
             botMsg.innerHTML = `
               <div class="bg-slate-100 rounded-lg p-3 max-w-xs">
-                <p class="text-sm text-slate-700">Thanks for your question! This is a demo interface. For full functionality, please configure the Botpress integration.</p>
+                <p class="text-sm text-slate-700">${response}</p>
               </div>
             `;
             chatContainer.appendChild(botMsg);
