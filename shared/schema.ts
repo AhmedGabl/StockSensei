@@ -6,7 +6,7 @@ import { z } from "zod";
 export const roleEnum = pgEnum("role", ["STUDENT", "TRAINER", "ADMIN"]);
 export const progressStatusEnum = pgEnum("progress_status", ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]);
 export const practiceCallOutcomeEnum = pgEnum("practice_call_outcome", ["PASSED", "IMPROVE", "N/A"]);
-export const materialTypeEnum = pgEnum("material_type", ["PDF", "VIDEO", "SCRIPT"]);
+export const materialTypeEnum = pgEnum("material_type", ["PDF", "POWERPOINT", "VIDEO", "SCRIPT", "DOCUMENT"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -40,9 +40,14 @@ export const practiceCalls = pgTable("practice_calls", {
 export const materials = pgTable("materials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
+  description: text("description"),
   type: materialTypeEnum("type").notNull(),
-  url: text("url").notNull(),
+  url: text("url"),
+  filePath: text("file_path"), // Object storage file path
+  fileName: text("file_name"), // Original filename
+  fileSize: integer("file_size"), // File size in bytes
   tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -62,6 +67,13 @@ export const progressRelations = relations(progress, ({ one }) => ({
 export const practiceCallsRelations = relations(practiceCalls, ({ one }) => ({
   user: one(users, {
     fields: [practiceCalls.userId],
+    references: [users.id],
+  }),
+}));
+
+export const materialsRelations = relations(materials, ({ one }) => ({
+  uploader: one(users, {
+    fields: [materials.uploadedBy],
     references: [users.id],
   }),
 }));

@@ -28,9 +28,14 @@ export interface PracticeCall {
 export interface Material {
   id: string;
   title: string;
-  type: "PDF" | "VIDEO" | "SCRIPT";
-  url: string;
+  description?: string;
+  type: "PDF" | "POWERPOINT" | "VIDEO" | "SCRIPT" | "DOCUMENT";
+  url?: string;
+  filePath?: string;
+  fileName?: string;
+  fileSize?: number;
   tags: string[];
+  uploadedBy?: string;
   createdAt: string;
 }
 

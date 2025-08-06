@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { loginSchema, registerSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { z } from "zod";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -198,6 +199,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ material });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Object storage routes for file uploads
+  app.post("/api/objects/upload", requireAuth, async (req: any, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Material file upload completion
+  app.put("/api/materials/file", requireAuth, async (req: any, res) => {
+    try {
+      if (!req.body.fileURL || !req.body.title || !req.body.type) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const filePath = objectStorageService.normalizeObjectEntityPath(req.body.fileURL);
+      
+      // Set ACL policy for the file
+      await objectStorageService.trySetObjectEntityAclPolicy(req.body.fileURL, {
+        owner: req.user.id,
+        visibility: "public", // Materials should be accessible to all authenticated users
+      });
+
+      // Create material record in database
+      const material = await storage.createMaterial({
+        title: req.body.title,
+        description: req.body.description,
+        type: req.body.type,
+        filePath,
+        fileName: req.body.fileName,
+        fileSize: req.body.fileSize,
+        tags: req.body.tags || [],
+        uploadedBy: req.user.id,
+      });
+
+      res.json({ material, filePath });
+    } catch (error) {
+      console.error("Error processing file upload:", error);
+      res.status(500).json({ error: "Failed to process file upload" });
+    }
+  });
+
+  // Serve uploaded files
+  app.get("/objects/:objectPath(*)", requireAuth, async (req: any, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      
+      // Check if user can access the file
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: req.user.id,
+      });
+      
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving file:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
