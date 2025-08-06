@@ -83,7 +83,7 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
           
           // Automatically open the chat when ready
           window.botpress.on("webchat:ready", () => {
-            window.botpress.open();
+            window.botpress?.open();
           });
         }
       };
@@ -139,4 +139,15 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
       </CardContent>
     </Card>
   );
+}
+
+// Extend window type for Botpress
+declare global {
+  interface Window {
+    botpress?: {
+      init: (config: any) => void;
+      on: (event: string, callback: () => void) => void;
+      open: () => void;
+    };
+  }
 }
