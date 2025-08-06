@@ -21,67 +21,77 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
   }, [isCollapsed]);
 
   const initializeBotpress = () => {
-    // Load CSS styles for embedded webchat
+    // Add custom styles for embedded webchat in the sidebar
     const style = document.createElement('style');
     style.textContent = `
-      #webchat .bpWebchat {
-        position: unset !important;
+      .botpress-webchat-container .bpw-widget {
+        position: relative !important;
         width: 100% !important;
         height: 100% !important;
         max-height: 100% !important;
         max-width: 100% !important;
         border-radius: 0 !important;
         box-shadow: none !important;
+        border: none !important;
       }
       
-      #webchat .bpFab {
+      .botpress-webchat-container .bpw-floating-button {
         display: none !important;
       }
       
-      #webchat .bpWebchat iframe {
+      .botpress-webchat-container .bpw-chat-container {
         border-radius: 0 !important;
+        height: 100% !important;
+        max-height: 100% !important;
       }
     `;
-    document.head.appendChild(style);
+    
+    if (!document.querySelector('#botpress-chat-styles')) {
+      style.id = 'botpress-chat-styles';
+      document.head.appendChild(style);
+    }
 
     // Load Botpress webchat script
-    const script = document.createElement('script');
-    script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
-    script.onload = () => {
-      // Initialize Botpress with the configuration you provided
-      const initScript = document.createElement('script');
-      initScript.innerHTML = `
-        if (window.botpress) {
+    if (!document.querySelector('#botpress-webchat-script')) {
+      const script = document.createElement('script');
+      script.id = 'botpress-webchat-script';
+      script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
+      script.onload = () => {
+        // Initialize Botpress with embedded configuration
+        if (window.botpress && webchatRef.current) {
+          window.botpress.init({
+            botId: "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+            configuration: {
+              version: "v1",
+              website: {},
+              email: {},
+              phone: {},
+              termsOfService: {},
+              privacyPolicy: {},
+              color: "#3276EA",
+              variant: "solid",
+              headerVariant: "glass",
+              themeMode: "light",
+              fontFamily: "inter",
+              radius: 4,
+              feedbackEnabled: false,
+              footer: "[⚡ by Botpress](https://botpress.com/?from=webchat)"
+            },
+            clientId: "b98de221-d1f1-43c7-bad5-f279c104c231",
+            selector: "#webchat-container"
+          });
+          
+          // Automatically open the chat when ready
           window.botpress.on("webchat:ready", () => {
             window.botpress.open();
           });
-          
-          window.botpress.init({
-            "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
-            "configuration": {
-              "version": "v1",
-              "website": {},
-              "email": {},
-              "phone": {},
-              "termsOfService": {},
-              "privacyPolicy": {},
-              "color": "#3276EA",
-              "variant": "solid",
-              "headerVariant": "glass",
-              "themeMode": "light",
-              "fontFamily": "inter",
-              "radius": 4,
-              "feedbackEnabled": false,
-              "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)"
-            },
-            "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
-            "selector": "#webchat"
-          });
         }
-      `;
-      document.head.appendChild(initScript);
-    };
-    document.head.appendChild(script);
+      };
+      script.onerror = () => {
+        console.warn("Failed to load Botpress webchat, using fallback interface");
+      };
+      document.head.appendChild(script);
+    }
   };
 
   if (isCollapsed) {
@@ -118,12 +128,14 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
       </CardHeader>
 
       <CardContent className="flex-1 p-0 overflow-hidden">
-        {/* Botpress embedded webchat */}
-        <div 
-          ref={webchatRef}
-          id="webchat" 
-          className="w-full h-full"
-        />
+        {/* Botpress embedded webchat container */}
+        <div className="botpress-webchat-container w-full h-full">
+          <div 
+            ref={webchatRef}
+            id="webchat-container" 
+            className="w-full h-full"
+          />
+        </div>
       </CardContent>
     </Card>
   );
