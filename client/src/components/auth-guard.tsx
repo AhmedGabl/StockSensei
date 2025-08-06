@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getCurrentUser } from "@/lib/auth";
-import { AuthUser } from "@/lib/types";
+import { getCurrentUser, AuthUser } from "@/lib/auth";
 
 interface AuthGuardProps {
   children: (user: AuthUser) => React.ReactNode;

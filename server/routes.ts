@@ -67,6 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
+      console.error("Login error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
