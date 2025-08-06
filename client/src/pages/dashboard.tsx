@@ -20,7 +20,7 @@ interface DashboardProps {
 export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
   const [practiceCallOpen, setPracticeCallOpen] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState("");
-  const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [botpressChatOpen, setBotpressChatOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -99,52 +99,50 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
   return (
     <Layout user={user} currentPage="dashboard" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="max-w-7xl mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column: Dashboard Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Welcome Section */}
-            <div className="bg-gradient-to-r from-primary to-primary-600 rounded-xl p-6 text-white">
-              <h2 className="text-2xl font-bold mb-2">
-                Welcome back, {user.name || user.email.split('@')[0]}!
-              </h2>
-              <p className="text-primary-100 mb-4">
-                Ready to continue your Class Mentor training? You're making great progress!
-              </p>
-              <div className="flex items-center space-x-4">
-                <Button
-                  onClick={() => handlePracticeCall("General Practice")}
-                  className="bg-white text-primary font-medium hover:bg-primary-50"
-                >
-                  <i className="fas fa-phone mr-2"></i>
-                  Start Practice Call
-                </Button>
-                <div className="text-primary-100">
-                  <span className="text-2xl font-bold">{getOverallProgress()}%</span>
-                  <span className="text-sm ml-1">Complete</span>
-                </div>
+        <div className="space-y-6">
+          {/* Welcome Section */}
+          <div className="bg-gradient-to-r from-primary to-primary-600 rounded-xl p-6 text-white">
+            <h2 className="text-2xl font-bold mb-2">
+              Welcome back, {user.name || user.email.split('@')[0]}!
+            </h2>
+            <p className="text-primary-100 mb-4">
+              Ready to continue your Class Mentor training? You're making great progress!
+            </p>
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => handlePracticeCall("General Practice")}
+                className="bg-white text-primary font-medium hover:bg-primary-50"
+              >
+                <i className="fas fa-phone mr-2"></i>
+                Start Practice Call
+              </Button>
+              <div className="text-primary-100">
+                <span className="text-2xl font-bold">{getOverallProgress()}%</span>
+                <span className="text-sm ml-1">Complete</span>
               </div>
             </div>
+          </div>
 
-            {/* Training Modules Grid */}
-            <div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-4">Training Modules</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {MODULES.map((module) => (
-                  <ModuleCard
-                    key={module.id}
-                    module={module}
-                    progress={getProgressForModule(module.id)}
-                    onAction={handleModuleAction}
-                    onPracticeCall={handlePracticeCall}
-                  />
-                ))}
-              </div>
+          {/* Training Modules Grid */}
+          <div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-4">Training Modules</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {MODULES.map((module) => (
+                <ModuleCard
+                  key={module.id}
+                  module={module}
+                  progress={getProgressForModule(module.id)}
+                  onAction={handleModuleAction}
+                  onPracticeCall={handlePracticeCall}
+                />
+              ))}
             </div>
+          </div>
 
-            {/* Quick Actions */}
-            <div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Quick Actions */}
+          <div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {quickActions.map((action, index) => (
                   <Button
                     key={index}
@@ -164,11 +162,11 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
               </div>
             </div>
 
-            {/* Recent Activity */}
-            <div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-4">Recent Activity</h3>
-              <Card>
-                <CardContent className="p-0">
+          {/* Recent Activity */}
+          <div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-4">Recent Activity</h3>
+            <Card>
+              <CardContent className="p-0">
                   <div className="divide-y divide-slate-200">
                     {recentCalls.length > 0 ? (
                       recentCalls.map((call: any, index: number) => (
@@ -198,18 +196,8 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Right Column: Chat Dock */}
-          <div className="lg:col-span-1">
-            <BotpressChat
-              user={user}
-              isCollapsed={chatCollapsed}
-              onToggle={() => setChatCollapsed(!chatCollapsed)}
-            />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -221,8 +209,36 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
         scenario={selectedScenario}
       />
       
+      {/* Botpress Chat Modal */}
+      {botpressChatOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md h-96 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold">CM Assistant</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setBotpressChatOpen(false)}
+              >
+                <i className="fas fa-times"></i>
+              </Button>
+            </div>
+            <div className="flex-1">
+              <BotpressChat
+                user={user}
+                isCollapsed={false}
+                onToggle={() => {}}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Floating Voice Widget */}
-      <VoiceWidget onStartCall={handlePracticeCall} />
+      <VoiceWidget 
+        onStartCall={handlePracticeCall}
+        onShowBotpress={() => setBotpressChatOpen(true)}
+      />
     </Layout>
   );
 }

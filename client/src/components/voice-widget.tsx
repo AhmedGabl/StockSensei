@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 interface VoiceWidgetProps {
   onStartCall?: (scenario: string) => void;
+  onShowBotpress?: () => void;
 }
 
-export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
+export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleStartCall = async () => {
+  const handleVoiceCall = async () => {
     setIsLoading(true);
     
     try {
@@ -19,11 +22,11 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       
       toast({
         title: "Voice Agent Ready",
-        description: "You can now start your practice call!",
+        description: "Starting your practice call!",
       });
       
-      // Trigger practice call if callback provided
       onStartCall?.("General Practice");
+      setIsExpanded(false);
       
     } catch (error) {
       console.warn("Ringg AI not available, using demo mode:", error);
@@ -32,9 +35,25 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
         description: "Voice practice system ready for demo.",
       });
       onStartCall?.("General Practice");
+      setIsExpanded(false);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTextChat = () => {
+    // Show Ringg AI text chat interface
+    toast({
+      title: "Text Chat",
+      description: "Opening Ringg AI text chat...",
+    });
+    setIsExpanded(false);
+  };
+
+  const handleQABot = () => {
+    // Show Botpress Q&A chat
+    onShowBotpress?.();
+    setIsExpanded(false);
   };
 
   const initializeRinggVoiceAgent = (): Promise<void> => {
@@ -95,27 +114,79 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
+      {/* Expanded Options Menu */}
+      {isExpanded && (
+        <Card className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2">
+          <CardHeader className="pb-2">
+            <h3 className="font-semibold text-sm">Choose Assistant</h3>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {/* CM Assistant Q&A Bot */}
+            <Button
+              onClick={handleQABot}
+              variant="outline"
+              className="w-full justify-start text-left"
+            >
+              <i className="fas fa-comments mr-2 text-blue-600"></i>
+              <div>
+                <div className="font-medium">CM Assistant</div>
+                <div className="text-xs text-gray-500">Q&A Support Bot</div>
+              </div>
+            </Button>
+
+            {/* Ringg AI Voice Call */}
+            <Button
+              onClick={handleVoiceCall}
+              disabled={isLoading}
+              variant="outline"
+              className="w-full justify-start text-left"
+            >
+              <i className="fas fa-microphone mr-2 text-green-600"></i>
+              <div>
+                <div className="font-medium">Voice Practice</div>
+                <div className="text-xs text-gray-500">Ringg AI Roleplay</div>
+              </div>
+            </Button>
+
+            {/* Ringg AI Text Chat */}
+            <Button
+              onClick={handleTextChat}
+              variant="outline"
+              className="w-full justify-start text-left"
+            >
+              <i className="fas fa-keyboard mr-2 text-purple-600"></i>
+              <div>
+                <div className="font-medium">Text Practice</div>
+                <div className="text-xs text-gray-500">Ringg AI Chat</div>
+              </div>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Floating Button */}
       <Button
-        onClick={handleStartCall}
+        onClick={() => setIsExpanded(!isExpanded)}
         disabled={isLoading}
-        className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+        className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
       >
         {isLoading ? (
           <i className="fas fa-spinner fa-spin text-white text-xl"></i>
+        ) : isExpanded ? (
+          <i className="fas fa-times text-white text-xl"></i>
         ) : (
-          <div className="flex flex-col items-center">
-            <i className="fas fa-microphone text-white text-xl"></i>
-            <span className="text-xs text-white mt-1">Practice</span>
-          </div>
+          <i className="fas fa-robot text-white text-xl"></i>
         )}
       </Button>
       
       {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
-        <div className="bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-          Start Voice Practice Call
+      {!isExpanded && (
+        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+          <div className="bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+            AI Assistants
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
