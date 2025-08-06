@@ -59,13 +59,16 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
           <div className="flex items-center space-x-3">
             {/* Chat Assistant Button */}
             <Button
-              onClick={() => setChatSidebarOpen(!chatSidebarOpen)}
-              variant="ghost"
+              onClick={() => {
+                console.log('Chat button clicked, current state:', chatSidebarOpen);
+                setChatSidebarOpen(!chatSidebarOpen);
+              }}
+              variant={chatSidebarOpen ? "default" : "outline"}
               size="sm"
-              className="hidden md:flex items-center space-x-2"
+              className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
             >
               <i className="fas fa-comments text-blue-600"></i>
-              <span className="text-sm">CM Assistant</span>
+              <span className="text-sm font-medium">CM Assistant</span>
             </Button>
             
             <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600">
@@ -120,7 +123,8 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
       </div>
 
       {/* Botpress Chat Sidebar */}
-      <div className={`fixed top-20 right-0 h-full w-80 bg-white border-l border-slate-200 shadow-xl transform transition-transform duration-300 z-40 ${
+      {console.log('Sidebar render, chatSidebarOpen:', chatSidebarOpen)}
+      <div className={`fixed top-20 right-0 h-screen w-80 bg-white border-l-2 border-slate-300 shadow-2xl transform transition-transform duration-300 z-50 ${
         chatSidebarOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
@@ -133,12 +137,14 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
             <i className="fas fa-times"></i>
           </Button>
         </div>
-        <div className="h-full pb-16">
-          <BotpressChat
-            user={user}
-            isCollapsed={false}
-            onToggle={() => {}}
-          />
+        <div className="h-full pb-16 overflow-hidden">
+          {chatSidebarOpen && (
+            <BotpressChat
+              user={user}
+              isCollapsed={false}
+              onToggle={() => {}}
+            />
+          )}
         </div>
       </div>
 
