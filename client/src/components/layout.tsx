@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { apiRequest } from "@/lib/queryClient";
 import { BotpressChat } from "@/components/botpress-chat";
+import { AIAssistantHub } from "@/components/ai-assistant-hub";
+import { VoiceWidget } from "@/components/voice-widget";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,7 +16,17 @@ interface LayoutProps {
 }
 
 export function Layout({ children, user, currentPage = "dashboard", onNavigate, onLogout }: LayoutProps) {
-  const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
+  const [aiHubOpen, setAiHubOpen] = useState(false);
+
+  const handleStartPracticeCall = async () => {
+    try {
+      const response = await apiRequest("POST", "/api/practice-calls/start");
+      const data = await response.json();
+      console.log("Practice call started:", data);
+    } catch (error) {
+      console.error("Failed to start practice call:", error);
+    }
+  };
   
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "fas fa-home" },
@@ -57,15 +69,17 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            {/* Chat Assistant Button */}
+            {/* AI Assistant Hub Button */}
             <Button
-              onClick={() => setChatSidebarOpen(!chatSidebarOpen)}
-              variant={chatSidebarOpen ? "default" : "outline"}
+              onClick={() => setAiHubOpen(true)}
+              variant="outline"
               size="sm"
-              className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 border-blue-200"
             >
-              <i className="fas fa-comments text-blue-600"></i>
-              <span className="text-sm font-medium">CM Assistant</span>
+              <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <i className="fas fa-robot text-white text-xs"></i>
+              </div>
+              <span className="text-sm font-medium">AI Training Hub</span>
             </Button>
             
             <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600">
@@ -115,42 +129,11 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
       </nav>
 
       {/* Main Content Area */}
-      <div className={`pt-20 transition-all duration-300 ${chatSidebarOpen ? 'lg:mr-80' : ''}`}>
+      <div className="pt-20">
         {children}
       </div>
 
-      {/* Botpress Chat Sidebar */}
-      <div className={`fixed top-20 right-0 h-screen w-full md:w-96 lg:w-80 bg-white border-l-2 border-slate-300 shadow-2xl transform transition-transform duration-300 z-50 ${
-        chatSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
-        <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-800">CM Assistant</h3>
-          <Button
-            onClick={() => setChatSidebarOpen(false)}
-            variant="ghost"
-            size="sm"
-          >
-            <i className="fas fa-times"></i>
-          </Button>
-        </div>
-        <div className="h-full pb-16 overflow-hidden">
-          {chatSidebarOpen && (
-            <BotpressChat
-              user={user}
-              isCollapsed={false}
-              onToggle={() => {}}
-            />
-          )}
-        </div>
-      </div>
 
-      {/* Overlay for mobile */}
-      {chatSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setChatSidebarOpen(false)}
-        />
-      )}
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 md:hidden">
@@ -168,16 +151,27 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
             </button>
           ))}
           <button 
-            onClick={() => setChatSidebarOpen(!chatSidebarOpen)}
-            className={`flex flex-col items-center py-2 px-1 transition-colors ${
-              chatSidebarOpen ? "text-blue-600" : "text-slate-600"
-            }`}
+            onClick={() => setAiHubOpen(true)}
+            className="flex flex-col items-center py-2 px-1 transition-colors text-slate-600"
           >
-            <i className="fas fa-comments text-lg mb-1"></i>
-            <span className="text-xs">Chat</span>
+            <i className="fas fa-robot text-lg mb-1"></i>
+            <span className="text-xs">AI Hub</span>
           </button>
         </div>
       </div>
+
+      {/* AI Assistant Hub */}
+      <AIAssistantHub
+        user={user}
+        isOpen={aiHubOpen}
+        onClose={() => setAiHubOpen(false)}
+        onStartPracticeCall={handleStartPracticeCall}
+      />
+
+      {/* Floating Voice Widget */}
+      <VoiceWidget
+        onStartCall={() => handleStartPracticeCall()}
+      />
     </div>
   );
 }

@@ -132,26 +132,30 @@ export class ObjectStorageService {
 
   // Gets the upload URL for an object entity.
   async getObjectEntityUploadURL(): Promise<string> {
-    const privateObjectDir = this.getPrivateObjectDir();
-    if (!privateObjectDir) {
-      throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var."
-      );
+    try {
+      const privateObjectDir = this.getPrivateObjectDir();
+      console.log("Private object dir:", privateObjectDir);
+      
+      const objectId = randomUUID();
+      const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+      console.log("Full upload path:", fullPath);
+
+      const { bucketName, objectName } = parseObjectPath(fullPath);
+      console.log("Bucket:", bucketName, "Object:", objectName);
+
+      // Sign URL for PUT method with TTL
+      const signedUrl = await signObjectURL({
+        bucketName,
+        objectName,
+        method: "PUT",
+        ttlSec: 900,
+      });
+      console.log("Generated signed URL successfully");
+      return signedUrl;
+    } catch (error) {
+      console.error("Error in getObjectEntityUploadURL:", error);
+      throw error;
     }
-
-    const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
-
-    const { bucketName, objectName } = parseObjectPath(fullPath);
-
-    // Sign URL for PUT method with TTL
-    return signObjectURL({
-      bucketName,
-      objectName,
-      method: "PUT",
-      ttlSec: 900,
-    });
   }
 
   // Gets the object entity file from the object path.
