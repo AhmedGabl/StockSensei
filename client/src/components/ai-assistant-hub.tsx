@@ -320,25 +320,58 @@ export function AIAssistantHub({ user, isOpen, onClose, onStartPracticeCall }: A
           
           <script>
             function loadTopic(topic) {
-              const chatArea = document.getElementById('chatArea');
-              const responses = {
-                cej: "**Classic English Junior (CEJ) System:**\\n\\n• **11 Levels:** Level S to Level 9\\n• **Structure:** LS-L6 have 18 units/level (144 classes), L7-L9 have 6 units/level (48 classes)\\n• **CEFR Aligned:** Benchmarked against international standards\\n• **Age Range:** 3-15 years old\\n• **Skills:** Comprehensive listening, speaking, reading, writing\\n\\n**Key Selling Points:**\\n• Professional team with 14+ years experience\\n• 100,000+ hours of R&D\\n• 400+ million lessons tested\\n• 720+ real-life scenarios",
-                
-                levels: "**51Talk Level Progression:**\\n\\n**Beginner Levels (S-3):**\\n• Level S: 216 vocab, 18 songs, body parts/family topics\\n• Level 0: 26 letters, 144 keywords, basic sentences\\n• Level 1-2: Phonics foundation (26 sounds, 32 combinations)\\n• Level 3: 432 words, 102 grammar patterns\\n\\n**Elementary (4-6):**\\n• 432 vocabulary per level\\n• 72-128 grammar patterns\\n• Reading passages introduced\\n\\n**Intermediate (7-9):**\\n• 252-253 vocabulary per level\\n• Advanced grammar and reading strategies\\n• Passage-based learning",
-                
-                consumption: "**Class Consumption Policy:**\\n\\n**Monthly Requirement:** 12 classes minimum per month\\n**Consequences:** Unused classes expire if minimum not met\\n**Rationale:** Based on Ebbinghaus Forgetting Curve - regular practice essential\\n\\n**CM Response Strategy:**\\n• Explain the learning science behind regular classes\\n• Show CEFR progression requires consistent practice\\n• Offer fixed schedule to ensure consumption\\n• Reference successful students with regular attendance\\n• Provide makeup class options for emergencies",
-                
-                points: "**Teacher Points System:**\\n\\n**Point Categories:**\\n• Standard Teachers: Lower points, high quality\\n• Premium Teachers: Medium points, specialized training\\n• Global Teachers: Higher points, native speakers\\n\\n**Value Explanation:**\\n• All teachers pass 3% screening rate\\n• 100+ hours professional training\\n• Filipino teachers: Clear accent, no time difference\\n• Point difference reflects experience level, not quality\\n• Recommend starting with standard teachers for consistency",
-                
-                progress: "**Setting Realistic Progress Expectations:**\\n\\n**Timeline Guidance:**\\n• Visible improvement: 2-3 months with regular classes\\n• Level completion: 6-12 months depending on frequency\\n• CEFR progression: Systematic, measurable advancement\\n\\n**Evidence to Show:**\\n• Vocabulary accumulation (216-432 words per level)\\n• Grammar pattern mastery (72-128 patterns)\\n• Recorded class playbacks showing improvement\\n• Level completion certificates\\n• Comparative before/after assessments",
-                
-                communication: "**Effective Parent Communication:**\\n\\n**Key Principles:**\\n• Listen actively before explaining\\n• Use specific 51Talk curriculum data\\n• Reference child's current level and targets\\n• Provide concrete examples and evidence\\n• Follow up with written summaries\\n\\n**Language Tips:**\\n• 'Based on our CEFR framework...'\\n• 'Your child's Level X progress shows...'\\n• 'Research shows that consistent practice...'\\n• 'Let me show you the specific improvements...'",
-                
-                cefr: "**CEFR Integration in 51Talk:**\\n\\n**International Standards:**\\n• A1 (Basic): Levels 1-3\\n• A2 (Elementary): Levels 4-6\\n• B1 (Intermediate): Levels 7-9\\n• Aligned with Cambridge English\\n• Measurable, recognized progression\\n\\n**Parent Benefits:**\\n• International recognition\\n• Clear advancement pathway\\n• Comparable to school English levels\\n• Preparation for international exams\\n• University admission readiness"
+              const topicQueries = {
+                cej: "Tell me about the Classic English Junior (CEJ) curriculum system",
+                levels: "Explain the 51Talk level progression from S to 9", 
+                cefr: "How does 51Talk align with CEFR standards?",
+                business: "What is the Business English course structure?",
+                consumption: "Explain the class consumption policy and rules",
+                points: "How does the teacher points system work?",
+                progress: "What are realistic progress expectations for students?",
+                scheduling: "Compare fixed vs open schedule benefits",
+                communication: "What are best practices for parent communication?",
+                escalation: "How should CMs handle issue resolution?",
+                reports: "How do I create effective progress reports?"
               };
               
-              if (responses[topic]) {
-                addMessage(responses[topic], 'assistant');
+              if (topicQueries[topic]) {
+                addMessage(topicQueries[topic], 'user');
+                
+                // Show thinking message
+                addMessage('Loading information...', 'assistant', 'thinking');
+                
+                // Get real AI response
+                fetch('/api/ai/chat', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  credentials: 'include',
+                  body: JSON.stringify({
+                    message: topicQueries[topic],
+                    context: '51Talk CM Knowledge Base'
+                  })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  // Remove thinking message
+                  const thinkingMsg = document.querySelector('[data-type="thinking"]');
+                  if (thinkingMsg) thinkingMsg.remove();
+                  
+                  if (data.response) {
+                    addMessage(data.response, 'assistant');
+                  } else {
+                    addMessage('Sorry, I had trouble loading that information.', 'assistant');
+                  }
+                })
+                .catch(err => {
+                  console.error('Topic API Error:', err);
+                  // Remove thinking message
+                  const thinkingMsg = document.querySelector('[data-type="thinking"]');
+                  if (thinkingMsg) thinkingMsg.remove();
+                  
+                  addMessage('Unable to load topic information right now.', 'assistant');
+                });
               }
             }
             
@@ -350,11 +383,41 @@ export function AIAssistantHub({ user, isOpen, onClose, onStartPracticeCall }: A
               addMessage(message, 'user');
               input.value = '';
               
-              // Simulate intelligent response based on keywords
-              setTimeout(() => {
-                let response = generateResponse(message);
-                addMessage(response, 'assistant');
-              }, 1000);
+              // Show thinking message
+              addMessage('Analyzing your question...', 'assistant', 'thinking');
+              
+              // Get real AI response from backend
+              fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  message: message,
+                  context: '51Talk CM Knowledge Assistant'
+                })
+              })
+              .then(res => res.json())
+              .then(data => {
+                // Remove thinking message
+                const thinkingMsg = document.querySelector('[data-type="thinking"]');
+                if (thinkingMsg) thinkingMsg.remove();
+                
+                if (data.response) {
+                  addMessage(data.response, 'assistant');
+                } else {
+                  addMessage('Sorry, I had trouble processing your request. Please try again.', 'assistant');
+                }
+              })
+              .catch(err => {
+                console.error('AI API Error:', err);
+                // Remove thinking message
+                const thinkingMsg = document.querySelector('[data-type="thinking"]');
+                if (thinkingMsg) thinkingMsg.remove();
+                
+                addMessage('I\\'m having trouble connecting right now. Please try again.', 'assistant');
+              });
             }
             
             function generateResponse(message) {
@@ -379,10 +442,11 @@ export function AIAssistantHub({ user, isOpen, onClose, onStartPracticeCall }: A
               return "Based on 51Talk's curriculum framework and your question, I recommend checking our specific policies in the knowledge base. Each situation requires understanding both our educational methodology and individual student needs.\\n\\nWould you like me to explain any specific aspect of our CEFR-aligned curriculum or teaching approach?";
             }
             
-            function addMessage(text, sender) {
+            function addMessage(text, sender, type = '') {
               const chatArea = document.getElementById('chatArea');
               const messageDiv = document.createElement('div');
               messageDiv.className = 'mb-4';
+              if (type) messageDiv.setAttribute('data-type', type);
               
               if (sender === 'user') {
                 messageDiv.innerHTML = \`
@@ -393,9 +457,11 @@ export function AIAssistantHub({ user, isOpen, onClose, onStartPracticeCall }: A
                   </div>
                 \`;
               } else {
+                const bgClass = type === 'thinking' ? 'bg-yellow-100' : 'bg-purple-100';
+                const textClass = type === 'thinking' ? 'text-yellow-800 italic' : 'text-purple-800';
                 messageDiv.innerHTML = \`
-                  <div class="bg-purple-100 p-3 rounded-lg max-w-md">
-                    <p class="text-sm text-purple-800" style="white-space: pre-line">\${text}</p>
+                  <div class="\${bgClass} p-3 rounded-lg max-w-md">
+                    <div class="text-sm \${textClass}" style="white-space: pre-line">\${text}</div>
                   </div>
                 \`;
               }

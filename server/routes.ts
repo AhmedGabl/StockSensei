@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { aiTrainingService } from "./aiService";
 import { loginSchema, registerSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -327,6 +328,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "File not found" });
       }
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // AI Training API endpoints
+  app.post("/api/ai/chat", requireAuth, async (req: any, res) => {
+    try {
+      const { message, context } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      const response = await aiTrainingService.generateChatResponse(message, context);
+      res.json({ response });
+    } catch (error) {
+      console.error("AI Chat Error:", error);
+      res.status(500).json({ message: "Failed to generate response" });
+    }
+  });
+
+  app.post("/api/ai/roleplay", requireAuth, async (req: any, res) => {
+    try {
+      const { message, scenario, conversationHistory = [] } = req.body;
+      
+      if (!message || !scenario) {
+        return res.status(400).json({ message: "Message and scenario are required" });
+      }
+      
+      const response = await aiTrainingService.generateRoleplayResponse(
+        message, 
+        scenario, 
+        conversationHistory
+      );
+      res.json({ response });
+    } catch (error) {
+      console.error("AI Roleplay Error:", error);
+      res.status(500).json({ message: "Failed to generate response" });
     }
   });
 

@@ -162,34 +162,51 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
           chatContainer.appendChild(userMsg);
           
           // Add bot response after delay
-          setTimeout(() => {
-            const botMsg = document.createElement('div');
-            botMsg.className = 'flex justify-start';
-            
-            // Generate contextual response based on user input
-            let response = "Thanks for your question! ";
-            const msg = input.value.toLowerCase();
-            
-            if (msg.includes('consumption') || msg.includes('12 classes')) {
-              response = "The 12 classes/month rule is based on the Ebbinghaus Forgetting Curve. Regular practice is essential for language retention. Would you like me to explain the learning loop: Preview → Class → Review → Test?";
-            } else if (msg.includes('level') || msg.includes('cej')) {
-              response = "CEJ has 11 levels (S-9) aligned with CEFR standards. Each level builds systematically: Level S focuses on 216 vocabulary words, while higher levels include complex grammar patterns. Which level are you asking about?";
-            } else if (msg.includes('teacher') || msg.includes('points')) {
-              response = "All 51Talk teachers pass a 3% screening rate and complete 100+ hours of training. Points reflect experience level, not quality. Filipino teachers offer clear accents with no time difference. Need help explaining this to a parent?";
-            } else if (msg.includes('progress') || msg.includes('improvement')) {
-              response = "Language progress typically shows in 2-3 months with regular classes. 51Talk tracks vocabulary acquisition (216-432 words per level) and grammar patterns. Have you shown the parent recorded class comparisons?";
+          // Create bot message immediately to show loading
+          const botMsg = document.createElement('div');
+          botMsg.className = 'flex justify-start';
+          botMsg.innerHTML = `
+            <div class="bg-slate-100 rounded-lg p-3 max-w-xs">
+              <p class="text-sm text-slate-700">Thinking...</p>
+            </div>
+          `;
+          chatContainer.appendChild(botMsg);
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+          
+          // Get real AI response from backend
+          fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              message: input.value,
+              context: '51Talk CM Training Chat'
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.response) {
+              botMsg.innerHTML = `
+                <div class="bg-slate-100 rounded-lg p-3 max-w-md">
+                  <div class="text-sm text-slate-700 whitespace-pre-line">${data.response}</div>
+                </div>
+              `;
             } else {
-              response += "As a 51Talk CM, I can help with curriculum details, policy explanations, or parent communication strategies. What specific situation are you dealing with?";
+              throw new Error('No response received');
             }
-            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          })
+          .catch(err => {
+            console.error('Chat API Error:', err);
             botMsg.innerHTML = `
-              <div class="bg-slate-100 rounded-lg p-3 max-w-xs">
-                <p class="text-sm text-slate-700">${response}</p>
+              <div class="bg-red-50 rounded-lg p-3 max-w-xs">
+                <p class="text-sm text-red-700">Sorry, I'm having trouble responding right now. Please try again.</p>
               </div>
             `;
-            chatContainer.appendChild(botMsg);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-          }, 1000);
+          });
           
           input.value = '';
           chatContainer.scrollTop = chatContainer.scrollHeight;
