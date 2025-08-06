@@ -5,10 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface VoiceWidgetProps {
   onStartCall?: (scenario: string) => void;
-  onShowBotpress?: () => void;
 }
 
-export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
+export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -47,12 +46,6 @@ export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
       title: "Text Chat",
       description: "Opening Ringg AI text chat...",
     });
-    setIsExpanded(false);
-  };
-
-  const handleQABot = () => {
-    // Show Botpress Q&A chat
-    onShowBotpress?.();
     setIsExpanded(false);
   };
 
@@ -118,22 +111,9 @@ export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
       {isExpanded && (
         <Card className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2">
           <CardHeader className="pb-2">
-            <h3 className="font-semibold text-sm">Choose Assistant</h3>
+            <h3 className="font-semibold text-sm">Ringg AI Practice</h3>
           </CardHeader>
           <CardContent className="space-y-2">
-            {/* CM Assistant Q&A Bot */}
-            <Button
-              onClick={handleQABot}
-              variant="outline"
-              className="w-full justify-start text-left"
-            >
-              <i className="fas fa-comments mr-2 text-blue-600"></i>
-              <div>
-                <div className="font-medium">CM Assistant</div>
-                <div className="text-xs text-gray-500">Q&A Support Bot</div>
-              </div>
-            </Button>
-
             {/* Ringg AI Voice Call */}
             <Button
               onClick={handleVoiceCall}
@@ -144,7 +124,7 @@ export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
               <i className="fas fa-microphone mr-2 text-green-600"></i>
               <div>
                 <div className="font-medium">Voice Practice</div>
-                <div className="text-xs text-gray-500">Ringg AI Roleplay</div>
+                <div className="text-xs text-gray-500">AI Roleplay Calls</div>
               </div>
             </Button>
 
@@ -157,7 +137,7 @@ export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
               <i className="fas fa-keyboard mr-2 text-purple-600"></i>
               <div>
                 <div className="font-medium">Text Practice</div>
-                <div className="text-xs text-gray-500">Ringg AI Chat</div>
+                <div className="text-xs text-gray-500">AI Text Chat</div>
               </div>
             </Button>
           </CardContent>
@@ -175,7 +155,7 @@ export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
         ) : isExpanded ? (
           <i className="fas fa-times text-white text-xl"></i>
         ) : (
-          <i className="fas fa-robot text-white text-xl"></i>
+          <i className="fas fa-microphone text-white text-xl"></i>
         )}
       </Button>
       
@@ -183,7 +163,7 @@ export function VoiceWidget({ onStartCall, onShowBotpress }: VoiceWidgetProps) {
       {!isExpanded && (
         <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
           <div className="bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-            AI Assistants
+            Ringg AI Practice
           </div>
         </div>
       )}

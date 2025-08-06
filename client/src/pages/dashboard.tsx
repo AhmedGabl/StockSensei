@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { ModuleCard } from "@/components/module-card";
-import { BotpressChat } from "@/components/botpress-chat";
+
 import { PracticeCall } from "@/components/practice-call";
 import { VoiceWidget } from "@/components/voice-widget";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,6 @@ interface DashboardProps {
 export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
   const [practiceCallOpen, setPracticeCallOpen] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState("");
-  const [botpressChatOpen, setBotpressChatOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -209,35 +208,9 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
         scenario={selectedScenario}
       />
       
-      {/* Botpress Chat Modal */}
-      {botpressChatOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-md h-96 flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold">CM Assistant</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setBotpressChatOpen(false)}
-              >
-                <i className="fas fa-times"></i>
-              </Button>
-            </div>
-            <div className="flex-1">
-              <BotpressChat
-                user={user}
-                isCollapsed={false}
-                onToggle={() => {}}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Floating Voice Widget */}
+      {/* Floating Ringg AI Widget */}
       <VoiceWidget 
         onStartCall={handlePracticeCall}
-        onShowBotpress={() => setBotpressChatOpen(true)}
       />
     </Layout>
   );

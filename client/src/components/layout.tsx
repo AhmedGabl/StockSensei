@@ -3,6 +3,7 @@ import { User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { apiRequest } from "@/lib/queryClient";
+import { BotpressChat } from "@/components/botpress-chat";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,8 @@ interface LayoutProps {
 }
 
 export function Layout({ children, user, currentPage = "dashboard", onNavigate, onLogout }: LayoutProps) {
+  const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
+  
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "fas fa-home" },
     { id: "materials", label: "Materials", icon: "fas fa-book" },
@@ -33,7 +36,7 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top Navigation */}
-      <nav className="bg-white border-b border-slate-200 px-4 py-3">
+      <nav className="bg-white border-b border-slate-200 px-4 py-3 fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-slate-800">CM Training</h1>
@@ -54,6 +57,17 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            {/* Chat Assistant Button */}
+            <Button
+              onClick={() => setChatSidebarOpen(!chatSidebarOpen)}
+              variant="ghost"
+              size="sm"
+              className="hidden md:flex items-center space-x-2"
+            >
+              <i className="fas fa-comments text-blue-600"></i>
+              <span className="text-sm">CM Assistant</span>
+            </Button>
+            
             <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600">
               <span>{user.name || user.email}</span>
               <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
@@ -100,8 +114,41 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
         </div>
       </nav>
 
-      {/* Main Content */}
-      {children}
+      {/* Main Content Area */}
+      <div className={`pt-20 transition-all duration-300 ${chatSidebarOpen ? 'mr-80' : ''}`}>
+        {children}
+      </div>
+
+      {/* Botpress Chat Sidebar */}
+      <div className={`fixed top-20 right-0 h-full w-80 bg-white border-l border-slate-200 shadow-xl transform transition-transform duration-300 z-40 ${
+        chatSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+          <h3 className="font-semibold text-slate-800">CM Assistant</h3>
+          <Button
+            onClick={() => setChatSidebarOpen(false)}
+            variant="ghost"
+            size="sm"
+          >
+            <i className="fas fa-times"></i>
+          </Button>
+        </div>
+        <div className="h-full pb-16">
+          <BotpressChat
+            user={user}
+            isCollapsed={false}
+            onToggle={() => {}}
+          />
+        </div>
+      </div>
+
+      {/* Overlay for mobile */}
+      {chatSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={() => setChatSidebarOpen(false)}
+        />
+      )}
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 md:hidden">
@@ -118,9 +165,14 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
               <span className="text-xs">{item.label}</span>
             </button>
           ))}
-          <button className="flex flex-col items-center py-2 px-1 text-slate-600">
-            <i className="fas fa-phone-alt text-lg mb-1"></i>
-            <span className="text-xs">Practice</span>
+          <button 
+            onClick={() => setChatSidebarOpen(!chatSidebarOpen)}
+            className={`flex flex-col items-center py-2 px-1 transition-colors ${
+              chatSidebarOpen ? "text-blue-600" : "text-slate-600"
+            }`}
+          >
+            <i className="fas fa-comments text-lg mb-1"></i>
+            <span className="text-xs">Chat</span>
           </button>
         </div>
       </div>
