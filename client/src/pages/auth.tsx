@@ -47,12 +47,19 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
         return await login(data);
       }
     },
-    onSuccess: () => {
+    onSuccess: (user) => {
       toast({
         title: "Success!",
         description: isSignup ? "Account created successfully!" : "Welcome back!",
       });
-      onAuthSuccess();
+      // For signup, add a small delay to ensure session is set
+      if (isSignup) {
+        setTimeout(() => {
+          onAuthSuccess();
+        }, 200);
+      } else {
+        onAuthSuccess();
+      }
     },
     onError: (error: any) => {
       toast({

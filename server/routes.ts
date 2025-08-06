@@ -40,6 +40,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Set session after successful registration
+      (req as any).session.userId = user.id;
+
       res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
       if (error instanceof z.ZodError) {
