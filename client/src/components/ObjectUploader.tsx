@@ -54,7 +54,7 @@ interface ObjectUploaderProps {
  */
 export function ObjectUploader({
   maxNumberOfFiles = 1,
-  maxFileSize = 50485760, // 50MB default for PDFs and PowerPoints
+  maxFileSize = 104857600, // 100MB default for PDFs and PowerPoints
   onGetUploadParameters,
   onComplete,
   buttonClassName,

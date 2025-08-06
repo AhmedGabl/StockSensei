@@ -59,10 +59,7 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
           <div className="flex items-center space-x-3">
             {/* Chat Assistant Button */}
             <Button
-              onClick={() => {
-                console.log('Chat button clicked, current state:', chatSidebarOpen);
-                setChatSidebarOpen(!chatSidebarOpen);
-              }}
+              onClick={() => setChatSidebarOpen(!chatSidebarOpen)}
               variant={chatSidebarOpen ? "default" : "outline"}
               size="sm"
               className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
@@ -118,13 +115,12 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
       </nav>
 
       {/* Main Content Area */}
-      <div className={`pt-20 transition-all duration-300 ${chatSidebarOpen ? 'mr-80' : ''}`}>
+      <div className={`pt-20 transition-all duration-300 ${chatSidebarOpen ? 'lg:mr-80' : ''}`}>
         {children}
       </div>
 
       {/* Botpress Chat Sidebar */}
-      {console.log('Sidebar render, chatSidebarOpen:', chatSidebarOpen)}
-      <div className={`fixed top-20 right-0 h-screen w-80 bg-white border-l-2 border-slate-300 shadow-2xl transform transition-transform duration-300 z-50 ${
+      <div className={`fixed top-20 right-0 h-screen w-full md:w-96 lg:w-80 bg-white border-l-2 border-slate-300 shadow-2xl transform transition-transform duration-300 z-50 ${
         chatSidebarOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
@@ -151,7 +147,7 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
       {/* Overlay for mobile */}
       {chatSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setChatSidebarOpen(false)}
         />
       )}

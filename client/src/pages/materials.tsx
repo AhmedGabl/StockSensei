@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Material } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { FileViewer } from "@/components/file-viewer";
 import type { UploadResult } from "@uppy/core";
 
 interface MaterialsProps {
@@ -27,6 +28,8 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<Material | null>(null);
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
@@ -166,19 +169,19 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
     <Layout user={user} currentPage="materials" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="max-w-7xl mx-auto p-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Training Materials Portal</h1>
-            <p className="text-slate-500">Upload, manage, and access PDFs and PowerPoint files</p>
+            <p className="text-slate-500">Upload, manage, and access PDFs and PowerPoint files (up to 100MB)</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="relative w-full sm:w-80">
               <Input
                 type="text"
                 placeholder="Search materials..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-80"
+                className="pl-10 w-full"
               />
               <i className="fas fa-search absolute left-3 top-3 text-slate-400"></i>
             </div>
@@ -263,15 +266,16 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                       <div className="mt-2">
                         <ObjectUploader
                           maxNumberOfFiles={1}
-                          maxFileSize={52428800} // 50MB
+                          maxFileSize={104857600} // 100MB
                           allowedFileTypes={['.pdf', '.ppt', '.pptx', '.doc', '.docx']}
                           onGetUploadParameters={handleGetUploadParameters}
                           onComplete={handleUploadComplete}
                           buttonClassName="w-full"
                         >
-                          <div className="flex items-center justify-center gap-2">
-                            <i className="fas fa-cloud-upload-alt"></i>
-                            <span>Choose PDF or PowerPoint File</span>
+                          <div className="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg bg-slate-50">
+                            <i className="fas fa-cloud-upload-alt text-2xl text-slate-400"></i>
+                            <span className="font-medium">Upload Document</span>
+                            <span className="text-sm text-slate-500">PDF, PowerPoint, or Word files up to 100MB</span>
                           </div>
                         </ObjectUploader>
                         {uploadData.fileName && (
@@ -317,12 +321,13 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
         </div>
 
         {/* Filter Tags */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-6 overflow-x-auto">
+          <div className="flex flex-nowrap sm:flex-wrap gap-2 pb-2">
             <Button
               variant={selectedTags.length === 0 ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedTags([])}
+              className="whitespace-nowrap"
             >
               All
             </Button>
@@ -332,6 +337,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                 variant={selectedTags.includes(tag) ? "default" : "outline"}
                 size="sm"
                 onClick={() => toggleTag(tag)}
+                className="whitespace-nowrap"
               >
                 {tag}
               </Button>
@@ -395,11 +401,14 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                       <Button 
                         className="flex-1" 
                         size="sm" 
-                        onClick={() => handleDownload(material)}
+                        onClick={() => {
+                          setSelectedFile(material);
+                          setFileViewerOpen(true);
+                        }}
                         disabled={!material.filePath && !material.url}
                       >
                         <i className="fas fa-eye mr-1"></i>
-                        View
+                        View & Preview
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -426,6 +435,16 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
             </p>
           </div>
         )}
+
+        {/* File Viewer Modal */}
+        <FileViewer
+          material={selectedFile}
+          isOpen={fileViewerOpen}
+          onClose={() => {
+            setFileViewerOpen(false);
+            setSelectedFile(null);
+          }}
+        />
       </div>
     </Layout>
   );
