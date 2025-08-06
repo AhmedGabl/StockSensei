@@ -1,0 +1,251 @@
+Got it. Here’s a single **copy-paste prompt for Replit** (Ghostwriter) to generate the whole site. It’s opinionated, full-stack, and includes the Ringg AI roleplay, Botpress chat, profiles with progress tracking, and a materials portal. Drop this into Replit’s AI and let it scaffold everything.
+
+---
+
+# 🔧 Build Spec — “CM Training Dashboard”
+
+**Goal:** Build a friendly, production-ready training dashboard for Class Mentors (CMs) with:
+
+* **Friendly GUI**
+* **Role-play practice calls (Ringg AI embed)**
+* **Chat Q\&A (Botpress Webchat)**
+* **Profiles (email/password auth) + progress tracking**
+* **Materials portal (PDFs/videos/scripts)**
+* **Profile page with progress & history**
+
+## Tech Stack (use these unless impossible)
+
+* **Next.js 14 (App Router) + TypeScript**
+* **Tailwind CSS** (clean, accessible UI)
+* **Prisma** ORM with **SQLite** (dev) and **Postgres** ready (prod)
+* **NextAuth** (email/password credentials provider)
+* **Zod** for validation
+* **Upload**: file uploads stored locally in `/public/materials` (dev) with abstraction to swap to S3 later
+* **Server Actions** for mutations where sensible; otherwise `/api/*` routes
+
+## ENV (create `.env.local`)
+
+```
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="dev-secret"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Botpress
+BOTPRESS_BOT_ID="<YOUR_BOT_ID>"
+BOTPRESS_CLIENT_ID="<YOUR_CLIENT_ID>"
+BOTPRESS_WEBCHAT_HOST="https://cdn.botpress.cloud/webchat/v1"
+BOTPRESS_MESSAGING_URL="https://messaging.botpress.cloud"
+
+# Ringg AI embed (used client-side)
+RINGG_AGENT_ID="373dc1f5-d841-4dc2-8b06-193e5177e0ba"
+RINGG_X_API_KEY="be40b1db-451c-4ede-9acd-2c4403f51ef0"
+```
+
+## Data Model (Prisma)
+
+Create these models and migrate:
+
+```prisma
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  role          Role     @default(STUDENT)
+  createdAt     DateTime @default(now())
+  progress      Progress[]
+  practiceCalls PracticeCall[]
+}
+
+model Progress {
+  id          String   @id @default(cuid())
+  userId      String
+  module      String   // "SOP_1ST_CALL" | "SOP_4TH" | "VOIP" | "SCRM" | "CURRICULUM" | "REFERRALS"
+  score       Int?
+  status      String   // "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED"
+  attempts    Int      @default(0)
+  lastTouched DateTime @default(now())
+  User        User     @relation(fields: [userId], references: [id])
+}
+
+model PracticeCall {
+  id        String   @id @default(cuid())
+  userId    String
+  scenario  String   // e.g., "Referral After 4th Class"
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  notes     String?
+  outcome   String?  // "PASSED" | "IMPROVE" | "N/A"
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Material {
+  id        String   @id @default(cuid())
+  title     String
+  type      String   // "PDF" | "VIDEO" | "SCRIPT"
+  url       String   // public URL in /materials or CDN
+  tags      String[] // ["SOP","VOIP","REFERRAL","YOUTH","ADULT"]
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  STUDENT
+  TRAINER
+  ADMIN
+}
+```
+
+## Pages / Routes (App Router)
+
+* `/` → **Home/Dashboard**
+
+  * Welcome, module cards with progress bars
+  * Quick actions: “Start Practice Call”, “Open Q\&A Chat”, “View Materials”, “Take Quiz”
+* `/auth/signin` → Email/password signin (NextAuth credentials)
+* `/profile` → Profile & progress
+
+  * Recent practice calls list, quiz scores, modules completion, “Resume last module”
+* `/materials` → Materials portal
+
+  * Filter by tag (SOP, VOIP, REFERRALS, YOUTH, ADULT), search, preview/download
+* `/admin` (role-gated) → upload materials, view users, export progress CSV
+
+## UI/UX Requirements
+
+* Use a **split layout** on desktop: left column = modules & progress; right column = **persistent Botpress chat dock** (collapsible).
+* “Practice Call” button is visually prominent, opens Ringg modal/widget.
+* Empty states are friendly. Use micro-copy and toasts.
+* Mobile responsive: sticky footer with “Practice Call” and “Chat” shortcuts.
+
+## Components (implement)
+
+* `components/PracticeCall.tsx`
+  Loads Ringg AI Web Call Assistant via client script. **Embed exactly this**:
+
+  ```html
+  <script>
+    function loadAgentsCdn(e,t){let n=document.createElement("link");n.rel="stylesheet",n.type="text/css",n.href=`https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${e}/dist/style.css`;var a=document.createElement("script");a.type="text/javascript",a.readyState?a.onreadystatechange=function(){"loaded"!==a.readyState&&"complete"!==a.readyState||(a.onreadystatechange=null,t())}:a.onload=function(){t()},a.src=`https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${e}/dist/dv-agent.es.js`,document.getElementsByTagName("head")[0].appendChild(n),document.getElementsByTagName("head")[0].appendChild(a)}
+  </script>
+  <script>
+    loadAgentsCdn("1.0.3", function () {
+      loadAgent({
+        agentId: window.process?.env?.RINGG_AGENT_ID || "{{env.RINGG_AGENT_ID}}",
+        xApiKey: window.process?.env?.RINGG_X_API_KEY || "{{env.RINGG_X_API_KEY}}",
+        variables: {"callee_name":"CALLEE_NAME"}
+      });
+    });
+  </script>
+  ```
+
+  * After the modal closes, POST `/api/practice-calls/complete` with `{ scenario, outcome, notes }`.
+* `components/BotpressChat.tsx`
+  Inject Botpress webchat (dock on the right). Initialize with logged-in user email.
+
+  ```html
+  <script src="https://cdn.botpress.cloud/webchat/v1/inject.js"></script>
+  <script>
+    window.botpressWebChat.init({
+      botId: "{{env.BOTPRESS_BOT_ID}}",
+      hostUrl: "{{env.BOTPRESS_WEBCHAT_HOST}}",
+      messagingUrl: "{{env.BOTPRESS_MESSAGING_URL}}",
+      clientId: "{{env.BOTPRESS_CLIENT_ID}}",
+      stylesheet: "",
+      composerPlaceholder: "Ask about SOPs, VOIP, curriculum…",
+      showCloseButton: true,
+      hideWidget: false,
+      useSessionStorage: true,
+      userData: { email: "<REPLACEME_RUNTIME>" }
+    });
+  </script>
+  ```
+
+  Expose helper: `window.botpressWebChat.sendPayload({ type: 'trigger', payload: { action: 'finished_practice' } })` after a Ringg call so the bot can guide next steps.
+* `components/ModuleCard.tsx`
+  Visual card with progress bar, CTA (“Practice”, “Quiz”, “Open Materials”).
+* `components/ProgressDonut.tsx`
+  Simple SVG donut for completion %.
+
+## Server APIs
+
+* `POST /api/auth/register` → create user (hash password with bcrypt)
+* `POST /api/progress/upsert` → update module status/score/attempts
+* `POST /api/practice-calls/start` → create row, returns id
+* `POST /api/practice-calls/complete` → set `endedAt`, outcome, notes
+* `GET /api/materials` → list with filters
+* `POST /api/materials` (ADMIN) → upload/save metadata
+* `GET /api/me` → current user + progress snapshot
+
+## Flows & Tracking
+
+* On first login, seed `Progress` for modules:
+
+  * `SOP_1ST_CALL`, `SOP_4TH`, `SOP_UNIT`, `SOP_1ST_MONTH`, `VOIP`, `SCRM`, `CURRICULUM`, `REFERRALS`
+* When user clicks **Practice Call**:
+
+  * call `/api/practice-calls/start` (scenario param)
+  * open Ringg modal → on close, call `/api/practice-calls/complete`
+  * increment `Progress.attempts` for that module
+* Quizzes: store `score` and mark `status=COMPLETED` if score ≥ 70
+* From PracticeCall component, trigger Botpress `finished_practice` event to prompt quiz or materials.
+
+## Materials Portal
+
+* Grid list with filters (chips): **SOP**, **VOIP**, **REFERRAL**, **YOUTH**, **ADULT**
+* Clicking item → details drawer (title, description, “Open/Download”)
+* Support adding external links too; treat `url` as absolute if starts with `http`
+
+## Profile Page
+
+* Avatar (initials), name, email
+* Overall completion % + donut
+* Cards per module with:
+
+  * status, last touched
+  * best score
+  * “Resume” button (opens chat or materials as needed)
+* Practice history table: date, scenario, outcome, notes (trainer feedback field optional)
+
+## Access Control
+
+* NextAuth session-guard `/profile`, `/materials`, `/admin`
+* `role=ADMIN` can upload materials and view global progress
+* Trainers can read-only all progress (optional role `TRAINER`)
+
+## Styling & Tone
+
+* Tailwind with a friendly palette
+* Buttons rounded, subtle shadows, clear hover states
+* Use toasts for success/error
+* Keep copy encouraging (“Nice! Ready for a quick quiz?”)
+
+## Error Handling & Pitfalls
+
+* Validate all inputs with Zod
+* Protect API routes (session & role checks)
+* Degrade gracefully if Botpress or Ringg scripts fail (show retry button)
+* Do **not** expose secrets in client; Ringg keys are used client-side per embed—warn and allow domain restriction
+
+## Seed Script
+
+* Create a few demo materials and a demo student (`demo@cm.com` / `password123`) for quick QA
+* Seed baseline `Progress` rows
+
+## Nice-to-have (if time permits)
+
+* Export progress CSV (admin)
+* Dark mode
+* i18n stub (en/ar)
+
+## Acceptance Criteria
+
+* User can **register/login**, land on Dashboard, see modules & progress
+* **Practice Call** opens Ringg widget; completing logs a PracticeCall row and nudges Botpress
+* **Botpress chat** is docked and usable across pages; receives `finished_practice` triggers
+* **Materials** page lists/filter/opens resources
+* **Profile** page shows scores, attempts, completion, and practice history
+* All data persists via Prisma DB; API routes protected
+* Clean, responsive UI with a friendly feel
+
+---
+
+If something is ambiguous, choose sensible defaults and document in `README.md`. Build and wire everything end-to-end so I can click **Run** in Replit and test the whole flow locally.
