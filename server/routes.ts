@@ -179,6 +179,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin routes
+  app.get("/api/admin/users", requireAuth, async (req: any, res) => {
+    try {
+      // Check if user is admin
+      if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json({ users: users.map(user => ({ 
+        id: user.id, 
+        email: user.email, 
+        name: user.name, 
+        role: user.role,
+        createdAt: user.createdAt 
+      }))});
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/users/:userId/progress", requireAuth, async (req: any, res) => {
+    try {
+      // Check if user is admin
+      if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const progress = await storage.getUserProgress(req.params.userId);
+      res.json({ progress });
+    } catch (error) {
+      console.error("Error fetching user progress:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/users/:userId/practice-calls", requireAuth, async (req: any, res) => {
+    try {
+      // Check if user is admin
+      if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const calls = await storage.getUserPracticeCalls(req.params.userId);
+      res.json({ calls });
+    } catch (error) {
+      console.error("Error fetching user practice calls:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Materials routes
   app.get("/api/materials", requireAuth, async (req: any, res) => {
     try {

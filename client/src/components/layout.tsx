@@ -32,6 +32,7 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
     { id: "dashboard", label: "Dashboard", icon: "fas fa-home" },
     { id: "materials", label: "Materials", icon: "fas fa-book" },
     { id: "profile", label: "Profile", icon: "fas fa-user" },
+    ...(user.role === "ADMIN" ? [{ id: "admin", label: "Admin", icon: "fas fa-shield-alt" }] : []),
   ];
 
   const handleLogout = async () => {

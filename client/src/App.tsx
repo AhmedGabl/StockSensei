@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import Materials from "@/pages/materials";
 import Profile from "@/pages/profile";
+import Admin from "@/pages/admin";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
@@ -32,6 +33,8 @@ function App() {
         return <Materials user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "profile":
         return <Profile user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+      case "admin":
+        return <Admin user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       default:
         return <Dashboard user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
     }
