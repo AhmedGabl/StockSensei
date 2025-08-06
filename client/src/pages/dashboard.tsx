@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout";
 import { ModuleCard } from "@/components/module-card";
 import { BotpressChat } from "@/components/botpress-chat";
 import { PracticeCall } from "@/components/practice-call";
+import { VoiceWidget } from "@/components/voice-widget";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, Progress, MODULES } from "@/lib/types";
@@ -219,6 +220,9 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
         onClose={() => setPracticeCallOpen(false)}
         scenario={selectedScenario}
       />
+      
+      {/* Floating Voice Widget */}
+      <VoiceWidget onStartCall={handlePracticeCall} />
     </Layout>
   );
 }
