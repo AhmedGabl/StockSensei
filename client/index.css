@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Additional styles for the training dashboard */
+.gradient-bg {
+  background: linear-gradient(135deg, hsl(207, 90%, 54%) 0%, hsl(207, 90%, 48%) 100%);
+}
+
+/* Module color utilities */
+.bg-emerald-100 { background-color: hsl(152, 81%, 96%); }
+.bg-emerald-500 { background-color: hsl(160, 84%, 39%); }
+.text-emerald-600 { color: hsl(158, 64%, 52%); }
+.text-emerald-700 { color: hsl(161, 94%, 30%); }
+
+.bg-blue-100 { background-color: hsl(214, 100%, 97%); }
+.bg-blue-500 { background-color: hsl(217, 91%, 60%); }
+.text-blue-600 { color: hsl(221, 83%, 53%); }
+.text-blue-700 { color: hsl(224, 76%, 48%); }
+
+.bg-purple-100 { background-color: hsl(270, 100%, 98%); }
+.text-purple-600 { color: hsl(262, 83%, 58%); }
+
+.bg-amber-100 { background-color: hsl(48, 100%, 96%); }
+.text-amber-600 { color: hsl(32, 95%, 44%); }
+.text-amber-700 { color: hsl(26, 90%, 37%); }
+
+.bg-red-100 { background-color: hsl(0, 100%, 97%); }
+.text-red-600 { color: hsl(0, 84%, 60%); }
+
+.bg-slate-100 { background-color: hsl(210, 40%, 98%); }
+.bg-slate-300 { background-color: hsl(212, 13%, 84%); }
+.text-slate-400 { color: hsl(215, 20%, 65%); }
+
+/* FontAwesome icons will be loaded from CDN */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .mobile-safe-bottom {
+    padding-bottom: 5rem;
+  }
+}
