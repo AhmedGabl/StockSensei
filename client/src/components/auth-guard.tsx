@@ -11,6 +11,8 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
     queryKey: ["/api/me"],
     queryFn: getCurrentUser,
     retry: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   if (isLoading) {

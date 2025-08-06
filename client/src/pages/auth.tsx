@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -52,6 +53,10 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
         title: "Success!",
         description: isSignup ? "Account created successfully!" : "Welcome back!",
       });
+      
+      // Invalidate the /api/me query to trigger re-fetch
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      
       // For signup, add a small delay to ensure session is set
       if (isSignup) {
         setTimeout(() => {
