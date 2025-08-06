@@ -2,7 +2,19 @@
 
 ## Overview
 
-A comprehensive training dashboard built for Class Mentors (CMs) featuring roleplay practice calls, interactive chat support, progress tracking, and learning materials management. The application provides a user-friendly interface for training sessions with integrated external services for AI-powered practice calls and chatbot assistance.
+A fully functional, comprehensive training dashboard built for Class Mentors (CMs) featuring roleplay practice calls, interactive chat support, progress tracking, and learning materials management. The application includes a complete authentication system, PostgreSQL database integration, and is ready for deployment with external AI service integrations.
+
+**Status**: ✅ Complete and functional
+**Last Updated**: January 6, 2025
+
+## Recent Changes
+
+- ✅ Fixed authentication system with PostgreSQL session store
+- ✅ Implemented user registration and login functionality
+- ✅ Added session management for secure user authentication
+- ✅ Created sample materials and seed data
+- ✅ Improved Ringg AI integration with better error handling
+- ✅ Enhanced practice call interface with clear instructions
 
 ## User Preferences
 
@@ -60,3 +72,22 @@ Preferred communication style: Simple, everyday language.
 ### Authentication and Security
 - **bcrypt**: Password hashing and validation
 - **Custom Session Management**: Server-side session handling with database persistence
+- **express-session**: Session middleware with PostgreSQL store via connect-pg-simple
+
+## Environment Variables
+
+The following environment variables can be configured for external service integration:
+
+### Required (automatically configured)
+- `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
+- `SESSION_SECRET`: Session encryption key (defaults to dev key)
+
+### Optional (for external services)
+- `VITE_RINGG_AGENT_ID`: Ringg AI agent ID for practice calls
+- `VITE_RINGG_X_API_KEY`: Ringg AI API key for voice assistant
+- `VITE_BOTPRESS_BOT_ID`: Botpress bot ID for chat integration  
+- `VITE_BOTPRESS_CLIENT_ID`: Botpress client ID
+- `VITE_BOTPRESS_WEBCHAT_HOST`: Botpress webchat host URL
+- `VITE_BOTPRESS_MESSAGING_URL`: Botpress messaging service URL
+
+**Note**: The application works fully without external API keys. Practice calls and chat features have fallback interfaces for demonstration purposes.
