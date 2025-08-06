@@ -10,9 +10,10 @@ import { apiRequest } from "@/lib/queryClient";
 interface ProfileProps {
   user: User;
   onNavigate: (page: string) => void;
+  onLogout: () => void;
 }
 
-export default function Profile({ user, onNavigate }: ProfileProps) {
+export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
   const { data: progressData } = useQuery({
     queryKey: ["/api/progress"],
     queryFn: async () => {
@@ -74,7 +75,7 @@ export default function Profile({ user, onNavigate }: ProfileProps) {
   };
 
   return (
-    <Layout user={user} currentPage="profile" onNavigate={onNavigate}>
+    <Layout user={user} currentPage="profile" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="max-w-4xl mx-auto p-4 space-y-6">
         {/* Profile Header */}
         <Card>

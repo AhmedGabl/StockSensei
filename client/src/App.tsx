@@ -18,14 +18,22 @@ function App() {
     setCurrentPage("dashboard");
   };
 
+  const handleLogout = () => {
+    // Clear query cache
+    queryClient.clear();
+    // Reset auth state by incrementing key
+    setAuthKey(prev => prev + 1);
+    setCurrentPage("dashboard");
+  };
+
   const renderPage = (user: any) => {
     switch (currentPage) {
       case "materials":
-        return <Materials user={user} onNavigate={setCurrentPage} />;
+        return <Materials user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "profile":
-        return <Profile user={user} onNavigate={setCurrentPage} />;
+        return <Profile user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       default:
-        return <Dashboard user={user} onNavigate={setCurrentPage} />;
+        return <Dashboard user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
     }
   };
 
