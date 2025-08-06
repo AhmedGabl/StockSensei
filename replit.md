@@ -9,12 +9,13 @@ A fully functional, comprehensive training dashboard built for Class Mentors (CM
 
 ## Recent Changes
 
-- ✅ Fixed authentication system with PostgreSQL session store
-- ✅ Implemented user registration and login functionality
-- ✅ Added session management for secure user authentication
-- ✅ Created sample materials and seed data
-- ✅ Improved Ringg AI integration with better error handling
-- ✅ Enhanced practice call interface with clear instructions
+- ✅ Implemented responsive Botpress chatbot sidebar with proper mobile overlay
+- ✅ Enhanced materials portal with comprehensive file preview system
+- ✅ Increased file upload limit from 50MB to 100MB for larger documents
+- ✅ Added in-browser PDF preview with dedicated file viewer modal
+- ✅ Improved responsive design for all screen sizes
+- ✅ Set up object storage for file upload functionality
+- ✅ Created dedicated file management interface with preview and download options
 
 ## User Preferences
 
