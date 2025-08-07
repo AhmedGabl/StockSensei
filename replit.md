@@ -9,13 +9,14 @@ A fully functional, comprehensive training dashboard built for Class Mentors (CM
 
 ## Recent Changes
 
-- ✅ Implemented responsive Botpress chatbot sidebar with proper mobile overlay
+- ✅ **Fixed deployment authentication issues**: Enhanced session configuration for production environments
+- ✅ **Added CORS support**: Configured cross-origin resource sharing for deployed environments
+- ✅ **Improved session handling**: Added explicit session saves and deployment-ready cookie settings
+- ✅ **Multiple concurrent admin sessions**: Database configured to support up to 5+ concurrent admin logins
+- ✅ **Auto-redirect after authentication**: Fixed immediate redirect behavior without page refresh
+- ✅ **Added health check endpoint**: `/api/health` for deployment diagnostic and troubleshooting
 - ✅ Enhanced materials portal with comprehensive file preview system
 - ✅ Increased file upload limit from 50MB to 100MB for larger documents
-- ✅ Added in-browser PDF preview with dedicated file viewer modal
-- ✅ Improved responsive design for all screen sizes
-- ✅ Set up object storage for file upload functionality
-- ✅ Created dedicated file management interface with preview and download options
 
 ## User Preferences
 

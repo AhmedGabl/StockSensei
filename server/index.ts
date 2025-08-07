@@ -5,11 +5,28 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Basic headers for deployment compatibility
+const isProduction = process.env.NODE_ENV === 'production';
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,Pragma');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Session configuration
 const PgSession = ConnectPgSimple(session);
+
 app.use(session({
   store: new PgSession({
     conString: process.env.DATABASE_URL,
@@ -20,10 +37,12 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   rolling: true, // Reset expiration on activity
+  name: 'connect.sid', // Explicit session name
   cookie: {
-    secure: false, // Set to true in production with HTTPS
+    secure: isProduction, // HTTPS in production, HTTP in development
     httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    sameSite: isProduction ? 'none' : 'lax' // Cross-origin support for deployment
   }
 }));
 

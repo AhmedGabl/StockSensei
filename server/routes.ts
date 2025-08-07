@@ -361,6 +361,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deployment health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({
+      status: "ok",
+      environment: process.env.NODE_ENV || "development",
+      database: process.env.DATABASE_URL ? "connected" : "missing",
+      session: req.session ? "configured" : "missing",
+      timestamp: new Date().toISOString(),
+      cookies: req.headers.cookie ? "present" : "missing"
+    });
+  });
+
   // AI Training API endpoints
   app.post("/api/ai/chat", requireAuth, async (req: any, res) => {
     try {
