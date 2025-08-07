@@ -34,8 +34,8 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: mode === "signin" ? "admin@cm.com" : "",
+      password: mode === "signin" ? "password123" : "",
       name: "",
     },
   });

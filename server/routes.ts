@@ -41,25 +41,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Set session after successful registration with explicit save
+      // Set session after successful registration
       (req as any).session.userId = user.id;
-      
-      // Force session save
-      (req as any).session.save((err: any) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ message: "Session error" });
-        }
-        
-        res.json({ 
-          user: { 
-            id: user.id, 
-            email: user.email, 
-            name: user.name, 
-            role: user.role 
-          }
-        });
-      });
+
+      res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
@@ -82,25 +67,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Set session with explicit save
+      // Set session
       (req as any).session.userId = user.id;
-      
-      // Force session save
-      (req as any).session.save((err: any) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ message: "Session error" });
-        }
-        
-        res.json({ 
-          user: { 
-            id: user.id, 
-            email: user.email, 
-            name: user.name, 
-            role: user.role 
-          }
-        });
-      });
+
+      res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
       console.error("Login error:", error);
       if (error instanceof z.ZodError) {
