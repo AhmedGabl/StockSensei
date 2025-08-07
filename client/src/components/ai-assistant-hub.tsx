@@ -10,10 +10,9 @@ interface AIAssistantHubProps {
   user: User;
   isOpen: boolean;
   onClose: () => void;
-  onStartPracticeCall: () => void;
 }
 
-export function AIAssistantHub({ user, isOpen, onClose, onStartPracticeCall }: AIAssistantHubProps) {
+export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
   const [activeTab, setActiveTab] = useState("chat");
 
   const scenarios = [
@@ -109,11 +108,45 @@ export function AIAssistantHub({ user, isOpen, onClose, onStartPracticeCall }: A
                   </div>
                 </div>
               </div>
+              
+              <!-- Interactive Roleplay Chat -->
+              <div class="bg-white border rounded-lg mb-6">
+                <div class="p-4 border-b bg-slate-50">
+                  <h4 class="font-semibold text-slate-800">Interactive Roleplay Chat</h4>
+                  <p class="text-sm text-slate-600">Practice with AI parent simulation</p>
+                </div>
+                <div id="roleplayChat" class="h-64 overflow-y-auto p-4 space-y-3">
+                  <div class="bg-red-50 p-3 rounded-lg max-w-md">
+                    <div class="flex items-center space-x-2 mb-1">
+                      <i class="fas fa-user text-red-600"></i>
+                      <span class="text-sm font-medium text-red-800">Parent</span>
+                    </div>
+                    <p class="text-sm text-red-700">${randomScenario.situation}</p>
+                  </div>
+                </div>
+                <div class="p-4 border-t">
+                  <div class="flex space-x-2">
+                    <input 
+                      type="text" 
+                      id="roleplayInput" 
+                      placeholder="Type your CM response..." 
+                      class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onkeypress="handleKeyPress(event)"
+                    >
+                    <button 
+                      onclick="sendRoleplayMessage()" 
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                    >
+                      <i class="fas fa-paper-plane"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
                 
-                <div class="flex justify-center space-x-4 mb-6">
+              <div class="flex justify-center space-x-4 mb-6">
                 <button onclick="startCall()" id="startBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2">
                   <i class="fas fa-play"></i>
-                  <span>Start Roleplay</span>
+                  <span>Start Voice Session</span>
                 </button>
                 <button onclick="endCall()" id="endBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 hidden">
                   <i class="fas fa-stop"></i>

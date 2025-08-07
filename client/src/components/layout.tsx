@@ -166,7 +166,6 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
         user={user}
         isOpen={aiHubOpen}
         onClose={() => setAiHubOpen(false)}
-        onStartPracticeCall={handleStartPracticeCall}
       />
 
       {/* Floating Voice Widget */}
