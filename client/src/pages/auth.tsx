@@ -34,8 +34,8 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: mode === "signin" ? "admin@cm.com" : "",
-      password: mode === "signin" ? "password123" : "",
+      email: "",
+      password: "",
       name: "",
     },
   });
@@ -54,17 +54,13 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
         description: isSignup ? "Account created successfully!" : "Welcome back!",
       });
       
-      // Invalidate the /api/me query to trigger re-fetch
-      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      // Invalidate all queries and immediately redirect
+      queryClient.invalidateQueries();
       
-      // For signup, add a small delay to ensure session is set
-      if (isSignup) {
-        setTimeout(() => {
-          onAuthSuccess();
-        }, 200);
-      } else {
+      // Immediate redirect to ensure proper state update
+      setTimeout(() => {
         onAuthSuccess();
-      }
+      }, 100);
     },
     onError: (error: any) => {
       toast({

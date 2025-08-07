@@ -13,11 +13,13 @@ const PgSession = ConnectPgSimple(session);
 app.use(session({
   store: new PgSession({
     conString: process.env.DATABASE_URL,
-    tableName: 'session'
+    tableName: 'session',
+    createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
+  rolling: true, // Reset expiration on activity
   cookie: {
     secure: false, // Set to true in production with HTTPS
     httpOnly: true,
