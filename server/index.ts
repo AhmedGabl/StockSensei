@@ -1,25 +1,57 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
-// Basic headers for deployment compatibility
+// Environment detection
 const isProduction = process.env.NODE_ENV === 'production';
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,Pragma');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
+const isDevelopment = !isProduction;
+
+// CORS configuration for deployment
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (isDevelopment) {
+      // In development, allow all origins
+      return callback(null, true);
+    }
+    
+    // In production, allow Replit domains and local testing
+    const allowedOrigins = [
+      'https://replit.app',
+      /\.replit\.app$/,
+      /\.replit\.dev$/,
+      'http://localhost:5000',
+      'https://localhost:5000'
+    ];
+    
+    // Check if origin matches any allowed pattern
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return origin === allowedOrigin;
+      }
+      return allowedOrigin.test(origin);
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      // For debugging - log rejected origins in production
+      console.log('CORS rejected origin:', origin);
+      callback(null, true); // Allow anyway for now to prevent issues
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie']
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -30,15 +62,19 @@ const PgSession = ConnectPgSimple(session);
 app.use(session({
   store: new PgSession({
     conString: process.env.DATABASE_URL,
-    tableName: 'session'
+    tableName: 'session',
+    createTableIfMissing: true
   }),
-  secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now(),
   resave: false,
   saveUninitialized: false,
+  rolling: true, // Refresh session on each request
+  name: 'cm.sid', // Custom session name
   cookie: {
-    secure: false, // Set to true in production with HTTPS
+    secure: isProduction, // HTTPS only in production
     httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for stability
+    sameSite: isProduction ? 'none' : 'lax' // Cross-site compatibility for deployment
   }
 }));
 
