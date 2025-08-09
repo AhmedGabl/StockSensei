@@ -71,10 +71,11 @@ app.use(session({
   rolling: true, // Refresh session on each request
   name: 'cm.sid', // Custom session name
   cookie: {
-    secure: isProduction, // HTTPS only in production
+    secure: false, // Allow HTTP in Replit environment 
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for stability
-    sameSite: isProduction ? 'none' : 'lax' // Cross-site compatibility for deployment
+    sameSite: 'lax', // More permissive for Replit deployment
+    domain: undefined // Let browser handle domain automatically
   }
 }));
 

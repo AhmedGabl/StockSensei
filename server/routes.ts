@@ -41,10 +41,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Set session after successful registration
+      // Set session after successful registration and ensure it's saved
       (req as any).session.userId = user.id;
-
-      res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+      
+      // Force session save for deployment compatibility
+      (req as any).session.save((err: any) => {
+        if (err) {
+          console.error("Session save error:", err);
+        }
+        res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
@@ -67,10 +73,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Set session
+      // Set session and ensure it's saved
       (req as any).session.userId = user.id;
-
-      res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+      
+      // Force session save for deployment compatibility
+      (req as any).session.save((err: any) => {
+        if (err) {
+          console.error("Session save error:", err);
+        }
+        res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+      });
     } catch (error) {
       console.error("Login error:", error);
       if (error instanceof z.ZodError) {
@@ -88,6 +100,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Protected route middleware
   const requireAuth = async (req: any, res: any, next: any) => {
     if (!req.session?.userId) {
+      console.log("Auth check failed: No session or userId", { 
+        sessionExists: !!req.session, 
+        userId: req.session?.userId,
+        sessionID: req.sessionID 
+      });
       return res.status(401).json({ message: "Authentication required" });
     }
     
@@ -103,6 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.get("/api/me", requireAuth, (req: any, res) => {
     const { passwordHash, ...user } = req.user;
+    console.log("User authenticated successfully:", { userId: user.id, email: user.email });
     res.json({ user });
   });
 
