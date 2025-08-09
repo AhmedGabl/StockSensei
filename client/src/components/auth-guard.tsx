@@ -7,17 +7,17 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, fallback }: AuthGuardProps) {
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, error } = useQuery({
     queryKey: ["/api/me"],
     queryFn: getCurrentUser,
     retry: false,
     refetchOnWindowFocus: true,
-    staleTime: 0,
-    gcTime: 0, // Don't cache results
+    staleTime: 1000, // Keep data for 1 second to prevent flicker
+    gcTime: 5000, // Keep in cache for 5 seconds
     refetchOnMount: 'always', // Always check on mount
   });
 
-  console.log("AuthGuard state: isLoading:", isLoading, "user:", user);
+  console.log("AuthGuard state: isLoading:", isLoading, "user:", user, "error:", error);
 
   if (isLoading) {
     return (
