@@ -34,8 +34,8 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: mode === "signin" ? "admin@cm.com" : "",
-      password: mode === "signin" ? "password123" : "",
+      email: "",
+      password: "",
       name: "",
     },
   });
@@ -49,7 +49,6 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
       }
     },
     onSuccess: (user) => {
-      console.log("Auth success, user:", user);
       toast({
         title: "Success!",
         description: isSignup ? "Account created successfully!" : "Welcome back!",
@@ -62,7 +61,6 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
       
       // Small delay to ensure state is stable before redirect
-      console.log("Calling onAuthSuccess...");
       setTimeout(() => {
         onAuthSuccess();
       }, 50);

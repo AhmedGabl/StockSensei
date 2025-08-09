@@ -15,7 +15,6 @@ function App() {
   const [authKey, setAuthKey] = useState(0);
 
   const handleAuthSuccess = () => {
-    console.log("handleAuthSuccess called, setting page to dashboard");
     setAuthKey(prev => prev + 1);
     setCurrentPage("dashboard");
   };

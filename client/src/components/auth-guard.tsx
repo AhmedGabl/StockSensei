@@ -17,7 +17,7 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
     refetchOnMount: 'always', // Always check on mount
   });
 
-  console.log("AuthGuard state: isLoading:", isLoading, "user:", user, "error:", error);
+  // Debug: console.log("AuthGuard state: isLoading:", isLoading, "user:", user, "error:", error);
 
   if (isLoading) {
     return (
