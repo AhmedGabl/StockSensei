@@ -280,17 +280,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectStorageService = new ObjectStorageService();
       const filePath = objectStorageService.normalizeObjectEntityPath(req.body.fileURL);
       
-      // Set ACL policy for the file
-      await objectStorageService.trySetObjectEntityAclPolicy(req.body.fileURL, {
-        owner: req.user.id,
-        visibility: "public", // Materials should be accessible to all authenticated users
-      });
+      // Try to set ACL policy for the file (may fail if file doesn't exist yet)
+      try {
+        await objectStorageService.trySetObjectEntityAclPolicy(req.body.fileURL, {
+          owner: req.user.id,
+          visibility: "public", // Materials should be accessible to all authenticated users
+        });
+      } catch (aclError: any) {
+        console.log("Note: Could not set ACL policy immediately, file may not be fully uploaded yet:", aclError.message);
+        // Continue anyway - the file will still be accessible via the direct path
+      }
 
       // Create material record in database
       const material = await storage.createMaterial({
         title: req.body.title,
         description: req.body.description,
         type: req.body.type,
+        url: filePath, // Set url field for the material
         filePath,
         fileName: req.body.fileName,
         fileSize: req.body.fileSize,
