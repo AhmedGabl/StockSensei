@@ -13,7 +13,11 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
     retry: false,
     refetchOnWindowFocus: true,
     staleTime: 0,
+    gcTime: 0, // Don't cache results
+    refetchOnMount: 'always', // Always check on mount
   });
+
+  console.log("AuthGuard state: isLoading:", isLoading, "user:", user);
 
   if (isLoading) {
     return (

@@ -49,18 +49,19 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
       }
     },
     onSuccess: (user) => {
+      console.log("Auth success, user:", user);
       toast({
         title: "Success!",
         description: isSignup ? "Account created successfully!" : "Welcome back!",
       });
       
-      // Invalidate all queries and immediately redirect
-      queryClient.invalidateQueries();
+      // Immediately refetch user data to trigger AuthGuard update
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/me"] });
       
       // Immediate redirect to ensure proper state update
-      setTimeout(() => {
-        onAuthSuccess();
-      }, 100);
+      console.log("Calling onAuthSuccess...");
+      onAuthSuccess();
     },
     onError: (error: any) => {
       toast({
