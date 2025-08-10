@@ -1,6 +1,12 @@
-import { users, progress, practiceCalls, materials, type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, type Material, type InsertMaterial } from "@shared/schema";
+import { 
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks,
+  type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
+  type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
+  type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
+  type Note, type InsertNote, type Task, type InsertTask
+} from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -22,6 +28,41 @@ export interface IStorage {
   // Material operations
   getMaterials(tags?: string[]): Promise<Material[]>;
   createMaterial(material: InsertMaterial): Promise<Material>;
+  updateMaterial(id: string, updates: Partial<Material>): Promise<Material>;
+  deleteMaterial(id: string): Promise<void>; // Soft delete
+  restoreMaterial(id: string): Promise<Material>;
+
+  // Test operations
+  getTests(publishedOnly?: boolean): Promise<Test[]>;
+  getTest(id: string): Promise<Test | undefined>;
+  createTest(test: InsertTest): Promise<Test>;
+  updateTest(id: string, updates: Partial<Test>): Promise<Test>;
+  
+  // Question operations
+  getTestQuestions(testId: string): Promise<(Question & { options?: Option[] })[]>;
+  createQuestion(question: InsertQuestion): Promise<Question>;
+  
+  // Option operations
+  createOption(option: InsertOption): Promise<Option>;
+  
+  // Attempt operations
+  getUserAttempts(userId: string, testId?: string): Promise<Attempt[]>;
+  createAttempt(attempt: InsertAttempt): Promise<Attempt>;
+  updateAttempt(id: string, updates: Partial<Attempt>): Promise<Attempt>;
+  getBestScore(userId: string, testId: string): Promise<number | null>;
+  
+  // Answer operations
+  createAnswer(answer: InsertAnswer): Promise<Answer>;
+  getAttemptAnswers(attemptId: string): Promise<Answer[]>;
+  
+  // Note operations
+  getUserNotes(userId: string): Promise<Note[]>;
+  createNote(note: InsertNote): Promise<Note>;
+  
+  // Task operations
+  getUserTasks(userId: string, status?: "OPEN" | "DONE"): Promise<Task[]>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: string, updates: Partial<Task>): Promise<Task>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -104,8 +145,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMaterials(tags?: string[]): Promise<Material[]> {
-    // TODO: Implement tag filtering with SQL arrays
-    return await db.select().from(materials);
+    let query = db.select().from(materials)
+      .where(isNull(materials.deletedAt))
+      .orderBy(desc(materials.createdAt));
+    
+    // TODO: Add tag filtering when needed
+    return await query;
   }
 
   async createMaterial(materialData: InsertMaterial): Promise<Material> {
@@ -114,6 +159,219 @@ export class DatabaseStorage implements IStorage {
       .values(materialData)
       .returning();
     return material;
+  }
+
+  async updateMaterial(id: string, updates: Partial<Material>): Promise<Material> {
+    const [material] = await db
+      .update(materials)
+      .set(updates)
+      .where(eq(materials.id, id))
+      .returning();
+    return material;
+  }
+
+  async deleteMaterial(id: string): Promise<void> {
+    await db
+      .update(materials)
+      .set({ deletedAt: new Date() })
+      .where(eq(materials.id, id));
+  }
+
+  async restoreMaterial(id: string): Promise<Material> {
+    const [material] = await db
+      .update(materials)
+      .set({ deletedAt: null })
+      .where(eq(materials.id, id))
+      .returning();
+    return material;
+  }
+
+  // Test operations
+  async getTests(publishedOnly = false): Promise<Test[]> {
+    if (publishedOnly) {
+      return await db.select().from(tests)
+        .where(eq(tests.isPublished, true))
+        .orderBy(desc(tests.createdAt));
+    }
+    
+    return await db.select().from(tests).orderBy(desc(tests.createdAt));
+  }
+
+  async getTest(id: string): Promise<Test | undefined> {
+    const [test] = await db.select().from(tests).where(eq(tests.id, id));
+    return test || undefined;
+  }
+
+  async createTest(testData: InsertTest): Promise<Test> {
+    const [test] = await db
+      .insert(tests)
+      .values(testData)
+      .returning();
+    return test;
+  }
+
+  async updateTest(id: string, updates: Partial<Test>): Promise<Test> {
+    const [test] = await db
+      .update(tests)
+      .set(updates)
+      .where(eq(tests.id, id))
+      .returning();
+    return test;
+  }
+
+  // Question operations  
+  async getTestQuestions(testId: string): Promise<(Question & { options?: Option[] })[]> {
+    const questionsWithOptions = await db
+      .select({
+        question: questions,
+        option: options,
+      })
+      .from(questions)
+      .leftJoin(options, eq(options.questionId, questions.id))
+      .where(eq(questions.testId, testId))
+      .orderBy(questions.createdAt);
+
+    // Group options by question
+    const questionMap = new Map<string, Question & { options: Option[] }>();
+    
+    for (const row of questionsWithOptions) {
+      if (!questionMap.has(row.question.id)) {
+        questionMap.set(row.question.id, {
+          ...row.question,
+          options: [],
+        });
+      }
+      
+      if (row.option) {
+        questionMap.get(row.question.id)!.options.push(row.option);
+      }
+    }
+    
+    return Array.from(questionMap.values());
+  }
+
+  async createQuestion(questionData: InsertQuestion): Promise<Question> {
+    const [question] = await db
+      .insert(questions)
+      .values(questionData)
+      .returning();
+    return question;
+  }
+
+  // Option operations
+  async createOption(optionData: InsertOption): Promise<Option> {
+    const [option] = await db
+      .insert(options)
+      .values(optionData)
+      .returning();
+    return option;
+  }
+
+  // Attempt operations
+  async getUserAttempts(userId: string, testId?: string): Promise<Attempt[]> {
+    if (testId) {
+      return await db.select().from(attempts)
+        .where(and(eq(attempts.userId, userId), eq(attempts.testId, testId)))
+        .orderBy(desc(attempts.startedAt));
+    }
+    
+    return await db.select().from(attempts)
+      .where(eq(attempts.userId, userId))
+      .orderBy(desc(attempts.startedAt));
+  }
+
+  async createAttempt(attemptData: InsertAttempt): Promise<Attempt> {
+    const [attempt] = await db
+      .insert(attempts)
+      .values(attemptData)
+      .returning();
+    return attempt;
+  }
+
+  async updateAttempt(id: string, updates: Partial<Attempt>): Promise<Attempt> {
+    const [attempt] = await db
+      .update(attempts)
+      .set(updates)
+      .where(eq(attempts.id, id))
+      .returning();
+    return attempt;
+  }
+
+  async getBestScore(userId: string, testId: string): Promise<number | null> {
+    const result = await db
+      .select({ scorePercent: attempts.scorePercent })
+      .from(attempts)
+      .where(and(
+        eq(attempts.userId, userId),
+        eq(attempts.testId, testId)
+      ))
+      .orderBy(desc(attempts.scorePercent))
+      .limit(1);
+    
+    return result[0]?.scorePercent || null;
+  }
+
+  // Answer operations
+  async createAnswer(answerData: InsertAnswer): Promise<Answer> {
+    const [answer] = await db
+      .insert(answers)
+      .values(answerData)
+      .returning();
+    return answer;
+  }
+
+  async getAttemptAnswers(attemptId: string): Promise<Answer[]> {
+    return await db
+      .select()
+      .from(answers)
+      .where(eq(answers.attemptId, attemptId));
+  }
+
+  // Note operations
+  async getUserNotes(userId: string): Promise<Note[]> {
+    return await db
+      .select()
+      .from(notes)
+      .where(eq(notes.userId, userId))
+      .orderBy(desc(notes.createdAt));
+  }
+
+  async createNote(noteData: InsertNote): Promise<Note> {
+    const [note] = await db
+      .insert(notes)
+      .values(noteData)
+      .returning();
+    return note;
+  }
+
+  // Task operations
+  async getUserTasks(userId: string, status?: "OPEN" | "DONE"): Promise<Task[]> {
+    if (status) {
+      return await db.select().from(tasks)
+        .where(and(eq(tasks.userId, userId), eq(tasks.status, status)))
+        .orderBy(desc(tasks.createdAt));
+    }
+    
+    return await db.select().from(tasks)
+      .where(eq(tasks.userId, userId))
+      .orderBy(desc(tasks.createdAt));
+  }
+
+  async createTask(taskData: InsertTask): Promise<Task> {
+    const [task] = await db
+      .insert(tasks)
+      .values(taskData)
+      .returning();
+    return task;
+  }
+
+  async updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+    const [task] = await db
+      .update(tasks)
+      .set(updates)
+      .where(eq(tasks.id, id))
+      .returning();
+    return task;
   }
 }
 

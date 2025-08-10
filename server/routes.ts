@@ -120,6 +120,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  const requireAdmin = async (req: any, res: any, next: any) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+    
+    if (user.role !== "ADMIN") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    
+    req.user = user;
+    next();
+  };
+
   // User routes
   app.get("/api/me", requireAuth, (req: any, res) => {
     const { passwordHash, ...user } = req.user;
@@ -355,6 +373,277 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "File not found" });
       }
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Enhanced Materials API routes with video support and soft delete
+  app.patch("/api/materials/:id", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const material = await storage.updateMaterial(id, updates);
+      res.json({ material });
+    } catch (error) {
+      console.error("Error updating material:", error);
+      res.status(500).json({ message: "Failed to update material" });
+    }
+  });
+
+  app.delete("/api/materials/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteMaterial(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting material:", error);
+      res.status(500).json({ message: "Failed to delete material" });
+    }
+  });
+
+  app.post("/api/materials/:id/restore", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const material = await storage.restoreMaterial(id);
+      res.json({ material });
+    } catch (error) {
+      console.error("Error restoring material:", error);
+      res.status(500).json({ message: "Failed to restore material" });
+    }
+  });
+
+  // Test Management API routes
+  app.get("/api/tests", requireAuth, async (req: any, res) => {
+    try {
+      const publishedOnly = req.user.role !== "ADMIN";
+      const tests = await storage.getTests(publishedOnly);
+      res.json({ tests });
+    } catch (error) {
+      console.error("Error fetching tests:", error);
+      res.status(500).json({ message: "Failed to fetch tests" });
+    }
+  });
+
+  app.get("/api/tests/:id", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const test = await storage.getTest(id);
+      
+      if (!test) {
+        return res.status(404).json({ message: "Test not found" });
+      }
+      
+      // Non-admin users can only see published tests
+      if (req.user.role !== "ADMIN" && !test.isPublished) {
+        return res.status(403).json({ message: "Test not available" });
+      }
+      
+      const questions = await storage.getTestQuestions(id);
+      res.json({ test, questions });
+    } catch (error) {
+      console.error("Error fetching test:", error);
+      res.status(500).json({ message: "Failed to fetch test" });
+    }
+  });
+
+  app.post("/api/tests", requireAdmin, async (req: any, res) => {
+    try {
+      const { title, description, questions: questionData } = req.body;
+      
+      // Create the test
+      const test = await storage.createTest({
+        title,
+        description,
+        createdById: req.user.id,
+        isPublished: false
+      });
+
+      // Create questions and options
+      for (const qData of questionData) {
+        const question = await storage.createQuestion({
+          testId: test.id,
+          kind: qData.kind,
+          text: qData.text,
+          explanation: qData.explanation
+        });
+
+        if (qData.options && qData.kind === 'MCQ') {
+          for (const optionData of qData.options) {
+            await storage.createOption({
+              questionId: question.id,
+              text: optionData.text,
+              isCorrect: optionData.isCorrect
+            });
+          }
+        }
+      }
+
+      res.json({ test });
+    } catch (error) {
+      console.error("Error creating test:", error);
+      res.status(500).json({ message: "Failed to create test" });
+    }
+  });
+
+  app.patch("/api/tests/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const test = await storage.updateTest(id, updates);
+      res.json({ test });
+    } catch (error) {
+      console.error("Error updating test:", error);
+      res.status(500).json({ message: "Failed to update test" });
+    }
+  });
+
+  // Test Attempt API routes
+  app.get("/api/attempts", requireAuth, async (req: any, res) => {
+    try {
+      const { testId } = req.query;
+      const attempts = await storage.getUserAttempts(req.user.id, testId as string);
+      res.json({ attempts });
+    } catch (error) {
+      console.error("Error fetching attempts:", error);
+      res.status(500).json({ message: "Failed to fetch attempts" });
+    }
+  });
+
+  app.post("/api/tests/:testId/attempt", requireAuth, async (req: any, res) => {
+    try {
+      const { testId } = req.params;
+      
+      // Create new attempt
+      const attempt = await storage.createAttempt({
+        userId: req.user.id,
+        testId,
+        scorePercent: null
+      });
+
+      res.json({ attempt });
+    } catch (error) {
+      console.error("Error creating attempt:", error);
+      res.status(500).json({ message: "Failed to create attempt" });
+    }
+  });
+
+  app.post("/api/attempts/:attemptId/submit", requireAuth, async (req: any, res) => {
+    try {
+      const { attemptId } = req.params;
+      const { answers: answerData } = req.body;
+      
+      // Store answers and calculate score
+      let correctAnswers = 0;
+      let totalQuestions = answerData.length;
+      
+      for (const answerItem of answerData) {
+        await storage.createAnswer({
+          attemptId,
+          questionId: answerItem.questionId,
+          optionId: answerItem.optionId,
+          valueBool: answerItem.valueBool
+        });
+        
+        // TODO: Calculate if answer is correct by comparing with question options
+        // This would require fetching question data and checking correct answers
+      }
+      
+      const scorePercent = Math.round((correctAnswers / totalQuestions) * 100);
+      
+      // Update attempt with score
+      const attempt = await storage.updateAttempt(attemptId, {
+        scorePercent,
+        submittedAt: new Date()
+      });
+
+      res.json({ attempt, scorePercent });
+    } catch (error) {
+      console.error("Error submitting attempt:", error);
+      res.status(500).json({ message: "Failed to submit attempt" });
+    }
+  });
+
+  // Student Notes API routes
+  app.get("/api/users/:userId/notes", requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const notes = await storage.getUserNotes(userId);
+      res.json({ notes });
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
+  app.post("/api/users/:userId/notes", requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { body, isVisibleToStudent } = req.body;
+      
+      const note = await storage.createNote({
+        userId,
+        authorId: req.user.id,
+        body,
+        isVisibleToStudent: !!isVisibleToStudent
+      });
+
+      res.json({ note });
+    } catch (error) {
+      console.error("Error creating note:", error);
+      res.status(500).json({ message: "Failed to create note" });
+    }
+  });
+
+  // Student Tasks API routes
+  app.get("/api/users/:userId/tasks", requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { status } = req.query;
+      const tasks = await storage.getUserTasks(userId, status as "OPEN" | "DONE");
+      res.json({ tasks });
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post("/api/users/:userId/tasks", requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { title, details, dueAt } = req.body;
+      
+      const task = await storage.createTask({
+        userId,
+        authorId: req.user.id,
+        title,
+        details,
+        dueAt: dueAt ? new Date(dueAt) : null,
+        status: "OPEN"
+      });
+
+      res.json({ task });
+    } catch (error) {
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.patch("/api/tasks/:taskId", requireAdmin, async (req: any, res) => {
+    try {
+      const { taskId } = req.params;
+      const updates = req.body;
+      
+      // If marking as done, set completion timestamp
+      if (updates.status === "DONE" && !updates.completedAt) {
+        updates.completedAt = new Date();
+      }
+      
+      const task = await storage.updateTask(taskId, updates);
+      res.json({ task });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      res.status(500).json({ message: "Failed to update task" });
     }
   });
 

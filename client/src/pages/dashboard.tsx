@@ -77,7 +77,7 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
       title: "Take Quiz",
       description: "Test your knowledge",
       color: "blue",
-      action: () => toast({ title: "Quiz", description: "Quiz feature coming soon!" }),
+      action: () => onNavigate("tests"),
     },
     {
       icon: "fas fa-book",
@@ -93,6 +93,22 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
       color: "amber",
       action: () => onNavigate("profile"),
     },
+    ...(user.role === "ADMIN" ? [
+      {
+        icon: "fas fa-shield-alt",
+        title: "Admin Panel",
+        description: "User management",
+        color: "red",
+        action: () => onNavigate("admin"),
+      },
+      {
+        icon: "fas fa-users-cog",
+        title: "Student Management",
+        description: "Notes & task tracking",
+        color: "indigo",
+        action: () => onNavigate("enhanced-admin"),
+      }
+    ] : [])
   ];
 
   return (
