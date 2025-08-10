@@ -1,0 +1,123 @@
+Here’s a single, copy‑paste **prompt for Replit (Ghostwriter)** that extends our existing CM Training Dashboard without breaking auth, uploads, or any current integrations.
+
+---
+
+# Build Update Prompt — “CM Training Dashboard (Admin Upgrades)”
+
+Use the **existing project spec and stack** (Next.js 14 + TS, Tailwind, Prisma, NextAuth, Ringg AI embed, Botpress Webchat, progress tracking, materials portal) as previously defined. Keep all current behavior intact.&#x20;
+
+## Non‑negotiable constraints
+
+* **Do not modify** login, session handling, or credentials flow (NextAuth).
+* **Do not break** the current file upload endpoints or client components; only extend them.
+* Preserve Ringg AI and Botpress embeds and their current initialization points.
+
+## New Admin Dashboard capabilities (additive only)
+
+1. **Materials: add video uploads (≤ 100 MB)**
+
+   * Accept: `mp4`, `webm`, `mov`. Enforce **100 MB** server‑side and client‑side.
+   * Reuse the existing upload pipeline; add a `type: "VIDEO"` and `sizeBytes` metadata.
+   * Show upload progress, file size validation, and friendly errors.
+   * Thumbnails: capture a poster frame server‑side if feasible (optional fallback to generic icon).
+   * **Delete material** (soft‑delete): add `deletedAt` field; default queries exclude deleted items. Provide “Restore” in admin.
+
+2. **Global Tests (available to everyone)**
+
+   * New models:
+
+     * `Test { id, title, description, isPublished, createdById, createdAt }`
+     * `Question { id, testId, kind("MCQ"|"TRUE_FALSE"), text, explanation? }`
+     * `Option { id, questionId, text, isCorrect }` (for MCQ)
+     * `Attempt { id, userId, testId, scorePercent, startedAt, submittedAt }`
+     * `Answer { id, attemptId, questionId, optionId?, valueBool? }`
+   * Admin can **create/edit/publish** tests from the dashboard.
+   * Published tests are **visible to all authenticated students** in a new **“Tests”** page and on the main dashboard.
+   * Scoring: percent correct; store best score per test on the user profile.
+   * Retakes allowed; keep attempt history.
+   * Show immediate feedback per question (if `explanation` set).
+
+3. **Per‑student Notes & Tasks**
+
+   * New models:
+
+     * `Note { id, userId, authorId, body, createdAt }`
+     * `Task { id, userId, authorId, title, details?, dueAt?, status("OPEN"|"DONE"), createdAt, completedAt? }`
+   * Admin can attach **private notes** to a student and create **actionable tasks/steps**.
+   * Students see their tasks on **/profile** and **Dashboard**; can mark **DONE** with timestamps.
+   * Add optional trainer comment on completion.
+
+## Schema changes (Prisma)
+
+* Extend `Material` with:
+
+  * `type` enum → `"PDF" | "VIDEO" | "SCRIPT" | "OTHER"`
+  * `sizeBytes Int`
+  * `posterUrl String?`
+  * `deletedAt DateTime?`
+* Add the Test/Question/Option/Attempt/Answer, Note, Task models as above.
+* Keep existing `User`, `Progress`, `PracticeCall` models untouched.
+
+## API & Server Actions
+
+* **Materials**
+
+  * `POST /api/materials` (admin only): now accepts video; rejects if > 100 MB; stores metadata.
+  * `DELETE /api/materials/:id` (admin only): soft‑delete; `PATCH` to restore.
+* **Tests**
+
+  * `POST /api/tests` (admin): create test + questions/options in one payload (Zod validate).
+  * `PATCH /api/tests/:id` (admin): edit, `isPublished` toggle.
+  * `GET /api/tests` (auth): list published tests with minimal payload.
+  * `GET /api/tests/:id` (auth): full test for taking.
+  * `POST /api/tests/:id/attempts` (auth): start attempt.
+  * `POST /api/attempts/:id/submit` (auth): submit answers; compute & persist score; return breakdown.
+* **Notes & Tasks**
+
+  * `POST /api/users/:userId/notes` (admin)
+  * `POST /api/users/:userId/tasks` (admin)
+  * `PATCH /api/tasks/:id` (auth): update status to DONE; set `completedAt`.
+
+## RBAC & Security
+
+* Gate all new admin routes by `role === "ADMIN"`.
+* Keep student‑facing reads minimal; never expose correct answers in `/GET` endpoints.
+* All inputs **Zod‑validated**; enforce size/type checks on upload.
+
+## UI/UX (Tailwind, accessible, friendly)
+
+* **Admin /admin**
+
+  * Tabs: **Materials**, **Tests**, **Students**.
+  * **Materials**: upload (drag‑drop), list with type chips, size, createdAt, soft‑delete/restore.
+  * **Tests**: create/edit test, add questions/options inline, publish toggle, preview test.
+  * **Students**: searchable list → detail drawer with **Progress**, **Practice Calls**, **Notes**, **Tasks** (add note/task).
+* **Student**
+
+  * **Dashboard**: add “Tests” card (shows published tests, best score, quick start).
+  * **Profile**: new **Tasks** panel (filter: OPEN/DONE), **Notes** are not shown to students unless `isVisibleToStudent` (optional flag; default false).
+  * **Materials**: video entries display poster and duration (if known).
+* Friendly toasts, clear empty states, and responsive layouts.
+
+## Compatibility hooks
+
+* Keep existing **Ringg AI** and **Botpress** components/initializers and their props untouched; do not rename or relocate them.
+* After submitting a test or completing tasks, continue to fire any existing events that update **Progress** so dashboards stay in sync.
+
+## Validation & Limits
+
+* Client + server **100 MB** guard for video uploads; show readable errors.
+* Block dangerous file types; store videos under `/public/materials/videos` (dev) with easy switch to S3 later.
+* Add migration script and seeders that **do not wipe** existing data.
+
+## Acceptance tests (happy paths)
+
+* Admin uploads a 90 MB mp4 → succeeds; 120 MB → blocked with message.
+* Admin creates a 5‑question MCQ test, publishes → student sees it and can take it; score saved.
+* Admin adds 2 tasks to a student → student sees them and marks one DONE; timestamps recorded.
+* Admin soft‑deletes a PDF → disappears from student view; admin can restore.
+* No regression: sign‑in, existing file uploads, Ringg call, Botpress chat all still work.
+
+---
+
+If anything conflicts with the current implementation, **extend** rather than replace and leave comments explaining why. Keep code modular and documented.
