@@ -147,45 +147,6 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
             </div>
           </div>
 
-          {/* Training Modules Grid */}
-          <div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-4">Training Modules</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MODULES.map((module) => (
-                <ModuleCard
-                  key={module.id}
-                  module={module}
-                  progress={getProgressForModule(module.id)}
-                  onAction={handleModuleAction}
-                  onPracticeCall={handlePracticeCall}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {quickActions.map((action, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="h-auto p-4 flex flex-col items-start space-y-2 hover:shadow-lg transition-shadow"
-                    onClick={action.action}
-                  >
-                    <div className={`w-10 h-10 bg-${action.color}-100 text-${action.color}-600 rounded-lg flex items-center justify-center`}>
-                      <i className={action.icon}></i>
-                    </div>
-                    <div className="text-left">
-                      <h4 className="font-semibold text-slate-800">{action.title}</h4>
-                      <p className="text-sm text-slate-500">{action.description}</p>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
           {/* Notes from Admin */}
           {notes.length > 0 && (
             <div>
@@ -231,6 +192,53 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
               </div>
             </div>
           )}
+
+          {/* Training Modules Grid */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-slate-800">Training Modules</h3>
+              {user.role === "ADMIN" && (
+                <Button onClick={() => onNavigate('module-admin')} variant="outline" size="sm">
+                  <i className="fas fa-cog mr-2"></i>
+                  Manage Modules
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {MODULES.map((module) => (
+                <ModuleCard
+                  key={module.id}
+                  module={module}
+                  progress={getProgressForModule(module.id)}
+                  onAction={handleModuleAction}
+                  onPracticeCall={handlePracticeCall}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {quickActions.map((action, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="h-auto p-4 flex flex-col items-start space-y-2 hover:shadow-lg transition-shadow"
+                    onClick={action.action}
+                  >
+                    <div className={`w-10 h-10 bg-${action.color}-100 text-${action.color}-600 rounded-lg flex items-center justify-center`}>
+                      <i className={action.icon}></i>
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-semibold text-slate-800">{action.title}</h4>
+                      <p className="text-sm text-slate-500">{action.description}</p>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
 
           {/* Recent Activity */}
           <div>

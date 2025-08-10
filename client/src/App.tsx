@@ -11,6 +11,7 @@ import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Tests from "@/pages/tests";
 import EnhancedAdmin from "@/pages/enhanced-admin";
+import ModuleAdmin from "@/pages/module-admin";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
@@ -41,6 +42,8 @@ function App() {
         return <Tests user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "enhanced-admin":
         return <EnhancedAdmin user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+      case "module-admin":
+        return <ModuleAdmin user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       default:
         return <Dashboard user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
     }
