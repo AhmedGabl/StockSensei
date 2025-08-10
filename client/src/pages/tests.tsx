@@ -70,7 +70,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   });
 
   const createTestMutation = useMutation({
-    mutationFn: (data: TestFormData) => apiRequest("/api/tests", "POST", data),
+    mutationFn: (data: TestFormData) => apiRequest("POST", "/api/tests", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       setIsCreateDialogOpen(false);
@@ -90,7 +90,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   });
 
   const publishTestMutation = useMutation({
-    mutationFn: (testId: string) => apiRequest(`/api/tests/${testId}`, "PATCH", { isPublished: true }),
+    mutationFn: (testId: string) => apiRequest("PATCH", `/api/tests/${testId}`, { isPublished: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       toast({

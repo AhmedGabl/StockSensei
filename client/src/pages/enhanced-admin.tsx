@@ -111,7 +111,7 @@ export default function EnhancedAdminPage({ user, onNavigate, onLogout }: Enhanc
   });
 
   const createNoteMutation = useMutation({
-    mutationFn: (data: NoteFormData) => apiRequest(`/api/users/${selectedUser?.id}/notes`, "POST", data),
+    mutationFn: (data: NoteFormData) => apiRequest("POST", `/api/users/${selectedUser?.id}/notes`, data),
     onSuccess: () => {
       refetchNotes();
       setIsNoteDialogOpen(false);
@@ -131,7 +131,7 @@ export default function EnhancedAdminPage({ user, onNavigate, onLogout }: Enhanc
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (data: TaskFormData) => apiRequest(`/api/users/${selectedUser?.id}/tasks`, "POST", data),
+    mutationFn: (data: TaskFormData) => apiRequest("POST", `/api/users/${selectedUser?.id}/tasks`, data),
     onSuccess: () => {
       refetchTasks();
       setIsTaskDialogOpen(false);
@@ -338,7 +338,7 @@ export default function EnhancedAdminPage({ user, onNavigate, onLogout }: Enhanc
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <CheckSquare className="h-8 w-8 mx-auto mb-2 text-purple-500" />
-                        <div className="text-2xl font-bold">{tasks.filter(t => t.status === "OPEN").length}</div>
+                        <div className="text-2xl font-bold">{tasks.filter((t: any) => t.status === "OPEN").length}</div>
                         <div className="text-sm text-muted-foreground">Open Tasks</div>
                       </div>
                     </div>
