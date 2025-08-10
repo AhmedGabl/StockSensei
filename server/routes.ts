@@ -565,9 +565,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Student Notes API routes
-  app.get("/api/users/:userId/notes", requireAdmin, async (req: any, res) => {
+  app.get("/api/users/:userId/notes", requireAuth, async (req: any, res) => {
     try {
       const { userId } = req.params;
+      
+      // Allow users to fetch their own notes or admins to fetch any user's notes
+      if (req.user.id !== userId && req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const notes = await storage.getUserNotes(userId);
       res.json({ notes });
     } catch (error) {

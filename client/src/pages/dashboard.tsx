@@ -39,8 +39,17 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
     },
   });
 
+  const { data: notesData } = useQuery({
+    queryKey: [`/api/users/${user.id}/notes`],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/users/${user.id}/notes`);
+      return await response.json();
+    },
+  });
+
   const progress = progressData?.progress || [];
   const recentCalls = recentActivity?.calls?.slice(0, 3) || [];
+  const notes = notesData?.notes?.filter((note: any) => note.isVisibleToStudent) || [];
 
   const getProgressForModule = (moduleId: string): Progress | undefined => {
     return progress.find((p: Progress) => p.module === moduleId);
@@ -176,6 +185,52 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
                 ))}
               </div>
             </div>
+
+          {/* Notes from Admin */}
+          {notes.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                <i className="fas fa-sticky-note text-amber-600"></i>
+                Messages from Admin
+              </h3>
+              <div className="space-y-3">
+                {notes.slice(0, 3).map((note: any) => (
+                  <Card key={note.id} className="border-l-4 border-amber-400 bg-amber-50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center flex-shrink-0">
+                          <i className="fas fa-user-shield text-sm"></i>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-amber-700 bg-amber-200 px-2 py-1 rounded-full">
+                              Admin Message
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {new Date(note.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-slate-700 leading-relaxed">{note.body}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {notes.length > 3 && (
+                  <div className="text-center">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onNavigate('profile')}
+                      className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                    >
+                      View All Messages ({notes.length})
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Recent Activity */}
           <div>

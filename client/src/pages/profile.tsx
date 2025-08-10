@@ -30,8 +30,17 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
     },
   });
 
+  const { data: notesData } = useQuery({
+    queryKey: [`/api/users/${user.id}/notes`],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/users/${user.id}/notes`);
+      return await response.json();
+    },
+  });
+
   const progress = progressData?.progress || [];
   const practiceCalls = practiceCallsData?.calls || [];
+  const notes = notesData?.notes?.filter((note: any) => note.isVisibleToStudent) || [];
 
   const getOverallProgress = (): number => {
     if (progress.length === 0) return 0;
@@ -151,6 +160,40 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
             )}
           </CardContent>
         </Card>
+
+        {/* Messages from Admin */}
+        {notes.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <i className="fas fa-sticky-note text-amber-600"></i>
+                Messages from Admin
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {notes.map((note: any) => (
+                  <div key={note.id} className="p-4 border-l-4 border-amber-400 bg-amber-50 rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center">
+                          <i className="fas fa-user-shield text-xs"></i>
+                        </div>
+                        <span className="text-xs font-medium text-amber-700 bg-amber-200 px-2 py-1 rounded-full">
+                          Admin Message
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500">
+                        {new Date(note.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-slate-700 leading-relaxed ml-8">{note.body}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Practice Call History */}
         <Card>
