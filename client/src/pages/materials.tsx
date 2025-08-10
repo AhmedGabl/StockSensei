@@ -172,7 +172,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Training Materials Portal</h1>
-            <p className="text-slate-500">Upload, manage, and access PDFs and PowerPoint files (up to 100MB)</p>
+            <p className="text-slate-500">Upload, manage, and access PDFs, PowerPoint files, and videos (up to 100MB)</p>
           </div>
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <div className="relative w-full sm:w-80">
@@ -221,6 +221,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                             <SelectItem value="PDF">PDF Document</SelectItem>
                             <SelectItem value="POWERPOINT">PowerPoint Presentation</SelectItem>
                             <SelectItem value="DOCUMENT">General Document</SelectItem>
+                            <SelectItem value="VIDEO">Video File</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -267,15 +268,15 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                         <ObjectUploader
                           maxNumberOfFiles={1}
                           maxFileSize={104857600} // 100MB
-                          allowedFileTypes={['.pdf', '.ppt', '.pptx', '.doc', '.docx']}
+                          allowedFileTypes={['.pdf', '.ppt', '.pptx', '.doc', '.docx', '.mp4', '.mov', '.avi', '.wmv', '.flv', '.webm', '.mkv']}
                           onGetUploadParameters={handleGetUploadParameters}
                           onComplete={handleUploadComplete}
                           buttonClassName="w-full"
                         >
                           <div className="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg bg-slate-50">
                             <i className="fas fa-cloud-upload-alt text-2xl text-slate-400"></i>
-                            <span className="font-medium">Upload Document</span>
-                            <span className="text-sm text-slate-500">PDF, PowerPoint, or Word files up to 100MB</span>
+                            <span className="font-medium">Upload File</span>
+                            <span className="text-sm text-slate-500">PDF, PowerPoint, Word, or Video files up to 100MB</span>
                           </div>
                         </ObjectUploader>
                         {uploadData.fileName && (

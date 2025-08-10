@@ -69,6 +69,42 @@ export function FileViewer({ material, isOpen, onClose }: FileViewerProps) {
     }
   };
 
+  const isVideo = material.type === "VIDEO" || 
+    material.fileName?.match(/\.(mp4|mov|avi|wmv|flv|webm|mkv)$/i);
+  
+  const isPDF = material.type === "PDF" || 
+    material.fileName?.match(/\.pdf$/i);
+  
+  const renderPreview = () => {
+    if (isVideo && material.filePath) {
+      return (
+        <div className="w-full max-w-2xl mx-auto mb-4">
+          <video 
+            controls 
+            className="w-full h-auto rounded-lg"
+            style={{ maxHeight: '400px' }}
+          >
+            <source src={material.filePath} type="video/mp4" />
+            <source src={material.filePath} type="video/webm" />
+            <source src={material.filePath} type="video/ogg" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      );
+    } else if (isPDF && material.filePath) {
+      return (
+        <div className="w-full max-w-4xl mx-auto mb-4" style={{ height: '500px' }}>
+          <iframe
+            src={material.filePath}
+            className="w-full h-full border rounded-lg"
+            title="PDF Preview"
+          />
+        </div>
+      );
+    }
+    return null;
+  };
+
   const typeInfo = getTypeIcon(material.type || "DOCUMENT");
 
   return (
@@ -126,27 +162,8 @@ export function FileViewer({ material, isOpen, onClose }: FileViewerProps) {
           {/* File Preview */}
           <div>
             <h3 className="font-semibold text-slate-800 mb-3">File Preview</h3>
-            <div className="border rounded-lg bg-white">
-              {material.type === "PDF" && (material.filePath || material.url) ? (
-                <div className="relative">
-                  <iframe
-                    src={`${material.filePath || material.url}#view=FitH`}
-                    className="w-full h-96 rounded-lg"
-                    title={material.title}
-                  />
-                  <div className="absolute top-2 right-2 bg-white rounded-lg shadow-md p-2">
-                    <Button
-                      onClick={handleView}
-                      size="sm"
-                      variant="outline"
-                      className="text-xs"
-                    >
-                      <i className="fas fa-external-link-alt mr-1"></i>
-                      Full View
-                    </Button>
-                  </div>
-                </div>
-              ) : material.type === "POWERPOINT" ? (
+            <div className="border rounded-lg bg-white p-4">
+              {renderPreview() ? renderPreview() : material.type === "POWERPOINT" ? (
                 <div className="flex flex-col items-center justify-center h-48 bg-slate-50 rounded-lg">
                   <i className="fas fa-file-powerpoint text-6xl text-orange-600 mb-4"></i>
                   <p className="text-slate-600 mb-4">PowerPoint files can be viewed by downloading or opening externally</p>
@@ -162,13 +179,13 @@ export function FileViewer({ material, isOpen, onClose }: FileViewerProps) {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-48 bg-slate-50 rounded-lg">
-                  <i className={`${typeInfo.icon} ${typeInfo.color} text-6xl mb-4`}></i>
-                  <p className="text-slate-600 mb-4">This file type requires external viewing</p>
-                  <div className="flex space-x-2">
+                <div className="text-center py-8">
+                  <i className={`${typeInfo.icon} ${typeInfo.color} text-4xl mb-4`}></i>
+                  <p className="text-slate-500 mb-4">Preview not available for this file type</p>
+                  <div className="flex justify-center space-x-2">
                     <Button onClick={handleView} size="sm">
-                      <i className="fas fa-eye mr-2"></i>
-                      View
+                      <i className="fas fa-external-link-alt mr-2"></i>
+                      Open File
                     </Button>
                     <Button onClick={handleDownload} size="sm" variant="outline" disabled={isLoading}>
                       <i className="fas fa-download mr-2"></i>

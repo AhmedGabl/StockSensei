@@ -59,7 +59,7 @@ export function ObjectUploader({
   onComplete,
   buttonClassName,
   children,
-  allowedFileTypes = ['.pdf', '.ppt', '.pptx']
+  allowedFileTypes = ['.pdf', '.ppt', '.pptx', '.mp4', '.mov', '.avi', '.wmv', '.flv', '.webm', '.mkv']
 }: ObjectUploaderProps) {
   const [showModal, setShowModal] = useState(false);
   const [uppy] = useState(() =>
@@ -94,7 +94,7 @@ export function ObjectUploader({
         open={showModal}
         onRequestClose={() => setShowModal(false)}
         proudlyDisplayPoweredByUppy={false}
-        note="Only PDF and PowerPoint files are allowed (max 50MB)"
+        note="PDF, PowerPoint, and Video files supported (max 100MB)"
       />
     </div>
   );
