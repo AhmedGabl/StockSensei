@@ -544,10 +544,10 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                         {question.options.map((option, optionIndex) => (
                           <div key={option.id} className="flex items-center gap-2">
                             <span className="text-sm font-mono">{String.fromCharCode(65 + optionIndex)}.</span>
-                            <span className={`text-sm ${option.isCorrect ? 'font-semibold text-green-600' : ''}`}>
+                            <span className={`text-sm ${user.role === "ADMIN" && option.isCorrect ? 'font-semibold text-green-600' : ''}`}>
                               {option.text}
                             </span>
-                            {option.isCorrect && (
+                            {user.role === "ADMIN" && option.isCorrect && (
                               <Badge variant="default" className="text-xs">Correct</Badge>
                             )}
                           </div>
@@ -555,7 +555,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                       </div>
                     )}
                     
-                    {question.explanation && (
+                    {user.role === "ADMIN" && question.explanation && (
                       <div className="bg-muted p-3 rounded-md">
                         <p className="text-sm font-medium text-muted-foreground mb-1">Explanation:</p>
                         <p className="text-sm">{question.explanation}</p>

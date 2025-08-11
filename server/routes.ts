@@ -451,7 +451,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const questions = await storage.getTestQuestions(id);
-      res.json({ test, questions });
+      
+      // Hide correct answers from students
+      if (req.user.role !== "ADMIN") {
+        const sanitizedQuestions = questions.map(question => ({
+          ...question,
+          options: question.options?.map(option => ({
+            ...option,
+            isCorrect: undefined // Remove correct answer indicators for students
+          }))
+        }));
+        res.json({ test, questions: sanitizedQuestions });
+      } else {
+        res.json({ test, questions });
+      }
     } catch (error) {
       console.error("Error fetching test:", error);
       res.status(500).json({ message: "Failed to fetch test" });

@@ -10,6 +10,7 @@ import Materials from "@/pages/materials";
 import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Tests from "@/pages/tests";
+import TestTaking from "@/pages/test-taking";
 import EnhancedAdmin from "@/pages/enhanced-admin";
 import ModuleAdmin from "@/pages/module-admin";
 
@@ -31,6 +32,12 @@ function App() {
   };
 
   const renderPage = (user: any) => {
+    // Handle test-taking routes
+    if (currentPage.startsWith("test-taking/")) {
+      const testId = currentPage.split("/")[1];
+      return <TestTaking testId={testId} user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+    }
+
     switch (currentPage) {
       case "materials":
         return <Materials user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
