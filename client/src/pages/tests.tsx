@@ -72,7 +72,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   });
 
   const { data: usersData } = useQuery({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/admin/users"],
     enabled: user.role === "ADMIN"
   });
 
@@ -622,10 +622,31 @@ function AssignTestForm({ test, users, onAssign, isLoading }: AssignTestFormProp
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedUsers.length === students.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(students.map(student => student.id));
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-3">
-        <label className="text-sm font-medium">Select Students:</label>
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-medium">Select Students:</label>
+          {students.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+              className="text-xs"
+            >
+              {selectedUsers.length === students.length ? "Deselect All" : "Select All"}
+            </Button>
+          )}
+        </div>
         <div className="max-h-40 overflow-y-auto space-y-2 border rounded p-2">
           {students.length === 0 ? (
             <p className="text-sm text-muted-foreground">No students available</p>
