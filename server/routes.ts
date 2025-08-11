@@ -633,6 +633,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/notes/:noteId", requireAdmin, async (req: any, res) => {
+    try {
+      const { noteId } = req.params;
+      
+      await storage.deleteNote(noteId);
+      res.json({ message: "Note deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      res.status(500).json({ message: "Failed to delete note" });
+    }
+  });
+
   // Test Assignment API routes
   app.get("/api/assigned-tests", requireAuth, async (req: any, res) => {
     try {

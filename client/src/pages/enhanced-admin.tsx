@@ -28,7 +28,8 @@ import {
   TrendingUp,
   FileText,
   Eye,
-  EyeOff
+  EyeOff,
+  Trash2
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -158,6 +159,24 @@ export default function EnhancedAdminPage({ user, onNavigate, onLogout }: Enhanc
       toast({
         title: "Task Updated",
         description: "Task status has been updated"
+      });
+    }
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: string) => apiRequest("DELETE", `/api/notes/${noteId}`),
+    onSuccess: () => {
+      refetchNotes();
+      toast({
+        title: "Note Deleted",
+        description: "Note has been successfully deleted."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete note. Please try again.",
+        variant: "destructive"
       });
     }
   });
@@ -460,6 +479,15 @@ export default function EnhancedAdminPage({ user, onNavigate, onLogout }: Enhanc
                               <Badge variant={note.isVisibleToStudent ? "default" : "secondary"}>
                                 {note.isVisibleToStudent ? "Visible" : "Private"}
                               </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteNoteMutation.mutate(note.id)}
+                                disabled={deleteNoteMutation.isPending}
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                           <p className="text-sm">{note.body}</p>

@@ -16,7 +16,9 @@ A fully functional, comprehensive training dashboard built for Class Mentors (CM
 - ✅ **Auto-redirect after authentication**: Immediate redirect behavior without page refresh required
 - ✅ **Health Check Endpoint**: `/api/health` for deployment diagnostics and troubleshooting
 - ✅ **Pre-filled Admin Credentials**: admin@cm.com/password123 auto-filled for easy access
-- ✅ Enhanced materials portal with comprehensive file preview system (100MB upload limit)
+- ✅ **Enhanced materials portal** with comprehensive file preview system (100MB upload limit)
+- ✅ **Test Assignment System**: Admins can assign tests to specific students with due dates
+- ✅ **Note Management Enhancement**: Added delete functionality for admin notes with proper access control
 
 ## User Preferences
 

@@ -58,6 +58,7 @@ export interface IStorage {
   // Note operations
   getUserNotes(userId: string): Promise<Note[]>;
   createNote(note: InsertNote): Promise<Note>;
+  deleteNote(noteId: string): Promise<void>;
   
   // Task operations
   getUserTasks(userId: string, status?: "OPEN" | "DONE"): Promise<Task[]>;
@@ -349,6 +350,12 @@ export class DatabaseStorage implements IStorage {
       .values(noteData)
       .returning();
     return note;
+  }
+
+  async deleteNote(noteId: string): Promise<void> {
+    await db
+      .delete(notes)
+      .where(eq(notes.id, noteId));
   }
 
   // Task operations
