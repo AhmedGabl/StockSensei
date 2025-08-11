@@ -44,10 +44,12 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
         description: "Good luck! Answer all questions and submit when ready."
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Start attempt error:", error);
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to start test attempt";
       toast({
         title: "Error",
-        description: "Failed to start test attempt",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -63,10 +65,12 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
         description: `Your score: ${data.scorePercent}%`
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Submit attempt error:", error);
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to submit test";
       toast({
         title: "Error",
-        description: "Failed to submit test",
+        description: errorMessage,
         variant: "destructive"
       });
     }
