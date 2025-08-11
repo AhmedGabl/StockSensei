@@ -35,14 +35,27 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
   });
 
   const startAttemptMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/tests/${testId}/attempt`, {}),
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/tests/${testId}/attempt`, {});
+      return await response.json();
+    },
     onSuccess: (data: any) => {
-      setAttemptId(data.attempt.id);
-      setStartTime(new Date());
-      toast({
-        title: "Test Started",
-        description: "Good luck! Answer all questions and submit when ready."
-      });
+      console.log("Start attempt success:", data);
+      if (data?.attempt?.id) {
+        setAttemptId(data.attempt.id);
+        setStartTime(new Date());
+        toast({
+          title: "Test Started",
+          description: "Good luck! Answer all questions and submit when ready."
+        });
+      } else {
+        console.error("Invalid response format:", data);
+        toast({
+          title: "Error",
+          description: "Invalid response from server",
+          variant: "destructive"
+        });
+      }
     },
     onError: (error: any) => {
       console.error("Start attempt error:", error);
@@ -56,7 +69,10 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
   });
 
   const submitAttemptMutation = useMutation({
-    mutationFn: (answerData: any) => apiRequest("POST", `/api/attempts/${attemptId}/submit`, { answers: answerData }),
+    mutationFn: async (answerData: any) => {
+      const response = await apiRequest("POST", `/api/attempts/${attemptId}/submit`, { answers: answerData });
+      return await response.json();
+    },
     onSuccess: (data: any) => {
       setIsSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ["/api/attempts"] });
