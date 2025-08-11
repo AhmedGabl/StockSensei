@@ -83,10 +83,23 @@ export const options = pgTable("options", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+// Test Assignments - which tests are assigned to which students
+export const testAssignments = pgTable("test_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  testId: varchar("test_id").notNull().references(() => tests.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  assignedBy: varchar("assigned_by").notNull().references(() => users.id),
+  assignedAt: timestamp("assigned_at").notNull().default(sql`now()`),
+  dueDate: timestamp("due_date"),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+});
+
 export const attempts = pgTable("attempts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   testId: varchar("test_id").notNull().references(() => tests.id),
+  assignmentId: varchar("assignment_id").references(() => testAssignments.id),
   scorePercent: integer("score_percent"),
   startedAt: timestamp("started_at").notNull().default(sql`now()`),
   submittedAt: timestamp("submitted_at"),
@@ -131,6 +144,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   uploadedMaterials: many(materials),
   createdTests: many(tests),
   attempts: many(attempts),
+  testAssignments: many(testAssignments, { relationName: "user_assignments" }),
+  assignedTests: many(testAssignments, { relationName: "assigned_tests" }),
   notes: many(notes, { relationName: "user_notes" }),
   authoredNotes: many(notes, { relationName: "authored_notes" }),
   tasks: many(tasks, { relationName: "user_tasks" }),
@@ -165,6 +180,22 @@ export const testsRelations = relations(tests, ({ one, many }) => ({
   }),
   questions: many(questions),
   attempts: many(attempts),
+  assignments: many(testAssignments),
+}));
+
+export const testAssignmentsRelations = relations(testAssignments, ({ one }) => ({
+  test: one(tests, {
+    fields: [testAssignments.testId],
+    references: [tests.id],
+  }),
+  user: one(users, {
+    fields: [testAssignments.userId],
+    references: [users.id],
+  }),
+  assignedBy: one(users, {
+    fields: [testAssignments.assignedBy],
+    references: [users.id],
+  }),
 }));
 
 export const questionsRelations = relations(questions, ({ one, many }) => ({
@@ -293,6 +324,11 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   createdAt: true,
 });
 
+export const insertTestAssignmentSchema = createInsertSchema(testAssignments).omit({
+  id: true,
+  assignedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -316,6 +352,8 @@ export type InsertNote = z.infer<typeof insertNoteSchema>;
 export type Note = typeof notes.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
+export type InsertTestAssignment = z.infer<typeof insertTestAssignmentSchema>;
+export type TestAssignment = typeof testAssignments.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({

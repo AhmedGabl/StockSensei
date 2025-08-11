@@ -1,9 +1,9 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
-  type Note, type InsertNote, type Task, type InsertTask
+  type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull } from "drizzle-orm";
@@ -63,6 +63,13 @@ export interface IStorage {
   getUserTasks(userId: string, status?: "OPEN" | "DONE"): Promise<Task[]>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: string, updates: Partial<Task>): Promise<Task>;
+  
+  // Test Assignment operations
+  getUserAssignedTests(userId: string): Promise<(TestAssignment & { test: Test })[]>;
+  getTestAssignments(testId: string): Promise<(TestAssignment & { user: User })[]>;
+  createTestAssignment(assignment: InsertTestAssignment): Promise<TestAssignment>;
+  updateTestAssignment(id: string, updates: Partial<TestAssignment>): Promise<TestAssignment>;
+  deleteTestAssignment(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -372,6 +379,68 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tasks.id, id))
       .returning();
     return task;
+  }
+
+  // Test Assignment operations
+  async getUserAssignedTests(userId: string): Promise<(TestAssignment & { test: Test })[]> {
+    return await db
+      .select({
+        id: testAssignments.id,
+        testId: testAssignments.testId,
+        userId: testAssignments.userId,
+        assignedBy: testAssignments.assignedBy,
+        assignedAt: testAssignments.assignedAt,
+        dueDate: testAssignments.dueDate,
+        isCompleted: testAssignments.isCompleted,
+        completedAt: testAssignments.completedAt,
+        test: tests
+      })
+      .from(testAssignments)
+      .innerJoin(tests, eq(testAssignments.testId, tests.id))
+      .where(eq(testAssignments.userId, userId))
+      .orderBy(desc(testAssignments.assignedAt));
+  }
+
+  async getTestAssignments(testId: string): Promise<(TestAssignment & { user: User })[]> {
+    return await db
+      .select({
+        id: testAssignments.id,
+        testId: testAssignments.testId,
+        userId: testAssignments.userId,
+        assignedBy: testAssignments.assignedBy,
+        assignedAt: testAssignments.assignedAt,
+        dueDate: testAssignments.dueDate,
+        isCompleted: testAssignments.isCompleted,
+        completedAt: testAssignments.completedAt,
+        user: users
+      })
+      .from(testAssignments)
+      .innerJoin(users, eq(testAssignments.userId, users.id))
+      .where(eq(testAssignments.testId, testId))
+      .orderBy(desc(testAssignments.assignedAt));
+  }
+
+  async createTestAssignment(assignmentData: InsertTestAssignment): Promise<TestAssignment> {
+    const [assignment] = await db
+      .insert(testAssignments)
+      .values(assignmentData)
+      .returning();
+    return assignment;
+  }
+
+  async updateTestAssignment(id: string, updates: Partial<TestAssignment>): Promise<TestAssignment> {
+    const [assignment] = await db
+      .update(testAssignments)
+      .set(updates)
+      .where(eq(testAssignments.id, id))
+      .returning();
+    return assignment;
+  }
+
+  async deleteTestAssignment(id: string): Promise<void> {
+    await db
+      .delete(testAssignments)
+      .where(eq(testAssignments.id, id));
   }
 }
 

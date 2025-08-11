@@ -415,9 +415,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test Management API routes
   app.get("/api/tests", requireAuth, async (req: any, res) => {
     try {
-      const publishedOnly = req.user.role !== "ADMIN";
-      const tests = await storage.getTests(publishedOnly);
-      res.json({ tests });
+      if (req.user.role === "ADMIN") {
+        // Admins can see all tests
+        const tests = await storage.getTests(false);
+        res.json({ tests });
+      } else {
+        // Students can only see tests assigned to them
+        const assignedTests = await storage.getUserAssignedTests(req.user.id);
+        const tests = assignedTests.map(assignment => assignment.test);
+        res.json({ tests });
+      }
     } catch (error) {
       console.error("Error fetching tests:", error);
       res.status(500).json({ message: "Failed to fetch tests" });
@@ -433,9 +440,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Test not found" });
       }
       
-      // Non-admin users can only see published tests
-      if (req.user.role !== "ADMIN" && !test.isPublished) {
-        return res.status(403).json({ message: "Test not available" });
+      // Check if non-admin user has access to this test
+      if (req.user.role !== "ADMIN") {
+        const assignedTests = await storage.getUserAssignedTests(req.user.id);
+        const hasAccess = assignedTests.some(assignment => assignment.testId === id);
+        
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Test not assigned to you" });
+        }
       }
       
       const questions = await storage.getTestQuestions(id);
@@ -514,14 +526,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { testId } = req.params;
       
-      // Create new attempt
-      const attempt = await storage.createAttempt({
-        userId: req.user.id,
-        testId,
-        scorePercent: null
-      });
+      // Check if non-admin user has access to this test
+      if (req.user.role !== "ADMIN") {
+        const assignedTests = await storage.getUserAssignedTests(req.user.id);
+        const assignment = assignedTests.find(assignment => assignment.testId === testId);
+        
+        if (!assignment) {
+          return res.status(403).json({ message: "Test not assigned to you" });
+        }
+        
+        // Create new attempt with assignment reference
+        const attempt = await storage.createAttempt({
+          userId: req.user.id,
+          testId,
+          assignmentId: assignment.id,
+          scorePercent: null
+        });
 
-      res.json({ attempt });
+        res.json({ attempt });
+      } else {
+        // Admin can take any test without assignment
+        const attempt = await storage.createAttempt({
+          userId: req.user.id,
+          testId,
+          scorePercent: null
+        });
+
+        res.json({ attempt });
+      }
     } catch (error) {
       console.error("Error creating attempt:", error);
       res.status(500).json({ message: "Failed to create attempt" });
@@ -598,6 +630,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating note:", error);
       res.status(500).json({ message: "Failed to create note" });
+    }
+  });
+
+  // Test Assignment API routes
+  app.get("/api/assigned-tests", requireAuth, async (req: any, res) => {
+    try {
+      const assignedTests = await storage.getUserAssignedTests(req.user.id);
+      res.json({ assignedTests });
+    } catch (error) {
+      console.error("Error fetching assigned tests:", error);
+      res.status(500).json({ message: "Failed to fetch assigned tests" });
+    }
+  });
+
+  app.get("/api/tests/:testId/assignments", requireAdmin, async (req: any, res) => {
+    try {
+      const { testId } = req.params;
+      const assignments = await storage.getTestAssignments(testId);
+      res.json({ assignments });
+    } catch (error) {
+      console.error("Error fetching test assignments:", error);
+      res.status(500).json({ message: "Failed to fetch test assignments" });
+    }
+  });
+
+  app.post("/api/tests/:testId/assign", requireAdmin, async (req: any, res) => {
+    try {
+      const { testId } = req.params;
+      const { userIds, dueDate } = req.body;
+      
+      const assignments = [];
+      for (const userId of userIds) {
+        const assignment = await storage.createTestAssignment({
+          testId,
+          userId,
+          assignedBy: req.user.id,
+          dueDate: dueDate ? new Date(dueDate) : null
+        });
+        assignments.push(assignment);
+      }
+      
+      res.json({ assignments });
+    } catch (error) {
+      console.error("Error assigning test:", error);
+      res.status(500).json({ message: "Failed to assign test" });
+    }
+  });
+
+  app.delete("/api/test-assignments/:assignmentId", requireAdmin, async (req: any, res) => {
+    try {
+      const { assignmentId } = req.params;
+      await storage.deleteTestAssignment(assignmentId);
+      res.json({ message: "Assignment removed successfully" });
+    } catch (error) {
+      console.error("Error removing assignment:", error);
+      res.status(500).json({ message: "Failed to remove assignment" });
     }
   });
 

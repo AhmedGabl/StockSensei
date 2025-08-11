@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PlusCircle, Play, FileText, Clock, CheckCircle, Users } from "lucide-react";
+import { PlusCircle, Play, FileText, Clock, CheckCircle, Users, UserPlus, X } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,6 +36,8 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [selectedTestForAssignment, setSelectedTestForAssignment] = useState<Test | null>(null);
 
   const form = useForm<TestFormData>({
     resolver: zodResolver(createTestFormSchema),
@@ -69,6 +71,16 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
     queryKey: ["/api/attempts"],
   });
 
+  const { data: usersData } = useQuery({
+    queryKey: ["/api/users"],
+    enabled: user.role === "ADMIN"
+  });
+
+  const { data: assignedTestsData } = useQuery({
+    queryKey: ["/api/assigned-tests"],
+    enabled: user.role !== "ADMIN"
+  });
+
   const createTestMutation = useMutation({
     mutationFn: (data: TestFormData) => apiRequest("POST", "/api/tests", data),
     onSuccess: () => {
@@ -96,6 +108,19 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
       toast({
         title: "Test Published",
         description: "Test is now available to students"
+      });
+    }
+  });
+
+  const assignTestMutation = useMutation({
+    mutationFn: ({ testId, userIds, dueDate }: { testId: string; userIds: string[]; dueDate?: string }) => 
+      apiRequest("POST", `/api/tests/${testId}/assign`, { userIds, dueDate }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
+      setIsAssignDialogOpen(false);
+      toast({
+        title: "Test Assigned",
+        description: "Test has been assigned to selected students"
       });
     }
   });
@@ -423,15 +448,41 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                           <FileText className="h-4 w-4" />
                           View
                         </Button>
-                        {!test.isPublished && (
+                        {user.role === "ADMIN" && (
+                          <>
+                            {!test.isPublished && (
+                              <Button
+                                size="sm"
+                                onClick={() => publishTestMutation.mutate(test.id)}
+                                disabled={publishTestMutation.isPending}
+                                className="gap-2"
+                              >
+                                <Play className="h-4 w-4" />
+                                Publish
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedTestForAssignment(test);
+                                setIsAssignDialogOpen(true);
+                              }}
+                              className="gap-2"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              Assign
+                            </Button>
+                          </>
+                        )}
+                        {user.role !== "ADMIN" && (
                           <Button
                             size="sm"
-                            onClick={() => publishTestMutation.mutate(test.id)}
-                            disabled={publishTestMutation.isPending}
+                            onClick={() => onNavigate(`test-taking/${test.id}`)}
                             className="gap-2"
                           >
                             <Play className="h-4 w-4" />
-                            Publish
+                            Take Test
                           </Button>
                         )}
                       </div>
@@ -517,7 +568,111 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Test Assignment Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Test to Students</DialogTitle>
+            <DialogDescription>
+              Select students to assign "{selectedTestForAssignment?.title}" test
+            </DialogDescription>
+          </DialogHeader>
+          
+          <AssignTestForm
+            test={selectedTestForAssignment}
+            users={(usersData as any)?.users || []}
+            onAssign={(userIds, dueDate) => {
+              if (selectedTestForAssignment) {
+                assignTestMutation.mutate({
+                  testId: selectedTestForAssignment.id,
+                  userIds,
+                  dueDate
+                });
+              }
+            }}
+            isLoading={assignTestMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
+  );
+}
+
+interface AssignTestFormProps {
+  test: Test | null;
+  users: any[];
+  onAssign: (userIds: string[], dueDate?: string) => void;
+  isLoading: boolean;
+}
+
+function AssignTestForm({ test, users, onAssign, isLoading }: AssignTestFormProps) {
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [dueDate, setDueDate] = useState("");
+
+  const students = users.filter(user => user.role === "STUDENT");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedUsers.length > 0) {
+      onAssign(selectedUsers, dueDate || undefined);
+      setSelectedUsers([]);
+      setDueDate("");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-3">
+        <label className="text-sm font-medium">Select Students:</label>
+        <div className="max-h-40 overflow-y-auto space-y-2 border rounded p-2">
+          {students.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No students available</p>
+          ) : (
+            students.map((user: any) => (
+              <div key={user.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={user.id}
+                  checked={selectedUsers.includes(user.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedUsers([...selectedUsers, user.id]);
+                    } else {
+                      setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                    }
+                  }}
+                />
+                <label htmlFor={user.id} className="text-sm font-medium cursor-pointer">
+                  {user.name} ({user.email})
+                </label>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="dueDate" className="text-sm font-medium">Due Date (Optional):</label>
+        <Input
+          id="dueDate"
+          type="datetime-local"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+        />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={() => setSelectedUsers([])}>
+          Clear Selection
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={selectedUsers.length === 0 || isLoading}
+        >
+          {isLoading ? "Assigning..." : `Assign to ${selectedUsers.length} Student${selectedUsers.length !== 1 ? 's' : ''}`}
+        </Button>
+      </div>
+    </form>
   );
 }
