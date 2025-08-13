@@ -161,18 +161,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMaterials(tags?: string[]): Promise<Material[]> {
-    let query = db.select().from(materials)
-      .where(isNull(materials.deletedAt));
+    // Build the conditions
+    let conditions = [isNull(materials.deletedAt)];
     
     // Add tag filtering
     if (tags && tags.length > 0) {
       const tagConditions = tags.map(tag => 
         sql`${materials.tags} @> ${JSON.stringify([tag])}`
       );
-      query = query.where(and(isNull(materials.deletedAt), or(...tagConditions)));
+      const tagFilter = or(...tagConditions);
+      if (tagFilter) {
+        conditions.push(tagFilter);
+      }
     }
     
-    return await query.orderBy(desc(materials.createdAt));
+    return await db.select().from(materials)
+      .where(and(...conditions))
+      .orderBy(desc(materials.createdAt));
   }
 
   async createMaterial(materialData: InsertMaterial): Promise<Material> {
@@ -424,6 +429,7 @@ export class DatabaseStorage implements IStorage {
         dueDate: testAssignments.dueDate,
         isCompleted: testAssignments.isCompleted,
         completedAt: testAssignments.completedAt,
+        maxAttempts: testAssignments.maxAttempts,
         test: tests
       })
       .from(testAssignments)
@@ -443,6 +449,7 @@ export class DatabaseStorage implements IStorage {
         dueDate: testAssignments.dueDate,
         isCompleted: testAssignments.isCompleted,
         completedAt: testAssignments.completedAt,
+        maxAttempts: testAssignments.maxAttempts,
         user: users
       })
       .from(testAssignments)
