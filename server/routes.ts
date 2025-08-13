@@ -559,6 +559,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!assignment) {
           return res.status(403).json({ message: "Test not assigned to you" });
         }
+
+        // Check if user has exceeded maximum attempts
+        const userAttempts = await storage.getUserAttempts(req.user.id, testId);
+        const completedAttempts = userAttempts.filter(attempt => attempt.submittedAt !== null);
+        console.log(`User ${req.user.id} has ${completedAttempts.length} completed attempts for test ${testId}`);
+        
+        if (completedAttempts.length >= (assignment.maxAttempts || 3)) {
+          return res.status(403).json({ 
+            message: `Maximum attempts (${assignment.maxAttempts || 3}) reached for this test` 
+          });
+        }
         
         // Create new attempt with assignment reference
         const attempt = await storage.createAttempt({
@@ -655,6 +666,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateTestAssignment(currentAttempt.assignmentId, {
           isCompleted: true,
           completedAt: new Date()
+        });
+      }
+
+      // Create or update progress entry for test results
+      const testData = await storage.getTest(currentAttempt.testId);
+      if (testData) {
+        const allUserAttempts = await storage.getUserAttempts(req.user.id);
+        const completedTestAttempts = allUserAttempts.filter(attempt => 
+          attempt.testId === currentAttempt.testId && attempt.submittedAt !== null
+        );
+        
+        await storage.upsertProgress({
+          userId: req.user.id,
+          module: `TEST_${testData.id}`,
+          score: scorePercent,
+          status: scorePercent >= 70 ? "COMPLETED" : "IN_PROGRESS", // 70% passing grade
+          attempts: completedTestAttempts.length
         });
       }
 

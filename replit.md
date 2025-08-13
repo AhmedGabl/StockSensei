@@ -9,6 +9,10 @@ A fully functional, comprehensive training dashboard built for Class Mentors (CM
 
 ## Recent Changes
 
+- ✅ **Admin-Controlled Test Attempts**: Admins can now set maximum attempts per test assignment (1-unlimited), preventing score modifications after limit reached
+- ✅ **Test Results in Progress Tracking**: All test scores are now recorded in the progress system and visible to admins with complete attempt history
+- ✅ **Enhanced Module Admin Interface**: Added proper icons and tooltips for all module management functions (move up/down, edit, show/hide, delete)
+- ✅ **Unified Admin Control Center**: New centralized admin panel for managing all student-facing elements, dashboard sections, modules, and test assignments
 - ✅ **Real-time Module Tracking**: Students now see live updates when admins modify training modules (5-second refresh)
 - ✅ **Enhanced Materials Management**: Fixed tag filtering and added admin edit capabilities for material names and descriptions
 - ✅ **Improved Test Results Recording**: Fixed test scoring system with proper answer validation and result storage

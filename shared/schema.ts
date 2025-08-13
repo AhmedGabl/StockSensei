@@ -93,6 +93,7 @@ export const testAssignments = pgTable("test_assignments", {
   dueDate: timestamp("due_date"),
   isCompleted: boolean("is_completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
+  maxAttempts: integer("max_attempts").notNull().default(3), // Admin-controlled attempt limit
 });
 
 export const attempts = pgTable("attempts", {
