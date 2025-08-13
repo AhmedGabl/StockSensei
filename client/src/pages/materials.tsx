@@ -14,6 +14,7 @@ import { User, Material } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { FileViewer } from "@/components/file-viewer";
+import { Eye, Edit, Trash2, Download, Plus, Upload, CloudUpload } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
 
 interface MaterialsProps {
@@ -274,7 +275,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
               <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-500 hover:bg-blue-600">
-                    <i className="fas fa-plus mr-2"></i>
+                    <Plus className="w-4 h-4 mr-2" />
                     Upload Material
                   </Button>
                 </DialogTrigger>
@@ -359,7 +360,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                           buttonClassName="w-full"
                         >
                           <div className="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg bg-slate-50">
-                            <i className="fas fa-cloud-upload-alt text-2xl text-slate-400"></i>
+                            <CloudUpload className="w-8 h-8 text-slate-400" />
                             <span className="font-medium">Upload File</span>
                             <span className="text-sm text-slate-500">PDF, PowerPoint, Word, or Video files up to 100MB</span>
                           </div>
@@ -388,12 +389,12 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                       >
                         {uploadMutation.isPending ? (
                           <>
-                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            <Upload className="w-4 h-4 mr-2 animate-spin" />
                             Uploading...
                           </>
                         ) : (
                           <>
-                            <i className="fas fa-upload mr-2"></i>
+                            <Upload className="w-4 h-4 mr-2" />
                             Upload Material
                           </>
                         )}
@@ -493,7 +494,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                         }}
                         disabled={!material.filePath && !material.url}
                       >
-                        <i className="fas fa-eye mr-1"></i>
+                        <Eye className="w-4 h-4 mr-1" />
                         View & Preview
                       </Button>
                       {user.role === "ADMIN" && (
@@ -504,7 +505,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                             onClick={() => handleEditMaterial(material)}
                             title="Edit material"
                           >
-                            <i className="fas fa-edit"></i>
+                            <Edit className="w-4 h-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -514,11 +515,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                             title="Delete material"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            {deleteMutation.isPending ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : (
-                              <i className="fas fa-trash"></i>
-                            )}
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </>
                       )}
@@ -528,7 +525,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                         onClick={() => handleDownload(material)}
                         disabled={!material.filePath && !material.url}
                       >
-                        <i className="fas fa-download"></i>
+                        <Download className="w-4 h-4" />
                       </Button>
                     </div>
                   </CardContent>

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { User } from "@/lib/types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Plus, Edit, Trash2, ChevronUp, ChevronDown, GraduationCap, Save, Eye, EyeOff, Clock, List, ArrowUpDown } from "lucide-react";
 import type { TrainingModule } from "@shared/schema";
 
 interface ModuleAdminProps {
@@ -159,11 +160,11 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
           </div>
           <div className="flex gap-2">
             <Button onClick={() => onNavigate('dashboard')} variant="outline">
-              <i className="fas fa-arrow-left mr-2"></i>
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
             <Button onClick={handleCreateModule}>
-              <i className="fas fa-plus mr-2"></i>
+              <Plus className="w-4 h-4 mr-2" />
               Add New Module
             </Button>
           </div>
@@ -192,15 +193,15 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                     <p className="text-slate-600 mb-3">{module.description}</p>
                     <div className="flex items-center gap-4 text-sm text-slate-500">
                       <span>
-                        <i className="fas fa-clock mr-1"></i>
+                        <Clock className="w-4 h-4 mr-1 inline" />
                         {module.estimatedDuration} minutes
                       </span>
                       <span>
-                        <i className="fas fa-list mr-1"></i>
+                        <List className="w-4 h-4 mr-1 inline" />
                         {module.scenarios?.length || 0} scenarios
                       </span>
                       <span>
-                        <i className="fas fa-sort mr-1"></i>
+                        <ArrowUpDown className="w-4 h-4 mr-1 inline" />
                         Order: {index + 1}
                       </span>
                     </div>
@@ -218,7 +219,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                           className="h-6 w-6 p-0"
                           title="Move module up"
                         >
-                          <i className="fas fa-chevron-up text-xs"></i>
+                          <ChevronUp className="w-3 h-3" />
                         </Button>
                         <Button
                           size="sm"
@@ -228,7 +229,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                           className="h-6 w-6 p-0"
                           title="Move module down"
                         >
-                          <i className="fas fa-chevron-down text-xs"></i>
+                          <ChevronDown className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
@@ -245,12 +246,12 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                       >
                         {module.isEnabled ? (
                           <>
-                            <i className="fas fa-eye mr-1"></i>
+                            <Eye className="w-3 h-3 mr-1" />
                             ON
                           </>
                         ) : (
                           <>
-                            <i className="fas fa-eye-slash mr-1"></i>
+                            <EyeOff className="w-3 h-3 mr-1" />
                             OFF
                           </>
                         )}
@@ -267,7 +268,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                           onClick={() => setEditingModule(module)}
                           title="Edit module"
                         >
-                          <i className="fas fa-edit"></i>
+                          <Edit className="w-4 h-4" />
                         </Button>
                         {module.id.startsWith('custom_') && (
                           <Button
@@ -277,7 +278,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                             className="text-red-600 hover:text-red-700"
                             title="Delete module"
                           >
-                            <i className="fas fa-trash"></i>
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
@@ -292,11 +293,11 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
         {modules.length === 0 && (
           <Card className="text-center py-12">
             <CardContent>
-              <i className="fas fa-graduation-cap text-4xl text-slate-400 mb-4"></i>
+              <GraduationCap className="w-16 h-16 text-slate-400 mb-4 mx-auto" />
               <h3 className="text-lg font-semibold text-slate-600 mb-2">No Training Modules</h3>
               <p className="text-slate-500 mb-4">Create your first training module to get started.</p>
               <Button onClick={handleCreateModule}>
-                <i className="fas fa-plus mr-2"></i>
+                <Plus className="w-4 h-4 mr-2" />
                 Add First Module
               </Button>
             </CardContent>
@@ -417,7 +418,7 @@ function ModuleEditModal({ module, isCreating, onSave, onCancel }: ModuleEditMod
 
             <div className="flex gap-2 pt-4">
               <Button type="submit" className="flex-1">
-                <i className="fas fa-save mr-2"></i>
+                <Save className="w-4 h-4 mr-2" />
                 {isCreating ? 'Create Module' : 'Save Changes'}
               </Button>
               <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
