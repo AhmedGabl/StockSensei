@@ -207,25 +207,30 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Reorder buttons */}
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReorderModule(module.id, 'up')}
-                        disabled={index === 0}
-                        className="h-6 w-6 p-0"
-                      >
-                        <i className="fas fa-chevron-up text-xs"></i>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReorderModule(module.id, 'down')}
-                        disabled={index === modules.length - 1}
-                        className="h-6 w-6 p-0"
-                      >
-                        <i className="fas fa-chevron-down text-xs"></i>
-                      </Button>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-slate-500">Order</span>
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleReorderModule(module.id, 'up')}
+                          disabled={index === 0}
+                          className="h-6 w-6 p-0"
+                          title="Move module up"
+                        >
+                          <i className="fas fa-chevron-up text-xs"></i>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleReorderModule(module.id, 'down')}
+                          disabled={index === modules.length - 1}
+                          className="h-6 w-6 p-0"
+                          title="Move module down"
+                        >
+                          <i className="fas fa-chevron-down text-xs"></i>
+                        </Button>
+                      </div>
                     </div>
                     
                     {/* Toggle switch */}
@@ -238,24 +243,29 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                     </div>
                     
                     {/* Action buttons */}
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingModule(module)}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </Button>
-                      {module.id.startsWith('custom_') && (
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-slate-500">Actions</span>
+                      <div className="flex gap-1">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDeleteModule(module.id)}
-                          className="text-red-600 hover:text-red-700"
+                          onClick={() => setEditingModule(module)}
+                          title="Edit module"
                         >
-                          <i className="fas fa-trash"></i>
+                          <i className="fas fa-edit"></i>
                         </Button>
-                      )}
+                        {module.id.startsWith('custom_') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteModule(module.id)}
+                            className="text-red-600 hover:text-red-700"
+                            title="Delete module"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
