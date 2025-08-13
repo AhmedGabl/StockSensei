@@ -51,57 +51,80 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
 
   const initializeRinggVoiceAgent = (): Promise<void> => {
     return new Promise((resolve, reject) => {
-      // Check if Ringg AI is already loaded
-      if ((window as any).loadAgent) {
-        (window as any).loadAgent({
-          agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
-          xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
-          variables: {
-            callee_name: "CALLEE_NAME",
-            mode: "MODE",
-            scenario_id: "practice_call"
-          }
-        });
-        resolve();
-        return;
-      }
-
-      // Load Ringg AI CDN
-      const loadAgentsCdn = (version: string, callback: () => void, errorCallback: () => void) => {
-        // Load CSS
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.type = "text/css";
-        link.href = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/style.css`;
-        document.head.appendChild(link);
-
-        // Load JS
-        const script = document.createElement("script");
-        script.type = "text/javascript";
-        script.src = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/dv-agent.es.js`;
-        script.onload = callback;
-        script.onerror = errorCallback;
-        document.head.appendChild(script);
-      };
-
-      loadAgentsCdn("1.0.3", () => {
+      try {
+        // Check if Ringg AI is already loaded
         if ((window as any).loadAgent) {
-          (window as any).loadAgent({
-            agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
-            xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
-            variables: {
-              callee_name: "CALLEE_NAME",
-              mode: "MODE", 
-              scenario_id: "practice_call"
-            }
-          });
-          resolve();
-        } else {
-          reject(new Error("Ringg AI loadAgent function not available"));
+          try {
+            (window as any).loadAgent({
+              agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
+              xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
+              variables: {
+                callee_name: "CALLEE_NAME",
+                mode: "MODE",
+                scenario_id: "practice_call"
+              }
+            });
+            resolve();
+            return;
+          } catch (error) {
+            console.error("Error calling loadAgent:", error);
+            resolve(); // Resolve anyway to prevent blocking UI
+            return;
+          }
         }
-      }, () => {
-        reject(new Error("Failed to load Ringg AI script"));
-      });
+
+        // Load Ringg AI CDN
+        const loadAgentsCdn = (version: string, callback: () => void, errorCallback: () => void) => {
+          try {
+            // Load CSS
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.type = "text/css";
+            link.href = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/style.css`;
+            document.head.appendChild(link);
+
+            // Load JS
+            const script = document.createElement("script");
+            script.type = "text/javascript";
+            script.src = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/dv-agent.es.js`;
+            script.onload = callback;
+            script.onerror = errorCallback;
+            document.head.appendChild(script);
+          } catch (error) {
+            console.error("Error loading Ringg AI CDN:", error);
+            errorCallback();
+          }
+        };
+
+        loadAgentsCdn("1.0.3", () => {
+          try {
+            if ((window as any).loadAgent) {
+              (window as any).loadAgent({
+                agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
+                xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
+                variables: {
+                  callee_name: "CALLEE_NAME",
+                  mode: "MODE", 
+                  scenario_id: "practice_call"
+                }
+              });
+              resolve();
+            } else {
+              console.warn("Ringg AI loadAgent function not available");
+              resolve(); // Resolve anyway to prevent blocking UI
+            }
+          } catch (error) {
+            console.error("Error initializing Ringg AI:", error);
+            resolve(); // Resolve anyway to prevent blocking UI
+          }
+        }, () => {
+          console.warn("Failed to load Ringg AI script");
+          resolve(); // Resolve anyway to prevent blocking UI
+        });
+      } catch (error) {
+        console.error("Error in initializeRinggVoiceAgent:", error);
+        resolve(); // Resolve anyway to prevent blocking UI
+      }
     });
   };
 

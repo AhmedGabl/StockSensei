@@ -79,64 +79,85 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
   };
 
   const initializeRinggAI = () => {
-    // Check if Ringg AI is already loaded
-    if (window.loadAgent) {
-      window.loadAgent({
-        agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
-        xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
-        variables: {
-          callee_name: "CALLEE_NAME",
-          mode: "MODE",
-          scenario_id: scenario
+    try {
+      // Check if Ringg AI is already loaded
+      if (window.loadAgent) {
+        try {
+          window.loadAgent({
+            agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
+            xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
+            variables: {
+              callee_name: "CALLEE_NAME",
+              mode: "MODE",
+              scenario_id: scenario
+            }
+          });
+          return;
+        } catch (error) {
+          console.error("Error calling loadAgent:", error);
+          showFallbackInterface();
+          return;
+        }
+      }
+
+      // Load Ringg AI CDN
+      const loadAgentsCdn = (version: string, callback: () => void) => {
+        try {
+          // Load CSS
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.type = "text/css";
+          link.href = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/style.css`;
+          document.head.appendChild(link);
+
+          // Load JS
+          const script = document.createElement("script");
+          script.type = "text/javascript";
+          script.src = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/dv-agent.es.js`;
+          script.onload = callback;
+          script.onerror = () => {
+            console.error("Failed to load Ringg AI script");
+            showFallbackInterface();
+          };
+          document.head.appendChild(script);
+        } catch (error) {
+          console.error("Error loading Ringg AI CDN:", error);
+          showFallbackInterface();
+        }
+      };
+
+      loadAgentsCdn("1.0.3", () => {
+        try {
+          if (window.loadAgent) {
+            window.loadAgent({
+              agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
+              xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
+              variables: {
+                callee_name: "CALLEE_NAME",
+                mode: "MODE", 
+                scenario_id: scenario
+              }
+            });
+          } else {
+            console.error("Ringg AI loadAgent function not available");
+            showFallbackInterface();
+          }
+        } catch (error) {
+          console.error("Error initializing Ringg AI:", error);
+          showFallbackInterface();
         }
       });
-      return;
+    } catch (error) {
+      console.error("Error in initializeRinggAI:", error);
+      showFallbackInterface();
     }
+  };
 
-    // Load Ringg AI CDN
-    const loadAgentsCdn = (version: string, callback: () => void) => {
-      // Load CSS
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.type = "text/css";
-      link.href = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/style.css`;
-      document.head.appendChild(link);
-
-      // Load JS
-      const script = document.createElement("script");
-      script.type = "text/javascript";
-      script.src = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/dv-agent.es.js`;
-      script.onload = callback;
-      script.onerror = () => {
-        console.error("Failed to load Ringg AI script");
-        toast({
-          title: "Error",
-          description: "Failed to load practice call system. Please try again.",
-          variant: "destructive",
-        });
-      };
-      document.head.appendChild(script);
-    };
-
-    loadAgentsCdn("1.0.3", () => {
-      if (window.loadAgent) {
-        window.loadAgent({
-          agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
-          xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
-          variables: {
-            callee_name: "CALLEE_NAME",
-            mode: "MODE", 
-            scenario_id: scenario
-          }
-        });
-      } else {
-        console.error("Ringg AI loadAgent function not available");
-        toast({
-          title: "Error",
-          description: "Practice call system not available. Please try again.",
-          variant: "destructive",
-        });
-      }
+  const showFallbackInterface = () => {
+    toast({
+      title: "Practice Call Demo",
+      description: "Voice practice system is in demo mode. This simulates a real practice call.",
+      variant: "default",
     });
   };
 

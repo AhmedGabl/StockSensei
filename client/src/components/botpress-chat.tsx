@@ -57,40 +57,50 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
       script.id = 'botpress-webchat-script';
       script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
       script.onload = () => {
-        // Initialize Botpress with embedded configuration
-        if (window.botpress && webchatRef.current) {
-          try {
-            window.botpress.init({
-              botId: "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
-              configuration: {
-                version: "v1",
-                website: {},
-                email: {},
-                phone: {},
-                termsOfService: {},
-                privacyPolicy: {},
-                color: "#3276EA",
-                variant: "solid",
-                headerVariant: "glass",
-                themeMode: "light",
-                fontFamily: "inter",
-                radius: 4,
-                feedbackEnabled: false,
-                footer: "[⚡ by Botpress](https://botpress.com/?from=webchat)"
-              },
-              clientId: "b98de221-d1f1-43c7-bad5-f279c104c231",
-              selector: "#webchat-container"
-            });
-            
-            // Automatically open the chat when ready
-            window.botpress.on("webchat:ready", () => {
-              window.botpress?.open();
-            });
-          } catch (error) {
-            console.error("Botpress initialization error:", error);
+        try {
+          // Initialize Botpress with embedded configuration
+          if (window.botpress && webchatRef.current) {
+            try {
+              window.botpress.init({
+                botId: "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+                configuration: {
+                  version: "v1",
+                  website: {},
+                  email: {},
+                  phone: {},
+                  termsOfService: {},
+                  privacyPolicy: {},
+                  color: "#3276EA",
+                  variant: "solid",
+                  headerVariant: "glass",
+                  themeMode: "light",
+                  fontFamily: "inter",
+                  radius: 4,
+                  feedbackEnabled: false,
+                  footer: "[⚡ by Botpress](https://botpress.com/?from=webchat)"
+                },
+                clientId: "b98de221-d1f1-43c7-bad5-f279c104c231",
+                selector: "#webchat-container"
+              });
+              
+              // Automatically open the chat when ready
+              window.botpress.on("webchat:ready", () => {
+                try {
+                  window.botpress?.open();
+                } catch (error) {
+                  console.error("Error opening Botpress chat:", error);
+                  showFallbackChat();
+                }
+              });
+            } catch (error) {
+              console.error("Botpress initialization error:", error);
+              showFallbackChat();
+            }
+          } else {
             showFallbackChat();
           }
-        } else {
+        } catch (error) {
+          console.error("Error in Botpress onload handler:", error);
           showFallbackChat();
         }
       };
@@ -147,19 +157,20 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
       
       // Add global function for demo interaction
       (window as any).sendMessage = (input: HTMLInputElement) => {
-        if (!input.value.trim()) return;
-        
-        const chatContainer = input.closest('.flex.flex-col')?.querySelector('.flex-1');
-        if (chatContainer) {
-          // Add user message
-          const userMsg = document.createElement('div');
-          userMsg.className = 'flex justify-end';
-          userMsg.innerHTML = `
-            <div class="bg-blue-600 text-white rounded-lg p-3 max-w-xs">
-              <p class="text-sm">${input.value}</p>
-            </div>
-          `;
-          chatContainer.appendChild(userMsg);
+        try {
+          if (!input.value.trim()) return;
+          
+          const chatContainer = input.closest('.flex.flex-col')?.querySelector('.flex-1');
+          if (chatContainer) {
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'flex justify-end';
+            userMsg.innerHTML = `
+              <div class="bg-blue-600 text-white rounded-lg p-3 max-w-xs">
+                <p class="text-sm">${input.value}</p>
+              </div>
+            `;
+            chatContainer.appendChild(userMsg);
           
           // Add bot response after delay
           // Create bot message immediately to show loading
@@ -208,8 +219,11 @@ export function BotpressChat({ user, isCollapsed = false, onToggle }: BotpressCh
             chatContainer.scrollTop = chatContainer.scrollHeight;
           });
           
-          input.value = '';
-          chatContainer.scrollTop = chatContainer.scrollHeight;
+            input.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }
+        } catch (error) {
+          console.error("Error in sendMessage:", error);
         }
       };
     }
