@@ -7,7 +7,7 @@ import {
   type TrainingModule, type InsertTrainingModule
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -162,11 +162,17 @@ export class DatabaseStorage implements IStorage {
 
   async getMaterials(tags?: string[]): Promise<Material[]> {
     let query = db.select().from(materials)
-      .where(isNull(materials.deletedAt))
-      .orderBy(desc(materials.createdAt));
+      .where(isNull(materials.deletedAt));
     
-    // TODO: Add tag filtering when needed
-    return await query;
+    // Add tag filtering
+    if (tags && tags.length > 0) {
+      const tagConditions = tags.map(tag => 
+        sql`${materials.tags} @> ${JSON.stringify([tag])}`
+      );
+      query = query.where(and(isNull(materials.deletedAt), or(...tagConditions)));
+    }
+    
+    return await query.orderBy(desc(materials.createdAt));
   }
 
   async createMaterial(materialData: InsertMaterial): Promise<Material> {

@@ -30,6 +30,8 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<Material | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
@@ -97,6 +99,47 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
       });
     },
   });
+
+  // Edit material mutation
+  const editMutation = useMutation({
+    mutationFn: async (updates: { id: string; title: string; description?: string; tags: string[] }) => {
+      const { id, ...data } = updates;
+      const response = await apiRequest("PATCH", `/api/materials/${id}`, data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      toast({
+        title: "Success",
+        description: "Material updated successfully!",
+      });
+      setEditDialogOpen(false);
+      setEditingMaterial(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update material. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditMaterial = (material: Material) => {
+    setEditingMaterial(material);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMaterial) return;
+    
+    editMutation.mutate({
+      id: editingMaterial.id,
+      title: editingMaterial.title,
+      description: editingMaterial.description,
+      tags: editingMaterial.tags
+    });
+  };
 
   const handleGetUploadParameters = async () => {
     const response = await apiRequest("POST", "/api/objects/upload");
@@ -411,6 +454,15 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                         <i className="fas fa-eye mr-1"></i>
                         View & Preview
                       </Button>
+                      {user.role === "ADMIN" && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditMaterial(material)}
+                        >
+                          <i className="fas fa-edit"></i>
+                        </Button>
+                      )}
                       <Button 
                         variant="ghost" 
                         size="sm"
@@ -446,6 +498,78 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
             setSelectedFile(null);
           }}
         />
+
+        {/* Edit Material Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Material</DialogTitle>
+            </DialogHeader>
+            {editingMaterial && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-title">Title</Label>
+                  <Input
+                    id="edit-title"
+                    value={editingMaterial.title}
+                    onChange={(e) => setEditingMaterial(prev => prev ? ({ ...prev, title: e.target.value }) : null)}
+                    placeholder="Enter material title"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editingMaterial.description || ""}
+                    onChange={(e) => setEditingMaterial(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
+                    placeholder="Enter description"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label>Tags</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {MATERIAL_TAGS.map((tag) => (
+                      <Button
+                        key={tag}
+                        type="button"
+                        variant={editingMaterial.tags.includes(tag) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setEditingMaterial(prev => prev ? ({
+                            ...prev,
+                            tags: prev.tags.includes(tag)
+                              ? prev.tags.filter(t => t !== tag)
+                              : [...prev.tags, tag]
+                          }) : null);
+                        }}
+                      >
+                        {tag}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveEdit}
+                    disabled={editMutation.isPending}
+                  >
+                    {editMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

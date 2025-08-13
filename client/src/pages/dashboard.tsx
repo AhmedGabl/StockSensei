@@ -7,7 +7,8 @@ import { PracticeCall } from "@/components/practice-call";
 import { VoiceWidget } from "@/components/voice-widget";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { User, Progress, MODULES } from "@/lib/types";
+import { User, Progress } from "@/lib/types";
+import type { TrainingModule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,9 +48,19 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
     },
   });
 
+  // Load modules from API (admin-created modules)
+  const { data: modulesData } = useQuery({
+    queryKey: ['/api/modules'],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/modules");
+      return await response.json();
+    }
+  });
+
   const progress = progressData?.progress || [];
   const recentCalls = recentActivity?.calls?.slice(0, 3) || [];
   const notes = notesData?.notes?.filter((note: any) => note.isVisibleToStudent) || [];
+  const modules = modulesData?.modules || [];
 
   const getProgressForModule = (moduleId: string): Progress | undefined => {
     return progress.find((p: Progress) => p.module === moduleId);
@@ -205,15 +216,34 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
               )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MODULES.map((module) => (
+              {modules.filter((module: TrainingModule) => module.isEnabled).map((module: TrainingModule) => (
                 <ModuleCard
                   key={module.id}
-                  module={module}
+                  module={{
+                    id: module.id,
+                    title: module.title,
+                    description: module.description || "",
+                    icon: "fas fa-graduation-cap",
+                    color: "blue"
+                  }}
                   progress={getProgressForModule(module.id)}
                   onAction={handleModuleAction}
-                  onPracticeCall={handlePracticeCall}
+                  onPracticeCall={() => handlePracticeCall("General Practice")}
                 />
               ))}
+              {modules.length === 0 && (
+                <div className="col-span-2 text-center py-8 text-slate-500">
+                  <i className="fas fa-box-open text-4xl mb-4"></i>
+                  <p>No training modules available yet.</p>
+                  {user.role === "ADMIN" && (
+                    <p className="mt-2">
+                      <Button onClick={() => onNavigate('module-admin')} variant="outline" size="sm">
+                        Create First Module
+                      </Button>
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

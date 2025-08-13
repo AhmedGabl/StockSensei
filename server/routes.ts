@@ -283,6 +283,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/materials/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const material = await storage.updateMaterial(id, updates);
+      res.json({ material });
+    } catch (error) {
+      console.error("Error updating material:", error);
+      res.status(500).json({ message: "Failed to update material" });
+    }
+  });
+
   app.post("/api/materials", requireAuth, async (req: any, res) => {
     try {
       // Only allow admins to create materials
@@ -590,17 +602,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
           valueBool: answerItem.valueBool
         });
         
-        // TODO: Calculate if answer is correct by comparing with question options
-        // This would require fetching question data and checking correct answers
+        // Get question with its options to check if answer is correct
+        const questions = await storage.getTestQuestions(''); // We'll get the specific question
+        const question = questions.find(q => q.id === answerItem.questionId);
+        
+        if (question) {
+          if (question.kind === 'MCQ' && answerItem.optionId) {
+            // For MCQ, check if selected option is correct
+            const selectedOption = question.options?.find(opt => opt.id === answerItem.optionId);
+            if (selectedOption?.isCorrect) {
+              correctAnswers++;
+            }
+          } else if (question.kind === 'TRUE_FALSE' && answerItem.valueBool !== undefined) {
+            // For TRUE_FALSE, the correct answer is stored as the first (and only) option's isCorrect value
+            const correctAnswer = question.options?.[0]?.isCorrect === true;
+            if (answerItem.valueBool === correctAnswer) {
+              correctAnswers++;
+            }
+          }
+        }
       }
       
-      const scorePercent = Math.round((correctAnswers / totalQuestions) * 100);
+      const scorePercent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
       
       // Update attempt with score
       const attempt = await storage.updateAttempt(attemptId, {
         scorePercent,
         submittedAt: new Date()
       });
+
+      // Mark test assignment as completed if this was an assigned test
+      const attemptData = await storage.getUserAttempts(req.user.id);
+      const currentAttempt = attemptData.find(a => a.id === attemptId);
+      if (currentAttempt?.assignmentId) {
+        await storage.updateTestAssignment(currentAttempt.assignmentId, {
+          isCompleted: true,
+          completedAt: new Date()
+        });
+      }
 
       res.json({ attempt, scorePercent });
     } catch (error) {
