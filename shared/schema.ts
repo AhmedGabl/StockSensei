@@ -124,6 +124,18 @@ export const notes = pgTable("notes", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+export const trainingModules = pgTable("training_modules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  orderIndex: integer("order_index").notNull().default(0),
+  scenarios: text("scenarios").array().notNull().default(sql`'{}'::text[]`),
+  estimatedDuration: integer("estimated_duration").notNull().default(30), // in minutes
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
 export const tasks = pgTable("tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -329,6 +341,12 @@ export const insertTestAssignmentSchema = createInsertSchema(testAssignments).om
   assignedAt: true,
 });
 
+export const insertTrainingModuleSchema = createInsertSchema(trainingModules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -354,6 +372,8 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTestAssignment = z.infer<typeof insertTestAssignmentSchema>;
 export type TestAssignment = typeof testAssignments.$inferSelect;
+export type TrainingModule = typeof trainingModules.$inferSelect;
+export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 
 // Auth schemas
 export const loginSchema = z.object({

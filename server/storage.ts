@@ -1,9 +1,10 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
-  type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment
+  type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
+  type TrainingModule, type InsertTrainingModule
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull } from "drizzle-orm";
@@ -71,6 +72,13 @@ export interface IStorage {
   createTestAssignment(assignment: InsertTestAssignment): Promise<TestAssignment>;
   updateTestAssignment(id: string, updates: Partial<TestAssignment>): Promise<TestAssignment>;
   deleteTestAssignment(id: string): Promise<void>;
+  
+  // Training Module operations
+  getTrainingModules(): Promise<TrainingModule[]>;
+  createTrainingModule(module: InsertTrainingModule): Promise<TrainingModule>;
+  updateTrainingModule(id: string, updates: Partial<TrainingModule>): Promise<TrainingModule>;
+  deleteTrainingModule(id: string): Promise<void>;
+  reorderTrainingModules(moduleOrders: { id: string; orderIndex: number }[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -448,6 +456,38 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(testAssignments)
       .where(eq(testAssignments.id, id));
+  }
+
+  // Training Module operations
+  async getTrainingModules(): Promise<TrainingModule[]> {
+    return await db.select().from(trainingModules).orderBy(trainingModules.orderIndex);
+  }
+
+  async createTrainingModule(module: InsertTrainingModule): Promise<TrainingModule> {
+    const [created] = await db.insert(trainingModules).values(module).returning();
+    return created;
+  }
+
+  async updateTrainingModule(id: string, updates: Partial<TrainingModule>): Promise<TrainingModule> {
+    const [updated] = await db
+      .update(trainingModules)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(trainingModules.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTrainingModule(id: string): Promise<void> {
+    await db.delete(trainingModules).where(eq(trainingModules.id, id));
+  }
+
+  async reorderTrainingModules(moduleOrders: { id: string; orderIndex: number }[]): Promise<void> {
+    for (const { id, orderIndex } of moduleOrders) {
+      await db
+        .update(trainingModules)
+        .set({ orderIndex, updatedAt: new Date() })
+        .where(eq(trainingModules.id, id));
+    }
   }
 }
 

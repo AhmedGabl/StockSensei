@@ -815,6 +815,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Training Module API routes
+  app.get("/api/modules", requireAuth, async (req: any, res) => {
+    try {
+      const modules = await storage.getTrainingModules();
+      res.json({ modules });
+    } catch (error) {
+      console.error("Error fetching modules:", error);
+      res.status(500).json({ message: "Failed to fetch modules" });
+    }
+  });
+
+  app.post("/api/modules", requireAdmin, async (req: any, res) => {
+    try {
+      const { title, description, isEnabled, orderIndex, scenarios, estimatedDuration } = req.body;
+      
+      const module = await storage.createTrainingModule({
+        title,
+        description,
+        isEnabled: isEnabled ?? true,
+        orderIndex: orderIndex ?? 0,
+        scenarios: scenarios || [],
+        estimatedDuration: estimatedDuration ?? 30
+      });
+
+      res.json({ module });
+    } catch (error) {
+      console.error("Error creating module:", error);
+      res.status(500).json({ message: "Failed to create module" });
+    }
+  });
+
+  app.patch("/api/modules/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const module = await storage.updateTrainingModule(id, updates);
+      res.json({ module });
+    } catch (error) {
+      console.error("Error updating module:", error);
+      res.status(500).json({ message: "Failed to update module" });
+    }
+  });
+
+  app.delete("/api/modules/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.deleteTrainingModule(id);
+      res.json({ message: "Module deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting module:", error);
+      res.status(500).json({ message: "Failed to delete module" });
+    }
+  });
+
+  app.post("/api/modules/reorder", requireAdmin, async (req: any, res) => {
+    try {
+      const { moduleOrders } = req.body;
+      
+      await storage.reorderTrainingModules(moduleOrders);
+      res.json({ message: "Modules reordered successfully" });
+    } catch (error) {
+      console.error("Error reordering modules:", error);
+      res.status(500).json({ message: "Failed to reorder modules" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

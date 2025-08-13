@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { User, MODULES } from "@/lib/types";
+import { User } from "@/lib/types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { TrainingModule } from "@shared/schema";
 
 interface ModuleAdminProps {
   user: User;
@@ -17,37 +18,79 @@ interface ModuleAdminProps {
   onLogout: () => void;
 }
 
-interface TrainingModule {
-  id: string;
-  title: string;
-  description: string;
-  isEnabled: boolean;
-  orderIndex: number;
-  scenarios?: string[];
-  estimatedDuration?: number;
-}
+// TrainingModule type now imported from shared/schema
 
 export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminProps) {
   const { toast } = useToast();
   const [editingModule, setEditingModule] = useState<TrainingModule | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Load current modules (we'll use the static MODULES for now but could be dynamic from API)
-  const [modules, setModules] = useState<TrainingModule[]>(
-    MODULES.map((module, index) => ({
-      id: module.id,
-      title: module.title,
-      description: module.description,
-      isEnabled: true,
-      orderIndex: index,
-      scenarios: module.scenarios || [],
-      estimatedDuration: module.estimatedDuration || 30
-    }))
-  );
+  // Load modules from API
+  const { data: modulesData, isLoading } = useQuery({
+    queryKey: ['/api/modules'],
+    queryFn: () => apiRequest('/api/modules')
+  });
+  
+  const modules = modulesData?.modules || [];
+
+  // Mutations for module operations
+  const createModuleMutation = useMutation({
+    mutationFn: (moduleData: any) => apiRequest('/api/modules', {
+      method: 'POST',
+      body: JSON.stringify(moduleData)
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
+      setEditingModule(null);
+      setShowCreateForm(false);
+      toast({
+        title: "Module Created",
+        description: "Training module has been created successfully."
+      });
+    }
+  });
+
+  const updateModuleMutation = useMutation({
+    mutationFn: ({ id, ...updates }: any) => apiRequest(`/api/modules/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
+      setEditingModule(null);
+      setShowCreateForm(false);
+      toast({
+        title: "Module Updated",
+        description: "Training module has been updated successfully."
+      });
+    }
+  });
+
+  const deleteModuleMutation = useMutation({
+    mutationFn: (id: string) => apiRequest(`/api/modules/${id}`, {
+      method: 'DELETE'
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
+      toast({
+        title: "Module Deleted",
+        description: "Training module has been removed."
+      });
+    }
+  });
+
+  const reorderModuleMutation = useMutation({
+    mutationFn: (moduleOrders: any) => apiRequest('/api/modules/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ moduleOrders })
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
+    }
+  });
 
   const handleCreateModule = () => {
-    const newModule: TrainingModule = {
-      id: `custom_${Date.now()}`,
+    const newModule = {
       title: "",
       description: "",
       isEnabled: true,
@@ -55,40 +98,30 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
       scenarios: [],
       estimatedDuration: 30
     };
-    setEditingModule(newModule);
+    setEditingModule(newModule as TrainingModule);
     setShowCreateForm(true);
   };
 
   const handleSaveModule = (module: TrainingModule) => {
     if (showCreateForm) {
-      setModules([...modules, module]);
-      toast({
-        title: "Module Created",
-        description: `${module.title} has been created successfully.`
-      });
+      createModuleMutation.mutate(module);
     } else {
-      setModules(modules.map(m => m.id === module.id ? module : m));
-      toast({
-        title: "Module Updated",
-        description: `${module.title} has been updated successfully.`
-      });
+      updateModuleMutation.mutate(module);
     }
-    setEditingModule(null);
-    setShowCreateForm(false);
   };
 
   const handleDeleteModule = (moduleId: string) => {
-    setModules(modules.filter(m => m.id !== moduleId));
-    toast({
-      title: "Module Deleted",
-      description: "Training module has been removed."
-    });
+    deleteModuleMutation.mutate(moduleId);
   };
 
   const handleToggleModule = (moduleId: string) => {
-    setModules(modules.map(m => 
-      m.id === moduleId ? { ...m, isEnabled: !m.isEnabled } : m
-    ));
+    const module = modules.find(m => m.id === moduleId);
+    if (module) {
+      updateModuleMutation.mutate({
+        id: moduleId,
+        isEnabled: !module.isEnabled
+      });
+    }
   };
 
   const handleReorderModule = (moduleId: string, direction: 'up' | 'down') => {
@@ -103,13 +136,27 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
     // Swap modules
     [newModules[moduleIndex], newModules[targetIndex]] = [newModules[targetIndex], newModules[moduleIndex]];
     
-    // Update order indices
-    newModules.forEach((module, index) => {
-      module.orderIndex = index;
-    });
+    // Update order indices and prepare for API call
+    const moduleOrders = newModules.map((module, index) => ({
+      id: module.id,
+      orderIndex: index
+    }));
     
-    setModules(newModules);
+    reorderModuleMutation.mutate(moduleOrders);
   };
+
+  if (isLoading) {
+    return (
+      <Layout user={user} currentPage="module-admin" onNavigate={onNavigate} onLogout={onLogout}>
+        <div className="max-w-6xl mx-auto p-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-slate-600">Loading modules...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout user={user} currentPage="module-admin" onNavigate={onNavigate} onLogout={onLogout}>
