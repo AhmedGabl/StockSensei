@@ -70,15 +70,18 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
 
   const submitAttemptMutation = useMutation({
     mutationFn: async (answerData: any) => {
+      console.log("Submitting test attempt:", { attemptId, answerData });
       const response = await apiRequest("POST", `/api/attempts/${attemptId}/submit`, { answers: answerData });
       return await response.json();
     },
     onSuccess: (data: any) => {
+      console.log("Test submission successful:", data);
       setIsSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ["/api/attempts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/tests/${testId}`] });
       toast({
-        title: "Test Submitted",
-        description: `Your score: ${data.scorePercent}%`
+        title: "Test Submitted Successfully",
+        description: `Your score: ${data.attempt?.scorePercent || data.scorePercent || 'N/A'}%`
       });
     },
     onError: (error: any) => {

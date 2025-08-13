@@ -52,6 +52,8 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
       const response = await apiRequest("GET", `/api/materials${tagsParam}`);
       return await response.json();
     },
+    refetchOnWindowFocus: true,
+    staleTime: 0 // Always refetch to get latest changes
   });
 
   const materials = materialsData?.materials || [];

@@ -48,13 +48,15 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
     },
   });
 
-  // Load modules from API (admin-created modules)
+  // Load modules from API (admin-created modules) with real-time updates
   const { data: modulesData } = useQuery({
     queryKey: ['/api/modules'],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/modules");
       return await response.json();
-    }
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    refetchOnWindowFocus: true
   });
 
   const progress = progressData?.progress || [];
@@ -219,7 +221,9 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
           {/* Training Modules Grid */}
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-800">Training Modules</h3>
+              <h3 className="text-xl font-semibold text-slate-800">
+                Training Modules {modules.length > 0 && `(${modules.length})`}
+              </h3>
               {user.role === "ADMIN" && (
                 <Button onClick={() => onNavigate('module-admin')} variant="outline" size="sm">
                   <i className="fas fa-cog mr-2"></i>
@@ -227,36 +231,48 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
                 </Button>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {modules.filter((module: TrainingModule) => module.isEnabled).map((module: TrainingModule) => (
-                <ModuleCard
-                  key={module.id}
-                  module={{
-                    id: module.id,
-                    title: module.title,
-                    description: module.description || "",
-                    icon: "fas fa-graduation-cap",
-                    color: "blue"
-                  }}
-                  progress={getProgressForModule(module.id)}
-                  onAction={handleModuleAction}
-                  onPracticeCall={() => handlePracticeCall("General Practice")}
-                />
-              ))}
-              {modules.length === 0 && (
-                <div className="col-span-2 text-center py-8 text-slate-500">
-                  <i className="fas fa-box-open text-4xl mb-4"></i>
-                  <p>No training modules available yet.</p>
+            {modules.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {modules
+                  .filter((module: TrainingModule) => module.isEnabled) // Only show enabled modules to students
+                  .sort((a: TrainingModule, b: TrainingModule) => a.orderIndex - b.orderIndex)
+                  .map((module: TrainingModule) => (
+                  <ModuleCard
+                    key={module.id}
+                    module={{
+                      id: module.id,
+                      title: module.title,
+                      description: module.description || "",
+                      icon: "fas fa-graduation-cap",
+                      color: "blue"
+                    }}
+                    progress={getProgressForModule(module.id)}
+                    onAction={handleModuleAction}
+                    onPracticeCall={() => handlePracticeCall("General Practice")}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <i className="fas fa-graduation-cap text-4xl text-slate-400 mb-4"></i>
+                  <h3 className="text-lg font-semibold text-slate-600 mb-2">No Training Modules Available</h3>
+                  <p className="text-slate-500">
+                    {user.role === "ADMIN" 
+                      ? "Create your first training module to get started." 
+                      : "Training modules will appear here when your admin creates them."}
+                  </p>
                   {user.role === "ADMIN" && (
-                    <p className="mt-2">
-                      <Button onClick={() => onNavigate('module-admin')} variant="outline" size="sm">
+                    <div className="mt-4">
+                      <Button onClick={() => onNavigate('module-admin')} variant="outline">
+                        <i className="fas fa-plus mr-2"></i>
                         Create First Module
                       </Button>
-                    </p>
+                    </div>
                   )}
-                </div>
-              )}
-            </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Quick Actions */}

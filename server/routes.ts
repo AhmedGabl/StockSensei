@@ -590,11 +590,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { attemptId } = req.params;
       const { answers: answerData } = req.body;
       
+      // Get attempt details to get the test ID
+      const attemptData = await storage.getUserAttempts(req.user.id);
+      const currentAttempt = attemptData.find(a => a.id === attemptId);
+      
+      if (!currentAttempt) {
+        return res.status(404).json({ message: "Attempt not found" });
+      }
+      
+      // Get test questions for scoring
+      const questions = await storage.getTestQuestions(currentAttempt.testId);
+      
       // Store answers and calculate score
       let correctAnswers = 0;
       let totalQuestions = answerData.length;
       
+      console.log(`Processing ${totalQuestions} answers for attempt ${attemptId}`);
+      
       for (const answerItem of answerData) {
+        // Store the answer
         await storage.createAnswer({
           attemptId,
           questionId: answerItem.questionId,
@@ -602,8 +616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           valueBool: answerItem.valueBool
         });
         
-        // Get question with its options to check if answer is correct
-        const questions = await storage.getTestQuestions(''); // We'll get the specific question
+        // Find the question for this answer
         const question = questions.find(q => q.id === answerItem.questionId);
         
         if (question) {
@@ -612,28 +625,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const selectedOption = question.options?.find(opt => opt.id === answerItem.optionId);
             if (selectedOption?.isCorrect) {
               correctAnswers++;
+              console.log(`Correct answer for MCQ question ${question.id}`);
             }
-          } else if (question.kind === 'TRUE_FALSE' && answerItem.valueBool !== undefined) {
+          } else if (question.kind === 'TRUE_FALSE' && answerItem.valueBool !== null && answerItem.valueBool !== undefined) {
             // For TRUE_FALSE, the correct answer is stored as the first (and only) option's isCorrect value
             const correctAnswer = question.options?.[0]?.isCorrect === true;
             if (answerItem.valueBool === correctAnswer) {
               correctAnswers++;
+              console.log(`Correct answer for TRUE_FALSE question ${question.id}`);
             }
           }
+        } else {
+          console.error(`Question not found for ID: ${answerItem.questionId}`);
         }
       }
       
       const scorePercent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
       
-      // Update attempt with score
-      const attempt = await storage.updateAttempt(attemptId, {
+      console.log(`Test scoring complete: ${correctAnswers}/${totalQuestions} correct (${scorePercent}%)`);
+      
+      // Update attempt with score and submission time
+      const updatedAttempt = await storage.updateAttempt(attemptId, {
         scorePercent,
         submittedAt: new Date()
       });
 
       // Mark test assignment as completed if this was an assigned test
-      const attemptData = await storage.getUserAttempts(req.user.id);
-      const currentAttempt = attemptData.find(a => a.id === attemptId);
       if (currentAttempt?.assignmentId) {
         await storage.updateTestAssignment(currentAttempt.assignmentId, {
           isCompleted: true,
@@ -641,7 +658,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.json({ attempt, scorePercent });
+      console.log(`Attempt ${attemptId} updated with score ${scorePercent}%`);
+      res.json({ attempt: updatedAttempt, scorePercent });
     } catch (error) {
       console.error("Error submitting attempt:", error);
       res.status(500).json({ message: "Failed to submit attempt" });
