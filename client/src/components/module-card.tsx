@@ -12,14 +12,22 @@ interface ModuleCardProps {
 
 export function ModuleCard({ module, progress, onAction, onPracticeCall }: ModuleCardProps) {
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "emerald";
-      case "IN_PROGRESS":
-        return "blue";
-      default:
-        return "slate";
-    }
+    const colorMap: Record<string, { bg: string; text: string; progress: string }> = {
+      COMPLETED: { bg: "bg-emerald-100", text: "text-emerald-700", progress: "bg-emerald-500" },
+      IN_PROGRESS: { bg: "bg-blue-100", text: "text-blue-700", progress: "bg-blue-500" },
+    };
+    return colorMap[status] || { bg: "bg-slate-100", text: "text-slate-700", progress: "bg-slate-300" };
+  };
+
+  const getModuleColor = (color: string) => {
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      emerald: { bg: "bg-emerald-100", text: "text-emerald-600" },
+      blue: { bg: "bg-blue-100", text: "text-blue-600" },
+      purple: { bg: "bg-purple-100", text: "text-purple-600" },
+      amber: { bg: "bg-amber-100", text: "text-amber-600" },
+      red: { bg: "bg-red-100", text: "text-red-600" },
+    };
+    return colorMap[color] || { bg: "bg-slate-100", text: "text-slate-600" };
   };
 
   const getStatusText = (status: string) => {
@@ -41,7 +49,8 @@ export function ModuleCard({ module, progress, onAction, onPracticeCall }: Modul
   };
 
   const progressPercentage = getProgressPercentage();
-  const statusColor = getStatusColor(progress?.status || "NOT_STARTED");
+  const statusColors = getStatusColor(progress?.status || "NOT_STARTED");
+  const moduleColors = getModuleColor(module.color);
   const isLocked = !progress && module.id !== "SOP_1ST_CALL";
 
   return (
@@ -49,7 +58,7 @@ export function ModuleCard({ module, progress, onAction, onPracticeCall }: Modul
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className={`w-10 h-10 bg-${module.color}-100 text-${module.color}-600 rounded-lg flex items-center justify-center`}>
+            <div className={`w-10 h-10 ${moduleColors.bg} ${moduleColors.text} rounded-lg flex items-center justify-center`}>
               <i className={module.icon}></i>
             </div>
             <div>
@@ -59,7 +68,7 @@ export function ModuleCard({ module, progress, onAction, onPracticeCall }: Modul
           </div>
           <Badge 
             variant="secondary" 
-            className={`bg-${statusColor}-100 text-${statusColor}-700`}
+            className={`${statusColors.bg} ${statusColors.text}`}
           >
             {getStatusText(progress?.status || "NOT_STARTED")}
           </Badge>
@@ -72,7 +81,7 @@ export function ModuleCard({ module, progress, onAction, onPracticeCall }: Modul
           </div>
           <div className="w-full bg-slate-200 rounded-full h-2">
             <div 
-              className={`bg-${statusColor === "slate" ? "slate-300" : statusColor === "emerald" ? "emerald-500" : "blue-500"} h-2 rounded-full transition-all`}
+              className={`${statusColors.progress} h-2 rounded-full transition-all`}
               style={{ width: `${progressPercentage}%` }}
             ></div>
           </div>

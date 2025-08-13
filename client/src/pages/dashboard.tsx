@@ -84,6 +84,18 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
     setPracticeCallOpen(true);
   };
 
+  const getColorClasses = (color: string) => {
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      emerald: { bg: "bg-emerald-100", text: "text-emerald-600" },
+      blue: { bg: "bg-blue-100", text: "text-blue-600" },
+      purple: { bg: "bg-purple-100", text: "text-purple-600" },
+      amber: { bg: "bg-amber-100", text: "text-amber-600" },
+      red: { bg: "bg-red-100", text: "text-red-600" },
+      indigo: { bg: "bg-indigo-100", text: "text-indigo-600" },
+    };
+    return colorMap[color] || { bg: "bg-slate-100", text: "text-slate-600" };
+  };
+
   const quickActions = [
     {
       icon: "fas fa-phone-alt",
@@ -258,7 +270,7 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
                     className="h-auto p-4 flex flex-col items-start space-y-2 hover:shadow-lg transition-shadow"
                     onClick={action.action}
                   >
-                    <div className={`w-10 h-10 bg-${action.color}-100 text-${action.color}-600 rounded-lg flex items-center justify-center`}>
+                    <div className={`w-10 h-10 ${getColorClasses(action.color).bg} ${getColorClasses(action.color).text} rounded-lg flex items-center justify-center`}>
                       <i className={action.icon}></i>
                     </div>
                     <div className="text-left">
@@ -291,7 +303,7 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
                             </p>
                           </div>
                           {call.outcome && (
-                            <span className={`text-${call.outcome === 'PASSED' ? 'emerald' : 'amber'}-600 font-medium text-sm`}>
+                            <span className={`${call.outcome === 'PASSED' ? 'text-emerald-600' : 'text-amber-600'} font-medium text-sm`}>
                               {call.outcome === 'PASSED' ? '+10 pts' : 'Practice'}
                             </span>
                           )}

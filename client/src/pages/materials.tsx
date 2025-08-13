@@ -198,14 +198,26 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   };
 
   const getTagColor = (tag: string) => {
-    const colors: Record<string, string> = {
-      SOP: "blue",
-      VOIP: "purple",
-      REFERRALS: "amber",
-      YOUTH: "emerald",
-      ADULT: "blue",
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      SOP: { bg: "bg-blue-100", text: "text-blue-700" },
+      VOIP: { bg: "bg-purple-100", text: "text-purple-700" },
+      REFERRALS: { bg: "bg-amber-100", text: "text-amber-700" },
+      YOUTH: { bg: "bg-emerald-100", text: "text-emerald-700" },
+      ADULT: { bg: "bg-blue-100", text: "text-blue-700" },
     };
-    return colors[tag] || "slate";
+    return colorMap[tag] || { bg: "bg-slate-100", text: "text-slate-700" };
+  };
+
+  const getTypeColor = (type: string) => {
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      red: { bg: "bg-red-100", text: "text-red-600" },
+      orange: { bg: "bg-orange-100", text: "text-orange-600" },
+      purple: { bg: "bg-purple-100", text: "text-purple-600" },
+      amber: { bg: "bg-amber-100", text: "text-amber-600" },
+      blue: { bg: "bg-blue-100", text: "text-blue-600" },
+      slate: { bg: "bg-slate-100", text: "text-slate-600" },
+    };
+    return colorMap[type] || { bg: "bg-slate-100", text: "text-slate-600" };
   };
 
   return (
@@ -412,7 +424,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 bg-${typeInfo.color}-100 text-${typeInfo.color}-600 rounded-lg flex items-center justify-center`}>
+                        <div className={`w-10 h-10 ${getTypeColor(typeInfo.color).bg} ${getTypeColor(typeInfo.color).text} rounded-lg flex items-center justify-center`}>
                           <i className={typeInfo.icon}></i>
                         </div>
                         <div>
@@ -434,7 +446,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                       {material.tags.map((tag) => (
                         <Badge
                           key={tag}
-                          className={`bg-${getTagColor(tag)}-100 text-${getTagColor(tag)}-700`}
+                          className={`${getTagColor(tag).bg} ${getTagColor(tag).text}`}
                         >
                           {tag}
                         </Badge>

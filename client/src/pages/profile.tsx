@@ -54,25 +54,20 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "emerald";
-      case "IN_PROGRESS":
-        return "blue";
-      default:
-        return "slate";
-    }
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      COMPLETED: { bg: "bg-emerald-100", text: "text-emerald-600" },
+      IN_PROGRESS: { bg: "bg-blue-100", text: "text-blue-600" },
+    };
+    return colorMap[status] || { bg: "bg-slate-100", text: "text-slate-600" };
   };
 
   const getOutcomeColor = (outcome?: string) => {
-    switch (outcome) {
-      case "PASSED":
-        return "emerald";
-      case "IMPROVE":
-        return "amber";
-      default:
-        return "slate";
-    }
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      PASSED: { bg: "bg-emerald-100", text: "text-emerald-700" },
+      IMPROVE: { bg: "bg-amber-100", text: "text-amber-700" },
+      FAILED: { bg: "bg-red-100", text: "text-red-700" },
+    };
+    return colorMap[outcome || "INCOMPLETE"] || { bg: "bg-slate-100", text: "text-slate-700" };
   };
 
   const formatDuration = (startedAt: string, endedAt?: string) => {
@@ -122,11 +117,11 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             {progress.map((prog: Progress) => {
-              const statusColor = getStatusColor(prog.status);
+              const statusColors = getStatusColor(prog.status);
               return (
                 <div key={prog.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex items-center space-x-4">
-                    <div className={`w-10 h-10 bg-${statusColor}-100 text-${statusColor}-600 rounded-lg flex items-center justify-center`}>
+                    <div className={`w-10 h-10 ${statusColors.bg} ${statusColors.text} rounded-lg flex items-center justify-center`}>
                       <i className={prog.status === "COMPLETED" ? "fas fa-check" : prog.status === "IN_PROGRESS" ? "fas fa-clock" : "fas fa-lock"}></i>
                     </div>
                     <div>
@@ -139,7 +134,7 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
                   <div className="text-right">
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-slate-500">Score:</span>
-                      <span className={`font-semibold text-${statusColor}-600`}>
+                      <span className={`font-semibold ${statusColors.text}`}>
                         {prog.score ? `${prog.score}%` : "N/A"}
                       </span>
                     </div>
@@ -215,7 +210,7 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {practiceCalls.map((call: PracticeCall) => {
-                      const outcomeColor = getOutcomeColor(call.outcome);
+                      const outcomeColors = getOutcomeColor(call.outcome);
                       return (
                         <tr key={call.id}>
                           <td className="py-3 px-4 text-sm text-slate-600">
@@ -227,7 +222,7 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
                           </td>
                           <td className="py-3 px-4">
                             {call.outcome ? (
-                              <Badge className={`bg-${outcomeColor}-100 text-${outcomeColor}-700`}>
+                              <Badge className={`${outcomeColors.bg} ${outcomeColors.text}`}>
                                 {call.outcome}
                               </Badge>
                             ) : (
