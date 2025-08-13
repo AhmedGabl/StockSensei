@@ -127,6 +127,28 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
     },
   });
 
+  // Delete material mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (materialId: string) => {
+      const response = await apiRequest("DELETE", `/api/materials/${materialId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      toast({
+        title: "Success",
+        description: "Material deleted successfully!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete material. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditMaterial = (material: Material) => {
     setEditingMaterial(material);
     setEditDialogOpen(true);
@@ -141,6 +163,12 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
       description: editingMaterial.description,
       tags: editingMaterial.tags
     });
+  };
+
+  const handleDeleteMaterial = (materialId: string, materialTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${materialTitle}"? This action cannot be undone.`)) {
+      deleteMutation.mutate(materialId);
+    }
   };
 
   const handleGetUploadParameters = async () => {
@@ -469,13 +497,30 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                         View & Preview
                       </Button>
                       {user.role === "ADMIN" && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditMaterial(material)}
-                        >
-                          <i className="fas fa-edit"></i>
-                        </Button>
+                        <>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditMaterial(material)}
+                            title="Edit material"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteMaterial(material.id, material.title)}
+                            disabled={deleteMutation.isPending}
+                            title="Delete material"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            {deleteMutation.isPending ? (
+                              <i className="fas fa-spinner fa-spin"></i>
+                            ) : (
+                              <i className="fas fa-trash"></i>
+                            )}
+                          </Button>
+                        </>
                       )}
                       <Button 
                         variant="ghost" 
