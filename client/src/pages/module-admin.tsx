@@ -235,11 +235,26 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
                     
                     {/* Toggle switch */}
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs text-slate-500">Enabled</span>
-                      <Switch
-                        checked={module.isEnabled}
-                        onCheckedChange={() => handleToggleModule(module.id)}
-                      />
+                      <span className="text-xs text-slate-500">{module.isEnabled ? 'Active' : 'Disabled'}</span>
+                      <Button
+                        size="sm"
+                        variant={module.isEnabled ? "default" : "outline"}
+                        onClick={() => handleToggleModule(module.id)}
+                        className="h-8 w-16 text-xs"
+                        title={module.isEnabled ? "Click to disable module" : "Click to enable module"}
+                      >
+                        {module.isEnabled ? (
+                          <>
+                            <i className="fas fa-eye mr-1"></i>
+                            ON
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-eye-slash mr-1"></i>
+                            OFF
+                          </>
+                        )}
+                      </Button>
                     </div>
                     
                     {/* Action buttons */}

@@ -535,6 +535,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/tests/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteTest(id);
+      res.json({ message: "Test deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting test:", error);
+      res.status(500).json({ message: "Failed to delete test" });
+    }
+  });
+
   // Test Attempt API routes
   app.get("/api/attempts", requireAuth, async (req: any, res) => {
     try {

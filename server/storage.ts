@@ -232,6 +232,16 @@ export class DatabaseStorage implements IStorage {
     return test;
   }
 
+  async deleteTest(testId: string): Promise<void> {
+    // Delete all related data first
+    await db.delete(answers).where(eq(answers.questionId, testId));
+    await db.delete(attempts).where(eq(attempts.testId, testId));
+    await db.delete(options).where(eq(options.questionId, testId));
+    await db.delete(questions).where(eq(questions.testId, testId));
+    await db.delete(testAssignments).where(eq(testAssignments.testId, testId));
+    await db.delete(tests).where(eq(tests.id, testId));
+  }
+
   async updateTest(id: string, updates: Partial<Test>): Promise<Test> {
     const [test] = await db
       .update(tests)

@@ -135,6 +135,24 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
     }
   });
 
+  const deleteTestMutation = useMutation({
+    mutationFn: (testId: string) => apiRequest("DELETE", `/api/tests/${testId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
+      toast({
+        title: "Test Deleted",
+        description: "Test has been permanently deleted"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete test",
+        variant: "destructive"
+      });
+    }
+  });
+
   const onSubmit = (data: TestFormData) => {
     createTestMutation.mutate(data);
   };
@@ -472,6 +490,21 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                             >
                               <UserPlus className="h-4 w-4" />
                               Assign
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete "${test.title}"? This action cannot be undone.`)) {
+                                  deleteTestMutation.mutate(test.id);
+                                }
+                              }}
+                              disabled={deleteTestMutation.isPending}
+                              className="gap-2"
+                              title="Delete test permanently"
+                            >
+                              <i className="fas fa-trash h-4 w-4" />
+                              Delete
                             </Button>
                           </>
                         )}
