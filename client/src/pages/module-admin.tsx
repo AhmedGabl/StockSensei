@@ -28,17 +28,13 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
   // Load modules from API
   const { data: modulesData, isLoading } = useQuery({
     queryKey: ['/api/modules'],
-    queryFn: () => apiRequest('/api/modules')
   });
   
-  const modules = modulesData?.modules || [];
+  const modules = (modulesData as any)?.modules || [];
 
   // Mutations for module operations
   const createModuleMutation = useMutation({
-    mutationFn: (moduleData: any) => apiRequest('/api/modules', {
-      method: 'POST',
-      body: JSON.stringify(moduleData)
-    }),
+    mutationFn: (moduleData: any) => apiRequest('POST', '/api/modules', moduleData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
       setEditingModule(null);
@@ -51,10 +47,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
   });
 
   const updateModuleMutation = useMutation({
-    mutationFn: ({ id, ...updates }: any) => apiRequest(`/api/modules/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(updates)
-    }),
+    mutationFn: ({ id, ...updates }: any) => apiRequest('PATCH', `/api/modules/${id}`, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
       setEditingModule(null);
@@ -67,9 +60,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
   });
 
   const deleteModuleMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/modules/${id}`, {
-      method: 'DELETE'
-    }),
+    mutationFn: (id: string) => apiRequest('DELETE', `/api/modules/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
       toast({
@@ -80,10 +71,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
   });
 
   const reorderModuleMutation = useMutation({
-    mutationFn: (moduleOrders: any) => apiRequest('/api/modules/reorder', {
-      method: 'POST',
-      body: JSON.stringify({ moduleOrders })
-    }),
+    mutationFn: (moduleOrders: any) => apiRequest('POST', '/api/modules/reorder', { moduleOrders }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
     }
@@ -91,12 +79,15 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
 
   const handleCreateModule = () => {
     const newModule = {
+      id: '',
       title: "",
       description: "",
       isEnabled: true,
       orderIndex: modules.length,
       scenarios: [],
-      estimatedDuration: 30
+      estimatedDuration: 30,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     setEditingModule(newModule as TrainingModule);
     setShowCreateForm(true);
@@ -115,7 +106,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
   };
 
   const handleToggleModule = (moduleId: string) => {
-    const module = modules.find(m => m.id === moduleId);
+    const module = modules.find((m: any) => m.id === moduleId);
     if (module) {
       updateModuleMutation.mutate({
         id: moduleId,
@@ -125,7 +116,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
   };
 
   const handleReorderModule = (moduleId: string, direction: 'up' | 'down') => {
-    const moduleIndex = modules.findIndex(m => m.id === moduleId);
+    const moduleIndex = modules.findIndex((m: any) => m.id === moduleId);
     if (moduleIndex === -1) return;
 
     const newModules = [...modules];
@@ -137,7 +128,7 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
     [newModules[moduleIndex], newModules[targetIndex]] = [newModules[targetIndex], newModules[moduleIndex]];
     
     // Update order indices and prepare for API call
-    const moduleOrders = newModules.map((module, index) => ({
+    const moduleOrders = newModules.map((module: any, index: number) => ({
       id: module.id,
       orderIndex: index
     }));
@@ -181,8 +172,8 @@ export default function ModuleAdmin({ user, onNavigate, onLogout }: ModuleAdminP
         {/* Module List */}
         <div className="space-y-4">
           {modules
-            .sort((a, b) => a.orderIndex - b.orderIndex)
-            .map((module, index) => (
+            .sort((a: any, b: any) => a.orderIndex - b.orderIndex)
+            .map((module: any, index: number) => (
             <Card key={module.id} className={`transition-all ${!module.isEnabled ? 'opacity-60' : ''}`}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -357,7 +348,7 @@ function ModuleEditModal({ module, isCreating, onSave, onCancel }: ModuleEditMod
                 Description
               </label>
               <Textarea
-                value={formData.description}
+                value={formData.description || ''}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Enter module description..."
                 rows={3}
