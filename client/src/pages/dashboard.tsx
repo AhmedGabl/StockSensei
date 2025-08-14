@@ -348,7 +348,7 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
       
       {/* Floating Ringg AI Widget */}
       <VoiceWidget 
-        onStartCall={(scenario: string) => handlePracticeCall(scenario)}
+        onStartCall={() => handlePracticeCall("General Practice")}
       />
 
       {/* AI Chatbot Assistant */}
