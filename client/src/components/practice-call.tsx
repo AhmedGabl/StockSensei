@@ -103,11 +103,28 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
       // Load Ringg AI CDN
       const loadAgentsCdn = (version: string, callback: () => void) => {
         try {
-          // Load CSS
+          // Load CSS with scoped styles to prevent conflicts
           const link = document.createElement("link");
           link.rel = "stylesheet";
           link.type = "text/css";
           link.href = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/style.css`;
+          
+          // Add CSS to isolate Ringg styles
+          const style = document.createElement("style");
+          style.textContent = `
+            /* Isolate Ringg AI styles and prevent conflicts */
+            .ringg-ai-container {
+              all: initial;
+              font-family: inherit;
+              z-index: 10000;
+            }
+            
+            /* Prevent Ringg AI from overriding our app styles */
+            .cm-training-app {
+              isolation: isolate;
+            }
+          `;
+          document.head.appendChild(style);
           document.head.appendChild(link);
 
           // Load JS
@@ -136,6 +153,35 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
                 callee_name: "CALLEE_NAME",
                 mode: "MODE", 
                 scenario_id: scenario
+              },
+              buttons: {
+                modalTrigger: {
+                  styles: {
+                    backgroundColor: "hsl(207, 90%, 54%)",
+                    color: "white",
+                    borderRadius: "50%",
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+                  }
+                },
+                mic: {
+                  styles: {
+                    backgroundColor: "hsl(0, 84%, 60%)",
+                    borderRadius: "50%",
+                    border: "2px solid white"
+                  }
+                },
+                call: {
+                  textBeforeCall: "Start Practice Call",
+                  textDuringCall: "End Practice Call",
+                  styles: {
+                    backgroundColor: "hsl(207, 90%, 54%)",
+                    color: "white",
+                    borderRadius: "8px",
+                    padding: "12px 24px",
+                    fontWeight: "500"
+                  }
+                }
               }
             });
           } else {

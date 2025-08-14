@@ -63,17 +63,19 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <AuthGuard
-          key={authKey}
-          fallback={<AuthPage onAuthSuccess={handleAuthSuccess} />}
-        >
-          {(user) => renderPage(user)}
-        </AuthGuard>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <div className="cm-training-app">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <AuthGuard
+            key={authKey}
+            fallback={<AuthPage onAuthSuccess={handleAuthSuccess} />}
+          >
+            {(user) => renderPage(user)}
+          </AuthGuard>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </div>
   );
 }
 

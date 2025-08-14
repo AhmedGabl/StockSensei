@@ -56,4 +56,67 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Protect against Ringg AI CSS conflicts */
+  :root {
+    --background: hsl(0, 0%, 100%) !important;
+    --foreground: hsl(20, 14.3%, 4.1%) !important;
+    --primary: hsl(207, 90%, 54%) !important;
+    --border: hsl(20, 5.9%, 90%) !important;
+    --card: hsl(0, 0%, 100%) !important;
+  }
+
+  .dark {
+    --background: hsl(240, 10%, 3.9%) !important;
+    --foreground: hsl(0, 0%, 98%) !important;
+    --card: hsl(240, 10%, 3.9%) !important;
+  }
+
+  /* Ensure our styles take priority over external CDN styles */
+  .cm-training-app {
+    isolation: isolate;
+    contain: layout style;
+  }
+
+  /* Force our color scheme to override any external interference */
+  .cm-training-app .bg-white {
+    background-color: hsl(0, 0%, 100%) !important;
+  }
+
+  .cm-training-app .bg-gray-50 {
+    background-color: hsl(210, 40%, 98%) !important;
+  }
+
+  .cm-training-app .text-gray-600 {
+    color: hsl(0, 0%, 45%) !important;
+  }
+
+  .cm-training-app .text-gray-900 {
+    color: hsl(0, 0%, 9%) !important;
+  }
+
+  .cm-training-app .border-gray-200 {
+    border-color: hsl(0, 0%, 90%) !important;
+  }
+
+  /* Protect card and component styling */
+  .cm-training-app .gradient-bg {
+    background: linear-gradient(135deg, hsl(207, 90%, 54%) 0%, hsl(207, 90%, 48%) 100%) !important;
+  }
+
+  .cm-training-app .bg-emerald-100 { 
+    background-color: hsl(152, 81%, 96%) !important; 
+  }
+
+  .cm-training-app .bg-blue-100 { 
+    background-color: hsl(214, 100%, 97%) !important; 
+  }
+
+  .cm-training-app .bg-purple-100 { 
+    background-color: hsl(270, 100%, 98%) !important; 
+  }
+
+  .cm-training-app .bg-amber-100 { 
+    background-color: hsl(48, 100%, 96%) !important; 
+  }
 }
