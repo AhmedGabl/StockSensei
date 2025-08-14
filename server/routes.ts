@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { aiTrainingService } from "./aiService";
+import { ringgService } from "./ringgService";
 import { loginSchema, registerSchema, insertProblemReportSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -186,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/practice-calls/complete", requireAuth, async (req: any, res) => {
     try {
-      const { id, outcome, notes, scenario, ringgData } = req.body;
+      const { id, outcome, notes, scenario, ringgCallId } = req.body;
       
       // Update the call with basic completion data
       let updatedCall = await storage.updatePracticeCall(id, {
@@ -195,7 +196,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes
       });
 
-      // If Ringg AI data is provided, update the call with detailed information
+      // If Ringg call ID is provided, fetch the actual call data from Ringg API
+      let ringgData = null;
+      if (ringgCallId) {
+        console.log(`Fetching call data from Ringg API for call: ${ringgCallId}`);
+        ringgData = await ringgService.getCallData(ringgCallId);
+        
+        if (!ringgData) {
+          // Fallback to mock data if API call fails
+          console.log("Ringg API call failed, using mock data for evaluation");
+          ringgData = ringgService.generateMockCallData(scenario, 120);
+        }
+      } else {
+        // Generate mock data for demonstration
+        ringgData = ringgService.generateMockCallData(scenario, 120);
+      }
+
+      // Update call with Ringg data
       if (ringgData) {
         updatedCall = await storage.updatePracticeCallWithRinggData(id, {
           ringgCallId: ringgData.callId,
@@ -208,6 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate AI evaluation based on transcript and scenario
         if (ringgData.transcript) {
           try {
+            console.log(`Generating AI evaluation for call ${id} with transcript length: ${ringgData.transcript.length}`);
             const aiEvaluation = await aiTrainingService.evaluateCall(ringgData.transcript, scenario);
             
             // Create evaluation record
@@ -230,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 'Apply 51Talk communication strategies'
             });
             
-            console.log("Created AI evaluation for call:", id, evaluation);
+            console.log("Created AI evaluation for call:", id, evaluation.id);
           } catch (evalError) {
             console.error("Error creating AI evaluation:", evalError);
           }

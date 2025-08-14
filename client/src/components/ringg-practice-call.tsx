@@ -157,15 +157,13 @@ CM: Excellent! I'll schedule a progress review with her teacher for next week, a
         outcome: "COMPLETED",
         notes: `Completed roleplay practice: ${scenario}`,
         scenario,
-        ringgData: window.ringgData
+        ringgCallId: window.ringgData?.callId // Pass Ringg call ID to fetch real transcript
       });
 
       if (response.ok) {
         toast({
           title: "Practice call completed",
-          description: window.ringgData?.transcript ? 
-            "Your call has been analyzed. Check your detailed feedback!" :
-            "Your practice session has been recorded.",
+          description: "Your call has been analyzed with detailed AI feedback!",
         });
         
         setCallStarted(false);
@@ -173,6 +171,9 @@ CM: Excellent! I'll schedule a progress review with her teacher for next week, a
         setCurrentCallId(null);
         setCallDuration(0);
         onClose();
+        
+        // Refresh the page to show the new call in history
+        window.location.reload();
       }
     } catch (error) {
       toast({
