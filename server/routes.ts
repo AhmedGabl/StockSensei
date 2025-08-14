@@ -186,13 +186,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/practice-calls/complete", requireAuth, async (req: any, res) => {
     try {
-      const { id, outcome, notes, scenario } = req.body;
+      const { id, outcome, notes, scenario, ringgData } = req.body;
       
-      const updatedCall = await storage.updatePracticeCall(id, {
+      // Update the call with basic completion data
+      let updatedCall = await storage.updatePracticeCall(id, {
         endedAt: new Date(),
         outcome,
         notes
       });
+
+      // If Ringg AI data is provided, update the call with detailed information
+      if (ringgData) {
+        updatedCall = await storage.updatePracticeCallWithRinggData(id, {
+          ringgCallId: ringgData.callId,
+          duration: ringgData.duration,
+          transcript: ringgData.transcript,
+          audioUrl: ringgData.audioUrl,
+          callMetrics: ringgData.metrics
+        });
+
+        // Generate AI evaluation based on transcript and scenario
+        if (ringgData.transcript) {
+          try {
+            const aiEvaluation = await aiTrainingService.evaluateCall(ringgData.transcript, scenario);
+            
+            // Create evaluation record
+            const evaluation = await storage.createCallEvaluation({
+              callId: id,
+              evaluatorId: null, // AI evaluation
+              overallScore: aiEvaluation.overallScore,
+              scores: aiEvaluation.scores,
+              feedback: aiEvaluation.feedback,
+              criteria: aiEvaluation.criteria,
+              isAiGenerated: true,
+              strengths: Object.entries(aiEvaluation.scores)
+                .filter(([_, score]) => score >= 7)
+                .map(([criteria, _]) => criteria),
+              improvements: Object.entries(aiEvaluation.scores)
+                .filter(([_, score]) => score < 6)
+                .map(([criteria, _]) => criteria),
+              scenarioSpecificNotes: scenario.includes('Low Class Consumption') ? 
+                'Focus on 12-class policy and Ebbinghaus research' : 
+                'Apply 51Talk communication strategies'
+            });
+            
+            console.log("Created AI evaluation for call:", id, evaluation);
+          } catch (evalError) {
+            console.error("Error creating AI evaluation:", evalError);
+          }
+        }
+      }
 
       // Update progress attempts
       const currentProgress = await storage.getProgress(req.user.id, scenario);
@@ -206,6 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ practiceCall: updatedCall });
     } catch (error) {
+      console.error("Error completing practice call:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -213,8 +257,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/practice-calls", requireAuth, async (req: any, res) => {
     try {
       const calls = await storage.getUserPracticeCalls(req.user.id);
-      res.json({ calls });
+      res.json(calls);
     } catch (error) {
+      console.error("Error fetching practice calls:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get call feedback with evaluations
+  app.get("/api/practice-calls/:id/feedback", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      const call = await storage.getPracticeCall(id);
+      if (!call || call.userId !== req.user.id) {
+        return res.status(404).json({ message: "Call not found" });
+      }
+
+      const evaluations = await storage.getCallEvaluations(id);
+      
+      const feedbackData = {
+        call: {
+          id: call.id,
+          scenario: call.scenario,
+          startedAt: call.startedAt,
+          endedAt: call.endedAt,
+          duration: call.duration,
+          transcript: call.transcript,
+          audioUrl: call.audioUrl,
+          outcome: call.outcome,
+          notes: call.notes
+        },
+        evaluations,
+        hasAudio: !!call.audioUrl,
+        hasTranscript: !!call.transcript,
+        duration: call.duration || 0
+      };
+
+      res.json(feedbackData);
+    } catch (error) {
+      console.error("Error fetching call feedback:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -264,16 +346,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const evaluation = await storage.createCallEvaluation({
         callId,
         evaluatorId: null, // AI evaluation
+        overallScore: aiEvaluation.overallScore,
         scores: aiEvaluation.scores,
         feedback: aiEvaluation.feedback,
         criteria: aiEvaluation.criteria,
-        evaluatedAt: new Date(),
-        isAiGenerated: true
+        isAiGenerated: true,
+        strengths: Object.entries(aiEvaluation.scores)
+          .filter(([_, score]) => score >= 7)
+          .map(([criteria, _]) => criteria),
+        improvements: Object.entries(aiEvaluation.scores)
+          .filter(([_, score]) => score < 6)
+          .map(([criteria, _]) => criteria),
+        scenarioSpecificNotes: scenario.includes('Low Class Consumption') ? 
+          'Focus on 12-class policy and Ebbinghaus research' : 
+          'Apply 51Talk communication strategies'
       });
       
       res.json({ evaluation, aiAnalysis: aiEvaluation });
     } catch (error) {
       console.error("Error with AI evaluation:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Student feedback endpoint - get detailed evaluation for a specific call
+  app.get("/api/practice-calls/:id/feedback", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get the practice call details
+      const calls = await storage.getUserPracticeCalls(req.user.id);
+      const call = calls.find(c => c.id === id);
+      
+      if (!call) {
+        return res.status(404).json({ message: "Practice call not found" });
+      }
+
+      // Get evaluations for this call
+      const evaluations = await storage.getCallEvaluations(id);
+      
+      res.json({ 
+        call,
+        evaluations,
+        hasAudio: !!call.audioUrl,
+        hasTranscript: !!call.transcript,
+        duration: call.duration || 0
+      });
+    } catch (error) {
+      console.error("Error fetching call feedback:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

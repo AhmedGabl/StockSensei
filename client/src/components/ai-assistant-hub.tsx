@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BotpressChat } from "./botpress-chat";
+import { CallFeedbackModal } from "./call-feedback-modal";
+import { PracticeCallHistory } from "./practice-call-history";
 import { User } from "@/lib/types";
 
 interface AIAssistantHubProps {
@@ -14,6 +16,8 @@ interface AIAssistantHubProps {
 
 export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
   const [activeTab, setActiveTab] = useState("chat");
+  const [selectedCall, setSelectedCall] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const scenarios = [
     {
@@ -584,7 +588,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                 </div>
               </div>
 
-              <div className="flex justify-center">
+              <div className="flex justify-center mb-8">
                 <Button 
                   onClick={startVoicePracticeCall}
                   size="lg"
@@ -593,6 +597,20 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                   <i className="fas fa-phone mr-2"></i>
                   Start Voice Practice Session
                 </Button>
+              </div>
+              
+              {/* Practice Call History */}
+              <div className="bg-white border rounded-lg p-6">
+                <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                  <i className="fas fa-history mr-2 text-blue-600"></i>
+                  Your Practice Sessions
+                </h4>
+                <PracticeCallHistory 
+                  onViewFeedback={(callId) => {
+                    setSelectedCall(callId);
+                    setShowFeedback(true);
+                  }}
+                />
               </div>
             </div>
           </TabsContent>
@@ -656,6 +674,18 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
             Close
           </Button>
         </div>
+        
+        {/* Feedback Modal */}
+        {selectedCall && (
+          <CallFeedbackModal
+            isOpen={showFeedback}
+            onClose={() => {
+              setShowFeedback(false);
+              setSelectedCall(null);
+            }}
+            callId={selectedCall}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

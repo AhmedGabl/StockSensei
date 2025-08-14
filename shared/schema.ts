@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -39,6 +39,28 @@ export const practiceCalls = pgTable("practice_calls", {
   endedAt: timestamp("ended_at"),
   notes: text("notes"),
   outcome: practiceCallOutcomeEnum("outcome"),
+  // Ringg AI call details
+  ringgCallId: varchar("ringg_call_id"),
+  duration: integer("duration"), // in seconds
+  transcript: text("transcript"),
+  audioUrl: varchar("audio_url"),
+  callMetrics: jsonb("call_metrics"), // JSON object with call analytics
+});
+
+// Call evaluations table
+export const callEvaluations = pgTable("call_evaluations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  callId: varchar("call_id").notNull().references(() => practiceCalls.id, { onDelete: "cascade" }),
+  evaluatorId: varchar("evaluator_id").references(() => users.id), // null for AI evaluations
+  overallScore: integer("overall_score").notNull(), // 1-10 scale
+  scores: jsonb("scores").notNull(), // Individual criteria scores
+  feedback: text("feedback").notNull(),
+  criteria: jsonb("criteria").notNull(), // Array of evaluated criteria
+  isAiGenerated: boolean("is_ai_generated").notNull().default(false),
+  strengths: text("strengths").array().default(sql`'{}'::text[]`),
+  improvements: text("improvements").array().default(sql`'{}'::text[]`),
+  scenarioSpecificNotes: text("scenario_specific_notes"),
+  evaluatedAt: timestamp("evaluated_at").notNull().default(sql`now()`),
 });
 
 export const materials = pgTable("materials", {
@@ -386,6 +408,11 @@ export const insertProblemReportSchema = createInsertSchema(problemReports).omit
   updatedAt: true,
 });
 
+export const insertCallEvaluationSchema = createInsertSchema(callEvaluations).omit({
+  id: true,
+  evaluatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -415,6 +442,8 @@ export type TrainingModule = typeof trainingModules.$inferSelect;
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 export type InsertProblemReport = z.infer<typeof insertProblemReportSchema>;
 export type ProblemReport = typeof problemReports.$inferSelect;
+export type InsertCallEvaluation = z.infer<typeof insertCallEvaluationSchema>;
+export type CallEvaluation = typeof callEvaluations.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({
