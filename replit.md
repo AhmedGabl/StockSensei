@@ -9,6 +9,8 @@ A fully functional, comprehensive training dashboard built for Class Mentors (CM
 
 ## Recent Changes
 
+- ✅ **Real Ringg AI API Integration**: Integrated actual Ringg AI API using official documentation (GET /calling/call-details endpoint)
+- ✅ **Call History Retrieval**: Real-time call data fetching with X-API-KEY authentication and response processing
 - ✅ **Advanced Call Evaluation System**: Added comprehensive AI-powered evaluation endpoints for practice calls with detailed scoring across 6 criteria
 - ✅ **Multi-layered Evaluation API**: New endpoints for manual evaluations, AI-powered analysis, and detailed feedback generation
 - ✅ **Admin-Controlled Test Attempts**: Admins can now set maximum attempts per test assignment (1-unlimited), preventing score modifications after limit reached

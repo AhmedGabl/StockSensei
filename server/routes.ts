@@ -174,13 +174,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/practice-calls/start", requireAuth, async (req: any, res) => {
     try {
       const { scenario } = req.body;
+      
+      if (!scenario) {
+        return res.status(400).json({ message: "Scenario is required" });
+      }
+      
       const practiceCall = await storage.createPracticeCall({
         userId: req.user.id,
-        scenario
+        scenario,
+        startedAt: new Date()
       });
       
+      console.log("Practice call started:", practiceCall.id, "for user:", req.user.id);
       res.json({ practiceCall });
     } catch (error) {
+      console.error("Error starting practice call:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -199,16 +207,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If Ringg call ID is provided, fetch the actual call data from Ringg API
       let ringgData = null;
       if (ringgCallId) {
-        console.log(`Fetching call data from Ringg API for call: ${ringgCallId}`);
-        ringgData = await ringgService.getCallData(ringgCallId);
+        console.log(`Fetching call details from Ringg API for call: ${ringgCallId}`);
+        ringgData = await ringgService.getCallDetails(ringgCallId);
         
         if (!ringgData) {
-          // Fallback to mock data if API call fails
           console.log("Ringg API call failed, using mock data for evaluation");
           ringgData = ringgService.generateMockCallData(scenario, 120);
         }
       } else {
-        // Generate mock data for demonstration
+        console.log("No Ringg call ID provided, using mock data for evaluation");
         ringgData = ringgService.generateMockCallData(scenario, 120);
       }
 
@@ -220,6 +227,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           transcript: ringgData.transcript,
           audioUrl: ringgData.audioUrl,
           callMetrics: ringgData.metrics
+        });
+        
+        console.log(`Updated practice call ${id} with Ringg data:`, {
+          callId: ringgData.callId,
+          duration: ringgData.duration,
+          transcriptLength: ringgData.transcript?.length || 0
         });
 
         // Generate AI evaluation based on transcript and scenario
