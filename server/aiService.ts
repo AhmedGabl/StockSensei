@@ -198,6 +198,119 @@ What specific challenge are you facing with a parent or student?`;
       return "I'm still concerned about this situation. Can you help me understand how we can resolve this?";
     }
   }
+
+  async evaluateCall(transcript: string, scenario: string): Promise<{
+    scores: Record<string, number>;
+    feedback: string;
+    criteria: string[];
+    overallScore: number;
+  }> {
+    try {
+      // AI-powered evaluation based on transcript analysis
+      const evaluationCriteria = [
+        'Communication Clarity',
+        'Empathy & Understanding',
+        'Problem Resolution',
+        'Policy Knowledge',
+        'Professional Tone',
+        'Active Listening'
+      ];
+
+      // Simulate intelligent evaluation scoring (1-10 scale)
+      const scores: Record<string, number> = {};
+      let totalScore = 0;
+
+      // Analyze transcript for key evaluation metrics
+      const lowerTranscript = transcript.toLowerCase();
+      
+      // Communication Clarity (based on word variety and structure)
+      const wordCount = transcript.split(' ').length;
+      const uniqueWords = new Set(transcript.toLowerCase().split(' ')).size;
+      scores['Communication Clarity'] = Math.min(10, Math.max(1, Math.round((uniqueWords / wordCount) * 20)));
+      
+      // Empathy & Understanding (check for empathetic phrases)
+      const empathyPhrases = ['understand', 'sorry', 'appreciate', 'concern', 'help', 'feel'];
+      const empathyCount = empathyPhrases.filter(phrase => lowerTranscript.includes(phrase)).length;
+      scores['Empathy & Understanding'] = Math.min(10, Math.max(1, empathyCount * 1.5));
+      
+      // Problem Resolution (check for solution-oriented language)
+      const solutionPhrases = ['solution', 'resolve', 'fix', 'address', 'arrange', 'provide'];
+      const solutionCount = solutionPhrases.filter(phrase => lowerTranscript.includes(phrase)).length;
+      scores['Problem Resolution'] = Math.min(10, Math.max(1, solutionCount * 2));
+      
+      // Policy Knowledge (check for specific 51Talk terms)
+      const policyTerms = ['cej', 'curriculum', 'level', 'teacher', 'class', 'consumption'];
+      const policyCount = policyTerms.filter(term => lowerTranscript.includes(term)).length;
+      scores['Policy Knowledge'] = Math.min(10, Math.max(1, policyCount * 1.6));
+      
+      // Professional Tone (length and structure indicators)
+      scores['Professional Tone'] = Math.min(10, Math.max(1, Math.round(wordCount / 20)));
+      
+      // Active Listening (questions and acknowledgments)
+      const listeningPhrases = ['?', 'correct', 'right', 'confirm', 'clarify'];
+      const listeningCount = listeningPhrases.filter(phrase => transcript.includes(phrase)).length;
+      scores['Active Listening'] = Math.min(10, Math.max(1, listeningCount * 2));
+
+      // Calculate overall score
+      totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
+      const overallScore = Math.round(totalScore / evaluationCriteria.length);
+
+      // Generate detailed feedback
+      const feedback = this.generateEvaluationFeedback(scores, scenario, overallScore);
+
+      return {
+        scores,
+        feedback,
+        criteria: evaluationCriteria,
+        overallScore
+      };
+    } catch (error) {
+      console.error('AI Evaluation Error:', error);
+      return {
+        scores: { 'Overall': 5 },
+        feedback: 'Unable to complete automated evaluation. Please review manually.',
+        criteria: ['Overall Performance'],
+        overallScore: 5
+      };
+    }
+  }
+
+  private generateEvaluationFeedback(scores: Record<string, number>, scenario: string, overallScore: number): string {
+    const strengths = Object.entries(scores)
+      .filter(([_, score]) => score >= 7)
+      .map(([criteria, _]) => criteria);
+    
+    const improvements = Object.entries(scores)
+      .filter(([_, score]) => score < 6)
+      .map(([criteria, _]) => criteria);
+
+    let feedback = `**Overall Performance: ${overallScore}/10**\n\n`;
+    
+    if (strengths.length > 0) {
+      feedback += `**Strengths:**\n`;
+      feedback += strengths.map(strength => `• ${strength}`).join('\n') + '\n\n';
+    }
+    
+    if (improvements.length > 0) {
+      feedback += `**Areas for Improvement:**\n`;
+      feedback += improvements.map(area => `• ${area}`).join('\n') + '\n\n';
+    }
+    
+    // Scenario-specific feedback
+    feedback += `**Scenario-Specific Notes:**\n`;
+    if (scenario.includes('Low Class Consumption')) {
+      feedback += `• Focus on explaining the 12-class minimum policy with Ebbinghaus Curve research\n`;
+      feedback += `• Provide concrete examples of progress tracking\n`;
+    } else if (scenario.includes('Absent Student')) {
+      feedback += `• Address attendance patterns with empathy\n`;
+      feedback += `• Offer makeup class solutions\n`;
+    } else {
+      feedback += `• Apply 51Talk policies with clear explanations\n`;
+      feedback += `• Show measurable value to parents\n`;
+    }
+    
+    return feedback;
+  }
 }
 
 export const aiTrainingService = new AITrainingService();

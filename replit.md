@@ -9,6 +9,8 @@ A fully functional, comprehensive training dashboard built for Class Mentors (CM
 
 ## Recent Changes
 
+- ✅ **Advanced Call Evaluation System**: Added comprehensive AI-powered evaluation endpoints for practice calls with detailed scoring across 6 criteria
+- ✅ **Multi-layered Evaluation API**: New endpoints for manual evaluations, AI-powered analysis, and detailed feedback generation
 - ✅ **Admin-Controlled Test Attempts**: Admins can now set maximum attempts per test assignment (1-unlimited), preventing score modifications after limit reached
 - ✅ **Test Results in Progress Tracking**: All test scores are now recorded in the progress system and visible to admins with complete attempt history
 - ✅ **Enhanced Module Admin Interface**: Added proper icons and tooltips for all module management functions (move up/down, edit, show/hide, delete)

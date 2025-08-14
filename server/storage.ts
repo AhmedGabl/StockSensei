@@ -25,6 +25,18 @@ export interface IStorage {
   createPracticeCall(call: InsertPracticeCall): Promise<PracticeCall>;
   updatePracticeCall(id: string, updates: Partial<PracticeCall>): Promise<PracticeCall>;
   getUserPracticeCalls(userId: string): Promise<PracticeCall[]>;
+  
+  // Call evaluation operations
+  createCallEvaluation(evaluation: {
+    callId: string;
+    evaluatorId: string | null;
+    scores: Record<string, number>;
+    feedback: string;
+    criteria: string[];
+    evaluatedAt: Date;
+    isAiGenerated?: boolean;
+  }): Promise<any>;
+  getCallEvaluations(callId: string): Promise<any[]>;
 
   // Material operations
   getMaterials(tags?: string[]): Promise<Material[]>;
@@ -570,6 +582,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProblemReport(id: string): Promise<void> {
     await db.delete(problemReports).where(eq(problemReports.id, id));
+  }
+
+  // Call evaluation operations (using simple storage for now)
+  private evaluations: Array<{
+    id: string;
+    callId: string;
+    evaluatorId: string | null;
+    scores: Record<string, number>;
+    feedback: string;
+    criteria: string[];
+    evaluatedAt: Date;
+    isAiGenerated?: boolean;
+  }> = [];
+
+  async createCallEvaluation(evaluation: {
+    callId: string;
+    evaluatorId: string | null;
+    scores: Record<string, number>;
+    feedback: string;
+    criteria: string[];
+    evaluatedAt: Date;
+    isAiGenerated?: boolean;
+  }): Promise<any> {
+    const newEvaluation = {
+      id: crypto.randomUUID(),
+      ...evaluation
+    };
+    this.evaluations.push(newEvaluation);
+    return newEvaluation;
+  }
+
+  async getCallEvaluations(callId: string): Promise<any[]> {
+    return this.evaluations.filter(evaluation => evaluation.callId === callId);
   }
 }
 
