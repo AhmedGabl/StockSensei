@@ -9,6 +9,9 @@ A fully functional, comprehensive training dashboard built for Class Mentors (CM
 
 ## Recent Changes
 
+- ✅ **AI Integration Ready**: OpenAI API key configured for AI-native website features and intelligent functionality
+- ✅ **Voice Assistant CSS Isolation**: Fixed styling conflicts with Ringg AI voice assistant, dashboard colors now remain consistent
+- ✅ **Problem Report Admin Controls**: Admins can now mark reports as fixed and add resolution notes
 - ✅ **Admin-Controlled Test Attempts**: Admins can now set maximum attempts per test assignment (1-unlimited), preventing score modifications after limit reached
 - ✅ **Test Results in Progress Tracking**: All test scores are now recorded in the progress system and visible to admins with complete attempt history
 - ✅ **Enhanced Module Admin Interface**: Added proper icons and tooltips for all module management functions (move up/down, edit, show/hide, delete)
@@ -94,6 +97,9 @@ The following environment variables can be configured for external service integ
 ### Required (automatically configured)
 - `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
 - `SESSION_SECRET`: Session encryption key (defaults to dev key)
+
+### Required (for AI features)
+- `OPENAI_API_KEY`: OpenAI API key for AI-native website functionality and intelligent features
 
 ### Optional (for external services)
 - `VITE_RINGG_AGENT_ID`: Ringg AI agent ID for practice calls
