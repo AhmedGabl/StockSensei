@@ -1,19 +1,13 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, callEvaluations,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
-  type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport,
-  type CallEvaluation, type InsertCallEvaluation
+  type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
-
-// Temporary storage for demo mode when database is unavailable
-const tempUsers = new Map();
-const tempProgress = new Map();
-const tempCalls = new Map();
 
 export interface IStorage {
   // User operations
@@ -30,19 +24,19 @@ export interface IStorage {
   // Practice call operations
   createPracticeCall(call: InsertPracticeCall): Promise<PracticeCall>;
   updatePracticeCall(id: string, updates: Partial<PracticeCall>): Promise<PracticeCall>;
-  getPracticeCall(id: string): Promise<PracticeCall | undefined>;
   getUserPracticeCalls(userId: string): Promise<PracticeCall[]>;
   
   // Call evaluation operations
-  createCallEvaluation(evaluation: InsertCallEvaluation): Promise<CallEvaluation>;
-  getCallEvaluations(callId: string): Promise<CallEvaluation[]>;
-  updatePracticeCallWithRinggData(callId: string, data: {
-    ringgCallId?: string;
-    duration?: number;
-    transcript?: string;
-    audioUrl?: string;
-    callMetrics?: any;
-  }): Promise<PracticeCall>;
+  createCallEvaluation(evaluation: {
+    callId: string;
+    evaluatorId: string | null;
+    scores: Record<string, number>;
+    feedback: string;
+    criteria: string[];
+    evaluatedAt: Date;
+    isAiGenerated?: boolean;
+  }): Promise<any>;
+  getCallEvaluations(callId: string): Promise<any[]>;
 
   // Material operations
   getMaterials(tags?: string[]): Promise<Material[]>;
@@ -175,13 +169,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(practiceCalls.id, id))
       .returning();
     return updated;
-  }
-
-  async getPracticeCall(id: string): Promise<PracticeCall | undefined> {
-    const [call] = await db.select()
-      .from(practiceCalls)
-      .where(eq(practiceCalls.id, id));
-    return call;
   }
 
   async getUserPracticeCalls(userId: string): Promise<PracticeCall[]> {
@@ -597,36 +584,37 @@ export class DatabaseStorage implements IStorage {
     await db.delete(problemReports).where(eq(problemReports.id, id));
   }
 
-  // Call evaluation operations
-  async createCallEvaluation(evaluation: InsertCallEvaluation): Promise<CallEvaluation> {
-    const [created] = await db
-      .insert(callEvaluations)
-      .values(evaluation)
-      .returning();
-    return created;
+  // Call evaluation operations (using simple storage for now)
+  private evaluations: Array<{
+    id: string;
+    callId: string;
+    evaluatorId: string | null;
+    scores: Record<string, number>;
+    feedback: string;
+    criteria: string[];
+    evaluatedAt: Date;
+    isAiGenerated?: boolean;
+  }> = [];
+
+  async createCallEvaluation(evaluation: {
+    callId: string;
+    evaluatorId: string | null;
+    scores: Record<string, number>;
+    feedback: string;
+    criteria: string[];
+    evaluatedAt: Date;
+    isAiGenerated?: boolean;
+  }): Promise<any> {
+    const newEvaluation = {
+      id: crypto.randomUUID(),
+      ...evaluation
+    };
+    this.evaluations.push(newEvaluation);
+    return newEvaluation;
   }
 
-  async getCallEvaluations(callId: string): Promise<CallEvaluation[]> {
-    return await db
-      .select()
-      .from(callEvaluations)
-      .where(eq(callEvaluations.callId, callId))
-      .orderBy(desc(callEvaluations.evaluatedAt));
-  }
-
-  async updatePracticeCallWithRinggData(callId: string, data: {
-    ringgCallId?: string;
-    duration?: number;
-    transcript?: string;
-    audioUrl?: string;
-    callMetrics?: any;
-  }): Promise<PracticeCall> {
-    const [updated] = await db
-      .update(practiceCalls)
-      .set(data)
-      .where(eq(practiceCalls.id, callId))
-      .returning();
-    return updated;
+  async getCallEvaluations(callId: string): Promise<any[]> {
+    return this.evaluations.filter(evaluation => evaluation.callId === callId);
   }
 }
 

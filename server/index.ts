@@ -1,7 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
-import MemoryStore from "memorystore";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -57,18 +56,16 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration - using memory store due to database endpoint being disabled
-console.log('Database endpoint is disabled, using in-memory session store for development');
-const MemStore = MemoryStore(session);
-const sessionStore = new MemStore({
-  checkPeriod: 86400000 // prune expired entries every 24h
-});
-
-const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now();
+// Session configuration
+const PgSession = ConnectPgSimple(session);
 
 app.use(session({
-  store: sessionStore,
-  secret: sessionSecret,
+  store: new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'session',
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now(),
   resave: false,
   saveUninitialized: false,
   rolling: true, // Refresh session on each request

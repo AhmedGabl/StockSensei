@@ -46,28 +46,11 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
     if (!currentCallId) return;
 
     try {
-      // Collect Ringg AI data if available
-      let ringgData = null;
-      try {
-        if (window.ringgData && window.ringgData.callId) {
-          ringgData = {
-            callId: window.ringgData.callId,
-            duration: window.ringgData.duration || 0,
-            transcript: window.ringgData.transcript || '',
-            audioUrl: window.ringgData.audioUrl || '',
-            metrics: window.ringgData.metrics || {}
-          };
-        }
-      } catch (error) {
-        console.warn("Error collecting Ringg data:", error);
-      }
-
       await apiRequest("POST", "/api/practice-calls/complete", {
         id: currentCallId,
         outcome,
         notes,
-        scenario,
-        ringgData
+        scenario
       });
 
       // Trigger Botpress event
@@ -80,9 +63,7 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
 
       toast({
         title: "Practice call completed",
-        description: ringgData?.transcript ? 
-          "Your performance has been analyzed. Check your feedback!" :
-          "Your performance has been recorded.",
+        description: "Your performance has been recorded.",
       });
 
       setCallStarted(false);

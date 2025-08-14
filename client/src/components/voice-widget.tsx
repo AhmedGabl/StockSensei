@@ -1,11 +1,10 @@
-import * as React from "react";
-const { useState } = React;
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 interface VoiceWidgetProps {
-  onStartCall?: (scenario: string) => void;
+  onStartCall?: () => void;
 }
 
 export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
@@ -25,7 +24,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
         description: "Starting your practice call!",
       });
       
-      onStartCall?.("Voice Practice Call");
+      onStartCall?.();
       setIsExpanded(false);
       
     } catch (error) {
@@ -34,7 +33,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
         title: "Practice Mode",
         description: "Voice practice system ready for demo.",
       });
-      onStartCall?.("Voice Practice Call");
+      onStartCall?.();
       setIsExpanded(false);
     } finally {
       setIsLoading(false);

@@ -1,9 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { demoStorage } from "./demo-storage";
 import { aiTrainingService } from "./aiService";
-import { ringgService } from "./ringgService";
 import { loginSchema, registerSchema, insertProblemReportSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -15,15 +13,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password, name } = registerSchema.parse(req.body);
       
-      // Check if user exists - try database first, fallback to demo storage
-      let existingUser;
-      try {
-        existingUser = await storage.getUserByEmail(email);
-      } catch (dbError) {
-        console.warn("Database unavailable, using demo storage");
-        existingUser = await demoStorage.getUserByEmail(email);
-      }
-
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
@@ -31,47 +22,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const passwordHash = await bcrypt.hash(password, 10);
 
-      let user;
-      try {
-        // Try database first
-        user = await storage.createUser({
-          email,
-          passwordHash,
-          name,
-          role: "STUDENT"
-        });
-      } catch (dbError) {
-        console.warn("Database unavailable, creating demo user");
-        user = await demoStorage.createUser({
-          email,
-          passwordHash,
-          name,
-          role: "STUDENT"
-        });
-      }
+      // Create user
+      const user = await storage.createUser({
+        email,
+        passwordHash,
+        name,
+        role: "STUDENT"
+      });
 
       // Initialize progress for all modules
       const modules = ["SOP_1ST_CALL", "SOP_4TH", "SOP_UNIT", "SOP_1ST_MONTH", "VOIP", "SCRM", "CURRICULUM", "REFERRALS"];
       for (const module of modules) {
-        try {
-          await storage.upsertProgress({
-            userId: user.id,
-            module,
-            status: "NOT_STARTED",
-            attempts: 0
-          });
-        } catch (progressError) {
-          try {
-            await demoStorage.upsertProgress({
-              userId: user.id,
-              module,
-              status: "NOT_STARTED",
-              attempts: 0
-            });
-          } catch (demoError) {
-            console.warn("Failed to create progress for module:", module, demoError);
-          }
-        }
+        await storage.upsertProgress({
+          userId: user.id,
+          module,
+          status: "NOT_STARTED",
+          attempts: 0
+        });
       }
 
       // Set session after successful registration and ensure it's saved
@@ -88,8 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Database temporarily unavailable. Please try again later." });
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -207,99 +173,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/practice-calls/start", requireAuth, async (req: any, res) => {
     try {
       const { scenario } = req.body;
-      
-      if (!scenario) {
-        return res.status(400).json({ message: "Scenario is required" });
-      }
-      
       const practiceCall = await storage.createPracticeCall({
         userId: req.user.id,
-        scenario,
-        startedAt: new Date()
+        scenario
       });
       
-      console.log("Practice call started:", practiceCall.id, "for user:", req.user.id);
       res.json({ practiceCall });
     } catch (error) {
-      console.error("Error starting practice call:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
   app.post("/api/practice-calls/complete", requireAuth, async (req: any, res) => {
     try {
-      const { id, outcome, notes, scenario, ringgCallId } = req.body;
+      const { id, outcome, notes, scenario } = req.body;
       
-      // Update the call with basic completion data
-      let updatedCall = await storage.updatePracticeCall(id, {
+      const updatedCall = await storage.updatePracticeCall(id, {
         endedAt: new Date(),
         outcome,
         notes
       });
-
-      // If Ringg call ID is provided, fetch the actual call data from Ringg API
-      let ringgData = null;
-      if (ringgCallId) {
-        console.log(`Fetching call details from Ringg API for call: ${ringgCallId}`);
-        ringgData = await ringgService.getCallDetails(ringgCallId);
-        
-        if (!ringgData) {
-          console.log("Ringg API call failed, using mock data for evaluation");
-          ringgData = ringgService.generateMockCallData(scenario, 120);
-        }
-      } else {
-        console.log("No Ringg call ID provided, using mock data for evaluation");
-        ringgData = ringgService.generateMockCallData(scenario, 120);
-      }
-
-      // Update call with Ringg data
-      if (ringgData) {
-        updatedCall = await storage.updatePracticeCallWithRinggData(id, {
-          ringgCallId: ringgData.callId,
-          duration: ringgData.duration,
-          transcript: ringgData.transcript,
-          audioUrl: ringgData.audioUrl,
-          callMetrics: ringgData.metrics
-        });
-        
-        console.log(`Updated practice call ${id} with Ringg data:`, {
-          callId: ringgData.callId,
-          duration: ringgData.duration,
-          transcriptLength: ringgData.transcript?.length || 0
-        });
-
-        // Generate AI evaluation based on transcript and scenario
-        if (ringgData.transcript) {
-          try {
-            console.log(`Generating AI evaluation for call ${id} with transcript length: ${ringgData.transcript.length}`);
-            const aiEvaluation = await aiTrainingService.evaluateCall(ringgData.transcript, scenario);
-            
-            // Create evaluation record
-            const evaluation = await storage.createCallEvaluation({
-              callId: id,
-              evaluatorId: null, // AI evaluation
-              overallScore: aiEvaluation.overallScore,
-              scores: aiEvaluation.scores,
-              feedback: aiEvaluation.feedback,
-              criteria: aiEvaluation.criteria,
-              isAiGenerated: true,
-              strengths: Object.entries(aiEvaluation.scores)
-                .filter(([_, score]) => score >= 7)
-                .map(([criteria, _]) => criteria),
-              improvements: Object.entries(aiEvaluation.scores)
-                .filter(([_, score]) => score < 6)
-                .map(([criteria, _]) => criteria),
-              scenarioSpecificNotes: scenario.includes('Low Class Consumption') ? 
-                'Focus on 12-class policy and Ebbinghaus research' : 
-                'Apply 51Talk communication strategies'
-            });
-            
-            console.log("Created AI evaluation for call:", id, evaluation.id);
-          } catch (evalError) {
-            console.error("Error creating AI evaluation:", evalError);
-          }
-        }
-      }
 
       // Update progress attempts
       const currentProgress = await storage.getProgress(req.user.id, scenario);
@@ -313,7 +206,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ practiceCall: updatedCall });
     } catch (error) {
-      console.error("Error completing practice call:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -321,46 +213,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/practice-calls", requireAuth, async (req: any, res) => {
     try {
       const calls = await storage.getUserPracticeCalls(req.user.id);
-      res.json(calls);
+      res.json({ calls });
     } catch (error) {
-      console.error("Error fetching practice calls:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Get call feedback with evaluations
-  app.get("/api/practice-calls/:id/feedback", requireAuth, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      
-      const call = await storage.getPracticeCall(id);
-      if (!call || call.userId !== req.user.id) {
-        return res.status(404).json({ message: "Call not found" });
-      }
-
-      const evaluations = await storage.getCallEvaluations(id);
-      
-      const feedbackData = {
-        call: {
-          id: call.id,
-          scenario: call.scenario,
-          startedAt: call.startedAt,
-          endedAt: call.endedAt,
-          duration: call.duration,
-          transcript: call.transcript,
-          audioUrl: call.audioUrl,
-          outcome: call.outcome,
-          notes: call.notes
-        },
-        evaluations,
-        hasAudio: !!call.audioUrl,
-        hasTranscript: !!call.transcript,
-        duration: call.duration || 0
-      };
-
-      res.json(feedbackData);
-    } catch (error) {
-      console.error("Error fetching call feedback:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -410,54 +264,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const evaluation = await storage.createCallEvaluation({
         callId,
         evaluatorId: null, // AI evaluation
-        overallScore: aiEvaluation.overallScore,
         scores: aiEvaluation.scores,
         feedback: aiEvaluation.feedback,
         criteria: aiEvaluation.criteria,
-        isAiGenerated: true,
-        strengths: Object.entries(aiEvaluation.scores)
-          .filter(([_, score]) => score >= 7)
-          .map(([criteria, _]) => criteria),
-        improvements: Object.entries(aiEvaluation.scores)
-          .filter(([_, score]) => score < 6)
-          .map(([criteria, _]) => criteria),
-        scenarioSpecificNotes: scenario.includes('Low Class Consumption') ? 
-          'Focus on 12-class policy and Ebbinghaus research' : 
-          'Apply 51Talk communication strategies'
+        evaluatedAt: new Date(),
+        isAiGenerated: true
       });
       
       res.json({ evaluation, aiAnalysis: aiEvaluation });
     } catch (error) {
       console.error("Error with AI evaluation:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Student feedback endpoint - get detailed evaluation for a specific call
-  app.get("/api/practice-calls/:id/feedback", requireAuth, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      
-      // Get the practice call details
-      const calls = await storage.getUserPracticeCalls(req.user.id);
-      const call = calls.find(c => c.id === id);
-      
-      if (!call) {
-        return res.status(404).json({ message: "Practice call not found" });
-      }
-
-      // Get evaluations for this call
-      const evaluations = await storage.getCallEvaluations(id);
-      
-      res.json({ 
-        call,
-        evaluations,
-        hasAudio: !!call.audioUrl,
-        hasTranscript: !!call.transcript,
-        duration: call.duration || 0
-      });
-    } catch (error) {
-      console.error("Error fetching call feedback:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
