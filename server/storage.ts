@@ -10,6 +10,11 @@ import {
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
 
+// Temporary storage for demo mode when database is unavailable
+const tempUsers = new Map();
+const tempProgress = new Map();
+const tempCalls = new Map();
+
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;

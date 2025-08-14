@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { demoStorage } from "./demo-storage";
 import { aiTrainingService } from "./aiService";
 import { ringgService } from "./ringgService";
 import { loginSchema, registerSchema, insertProblemReportSchema } from "@shared/schema";
@@ -14,66 +15,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password, name } = registerSchema.parse(req.body);
       
-      // Check if user exists
+      // Check if user exists - try database first, fallback to demo storage
+      let existingUser;
       try {
-        const existingUser = await storage.getUserByEmail(email);
-        if (existingUser) {
-          return res.status(400).json({ message: "User already exists" });
-        }
+        existingUser = await storage.getUserByEmail(email);
       } catch (dbError) {
-        console.warn("Database error during user check:", dbError);
-        // For demo purposes, continue with registration
+        console.warn("Database unavailable, using demo storage");
+        existingUser = await demoStorage.getUserByEmail(email);
+      }
+
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
       }
 
       // Hash password
       const passwordHash = await bcrypt.hash(password, 10);
 
+      let user;
       try {
-        // Create user
-        const user = await storage.createUser({
+        // Try database first
+        user = await storage.createUser({
           email,
           passwordHash,
           name,
           role: "STUDENT"
         });
+      } catch (dbError) {
+        console.warn("Database unavailable, creating demo user");
+        user = await demoStorage.createUser({
+          email,
+          passwordHash,
+          name,
+          role: "STUDENT"
+        });
+      }
 
-        // Initialize progress for all modules
-        const modules = ["SOP_1ST_CALL", "SOP_4TH", "SOP_UNIT", "SOP_1ST_MONTH", "VOIP", "SCRM", "CURRICULUM", "REFERRALS"];
-        for (const module of modules) {
+      // Initialize progress for all modules
+      const modules = ["SOP_1ST_CALL", "SOP_4TH", "SOP_UNIT", "SOP_1ST_MONTH", "VOIP", "SCRM", "CURRICULUM", "REFERRALS"];
+      for (const module of modules) {
+        try {
+          await storage.upsertProgress({
+            userId: user.id,
+            module,
+            status: "NOT_STARTED",
+            attempts: 0
+          });
+        } catch (progressError) {
           try {
-            await storage.upsertProgress({
+            await demoStorage.upsertProgress({
               userId: user.id,
               module,
               status: "NOT_STARTED",
               attempts: 0
             });
-          } catch (progressError) {
-            console.warn("Failed to create progress for module:", module, progressError);
+          } catch (demoError) {
+            console.warn("Failed to create progress for module:", module, demoError);
           }
         }
-
-        // Set session after successful registration and ensure it's saved
-        (req as any).session.userId = user.id;
-        
-        // Force session save for deployment compatibility
-        (req as any).session.save((err: any) => {
-          if (err) {
-            console.error("Session save error:", err);
-          }
-          res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
-        });
-      } catch (dbError) {
-        console.error("Database error during user creation:", dbError);
-        // Create a temporary demo user for development
-        const demoUser = {
-          id: "demo-" + Date.now(),
-          email,
-          name,
-          role: "STUDENT" as const
-        };
-        (req as any).session.userId = demoUser.id;
-        res.json({ user: demoUser });
       }
+
+      // Set session after successful registration and ensure it's saved
+      (req as any).session.userId = user.id;
+      
+      // Force session save for deployment compatibility
+      (req as any).session.save((err: any) => {
+        if (err) {
+          console.error("Session save error:", err);
+        }
+        res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });

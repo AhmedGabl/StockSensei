@@ -57,26 +57,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration with fallback
-let sessionStore;
-const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now();
+// Session configuration - using memory store due to database endpoint being disabled
+console.log('Database endpoint is disabled, using in-memory session store for development');
+const MemStore = MemoryStore(session);
+const sessionStore = new MemStore({
+  checkPeriod: 86400000 // prune expired entries every 24h
+});
 
-try {
-  // Try to use PostgreSQL session store
-  const PgSession = ConnectPgSimple(session);
-  sessionStore = new PgSession({
-    conString: process.env.DATABASE_URL,
-    tableName: 'session',
-    createTableIfMissing: true
-  });
-  console.log('Using PostgreSQL session store');
-} catch (error) {
-  console.warn('Failed to connect to PostgreSQL, using memory session store:', error instanceof Error ? error.message : String(error));
-  const MemStore = MemoryStore(session);
-  sessionStore = new MemStore({
-    checkPeriod: 86400000 // prune expired entries every 24h
-  });
-}
+const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now();
 
 app.use(session({
   store: sessionStore,
