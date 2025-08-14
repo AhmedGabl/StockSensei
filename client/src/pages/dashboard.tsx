@@ -1,4 +1,5 @@
-import { useState } from "react";
+import * as React from "react";
+const { useState } = React;
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { ModuleCard } from "@/components/module-card";

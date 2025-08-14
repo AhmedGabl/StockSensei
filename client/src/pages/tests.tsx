@@ -1,4 +1,5 @@
-import { useState } from "react";
+import * as React from "react";
+const { useState } = React;
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";

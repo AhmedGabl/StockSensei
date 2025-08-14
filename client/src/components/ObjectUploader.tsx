@@ -1,4 +1,5 @@
-import { useState } from "react";
+import * as React from "react";
+const { useState } = React;
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
 import { DashboardModal } from "@uppy/react";
