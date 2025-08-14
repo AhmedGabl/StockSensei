@@ -59,7 +59,7 @@ export default function ProblemReports({ user, onNavigate, onLogout }: ProblemRe
   });
 
   const createReportMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/problem-reports", "POST", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/problem-reports", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/problem-reports"] });
       setIsDialogOpen(false);
