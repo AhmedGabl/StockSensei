@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BotpressChat } from "./botpress-chat";
 import { CallFeedbackModal } from "./call-feedback-modal";
+import { BotpressChat } from "./botpress-chat";
 import { PracticeCallHistory } from "./practice-call-history";
 import { User } from "@/lib/types";
 
@@ -18,6 +18,19 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
   const [activeTab, setActiveTab] = useState("chat");
   const [selectedCall, setSelectedCall] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+
+  // Listen for feedback messages from roleplay window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'showFeedback' && event.data.callId) {
+        setSelectedCall(event.data.callId);
+        setShowFeedback(true);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const scenarios = [
     {
@@ -236,19 +249,60 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
               document.getElementById('callSummary').classList.remove('hidden');
               document.getElementById('duration').textContent = formatTime(duration);
               
-              // Save practice session record
-              fetch(window.opener.location.origin + '/api/practice-calls', {
+              // Create practice call and trigger AI evaluation
+              fetch(window.opener.location.origin + '/api/practice-calls/start', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                  scenario: \`${randomScenario.title}\`,
-                  outcome: 'COMPLETED',
-                  notes: \`CM roleplay training: ${randomScenario.challenge}\`
+                  scenario: \`${randomScenario.title}\`
                 })
-              }).catch(err => console.log('Training session completed'));
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.practiceCall && data.practiceCall.id) {
+                  // Complete the call with AI evaluation
+                  return fetch(window.opener.location.origin + '/api/practice-calls/complete', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                      id: data.practiceCall.id,
+                      outcome: 'PASSED',
+                      notes: \`CM roleplay training: ${randomScenario.challenge}\`,
+                      scenario: \`${randomScenario.title}\`,
+                      ringgCallId: 'roleplay-' + Date.now() // Generate mock Ringg call ID
+                    })
+                  });
+                }
+              })
+              .then(response => response ? response.json() : null)
+              .then(data => {
+                if (data && data.practiceCall) {
+                  console.log('Practice call completed with AI evaluation');
+                  // Show feedback notification
+                  const feedbackBtn = document.createElement('button');
+                  feedbackBtn.innerHTML = '<i class="fas fa-star mr-2"></i>View AI Feedback';
+                  feedbackBtn.className = 'mt-4 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2';
+                  feedbackBtn.onclick = () => {
+                    // Notify parent window to show feedback
+                    if (window.opener) {
+                      window.opener.postMessage({
+                        type: 'showFeedback',
+                        callId: data.practiceCall.id
+                      }, '*');
+                    }
+                  };
+                  document.getElementById('callSummary').appendChild(feedbackBtn);
+                }
+              })
+              .catch(err => {
+                console.error('Error completing practice call:', err);
+              });
             }
             
             function showTips() {
