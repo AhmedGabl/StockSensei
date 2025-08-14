@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, ExternalLink, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, ExternalLink, AlertCircle, Clock, CheckCircle2, Edit, Check, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { ProblemReport } from "@shared/schema";
@@ -42,6 +42,57 @@ const STATUS_COLORS = {
   OPEN: "bg-blue-100 text-blue-800",
   IN_PROGRESS: "bg-purple-100 text-purple-800",
   RESOLVED: "bg-green-100 text-green-800"
+};
+
+// Admin Notes Dialog Component
+const AdminNotesDialog = ({ report, onUpdate, isPending }: { 
+  report: ProblemReport & { user?: { name: string; email: string } }, 
+  onUpdate: (notes: string) => void, 
+  isPending: boolean 
+}) => {
+  const [notes, setNotes] = useState(report.adminNotes || "");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSave = () => {
+    onUpdate(notes);
+    setIsOpen(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="flex items-center gap-1">
+          <MessageSquare className="w-3 h-3" />
+          {report.adminNotes ? "Edit Notes" : "Add Notes"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Admin Notes</DialogTitle>
+          <DialogDescription>
+            Add or update admin notes for this problem report.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add notes about the resolution, investigation, or next steps..."
+            rows={4}
+          />
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={isPending}>
+              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Notes
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default function ProblemReports({ user, onNavigate, onLogout }: ProblemReportsProps) {
@@ -78,6 +129,25 @@ export default function ProblemReports({ user, onNavigate, onLogout }: ProblemRe
     },
   });
 
+  const updateReportMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: any }) => 
+      apiRequest("PATCH", `/api/problem-reports/${id}`, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/problem-reports"] });
+      toast({
+        title: "Report updated successfully",
+        description: "The report status has been updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update report",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.description.trim() || !formData.category) {
@@ -88,6 +158,24 @@ export default function ProblemReports({ user, onNavigate, onLogout }: ProblemRe
       return;
     }
     createReportMutation.mutate(formData);
+  };
+
+  const handleStatusUpdate = (reportId: string, status: string, adminNotes?: string) => {
+    const updates: any = { 
+      status,
+      updatedAt: new Date().toISOString()
+    };
+    
+    if (status === "RESOLVED") {
+      updates.resolvedBy = user.id;
+      updates.resolvedAt = new Date().toISOString();
+    }
+    
+    if (adminNotes !== undefined) {
+      updates.adminNotes = adminNotes;
+    }
+    
+    updateReportMutation.mutate({ id: reportId, updates });
   };
 
   const reports = (reportsData as any)?.reports || [];
@@ -286,6 +374,43 @@ export default function ProblemReports({ user, onNavigate, onLogout }: ProblemRe
                   {report.resolvedAt && (
                     <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
                       Resolved on {format(new Date(report.resolvedAt), "MMM d, yyyy 'at' h:mm a")}
+                    </div>
+                  )}
+
+                  {/* Admin Controls */}
+                  {user.role === "ADMIN" && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-wrap gap-2">
+                        {report.status !== "IN_PROGRESS" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusUpdate(report.id, "IN_PROGRESS")}
+                            disabled={updateReportMutation.isPending}
+                            className="flex items-center gap-1"
+                          >
+                            <Clock className="w-3 h-3" />
+                            Mark In Progress
+                          </Button>
+                        )}
+                        {report.status !== "RESOLVED" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusUpdate(report.id, "RESOLVED")}
+                            disabled={updateReportMutation.isPending}
+                            className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
+                          >
+                            <Check className="w-3 h-3" />
+                            Mark as Fixed
+                          </Button>
+                        )}
+                        <AdminNotesDialog 
+                          report={report}
+                          onUpdate={(notes) => handleStatusUpdate(report.id, report.status, notes)}
+                          isPending={updateReportMutation.isPending}
+                        />
+                      </div>
                     </div>
                   )}
                 </CardContent>
