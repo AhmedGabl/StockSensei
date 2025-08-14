@@ -166,8 +166,8 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
         try {
           if (window.loadAgent) {
             window.loadAgent({
-              agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
-              xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
+              agentId: "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
+              xApiKey: "be40b1db-451c-4ede-9acd-2c4403f51ef0",
               variables: {
                 callee_name: "CALLEE_NAME",
                 mode: "MODE", 
