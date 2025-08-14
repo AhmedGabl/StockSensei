@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { aiTrainingService } from "./aiService";
-import { loginSchema, registerSchema } from "@shared/schema";
+import { loginSchema, registerSchema, insertProblemReportSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -976,6 +976,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error reordering modules:", error);
       res.status(500).json({ message: "Failed to reorder modules" });
+    }
+  });
+
+  // Problem Report routes
+  app.get("/api/problem-reports", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      let reports;
+      if (user.role === "ADMIN") {
+        // Admins can see all reports
+        reports = await storage.getProblemReports();
+      } else {
+        // Students can only see their own reports
+        reports = await storage.getUserProblemReports(user.id);
+      }
+
+      res.json({ reports });
+    } catch (error) {
+      console.error("Error fetching problem reports:", error);
+      res.status(500).json({ message: "Failed to fetch problem reports" });
+    }
+  });
+
+  app.post("/api/problem-reports", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const data = insertProblemReportSchema.parse({
+        ...req.body,
+        userId
+      });
+
+      const report = await storage.createProblemReport(data);
+      res.json({ report });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating problem report:", error);
+      res.status(500).json({ message: "Failed to create problem report" });
+    }
+  });
+
+  app.patch("/api/problem-reports/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const report = await storage.updateProblemReport(id, updates);
+      res.json({ report });
+    } catch (error) {
+      console.error("Error updating problem report:", error);
+      res.status(500).json({ message: "Failed to update problem report" });
+    }
+  });
+
+  app.delete("/api/problem-reports/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.deleteProblemReport(id);
+      res.json({ message: "Problem report deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting problem report:", error);
+      res.status(500).json({ message: "Failed to delete problem report" });
     }
   });
 

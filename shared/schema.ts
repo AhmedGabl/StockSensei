@@ -9,6 +9,8 @@ export const practiceCallOutcomeEnum = pgEnum("practice_call_outcome", ["PASSED"
 export const materialTypeEnum = pgEnum("material_type", ["PDF", "POWERPOINT", "VIDEO", "SCRIPT", "DOCUMENT"]);
 export const questionTypeEnum = pgEnum("question_type", ["MCQ", "TRUE_FALSE"]);
 export const taskStatusEnum = pgEnum("task_status", ["OPEN", "DONE"]);
+export const reportStatusEnum = pgEnum("report_status", ["OPEN", "IN_PROGRESS", "RESOLVED"]);
+export const reportPriorityEnum = pgEnum("report_priority", ["LOW", "MEDIUM", "HIGH", "URGENT"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -150,6 +152,21 @@ export const tasks = pgTable("tasks", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+export const problemReports = pgTable("problem_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // e.g., "Technical", "Content", "UI/UX", "Other"
+  priority: reportPriorityEnum("priority").notNull().default("MEDIUM"),
+  status: reportStatusEnum("status").notNull().default("OPEN"),
+  adminNotes: text("admin_notes"),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   progress: many(progress),
@@ -163,6 +180,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   authoredNotes: many(notes, { relationName: "authored_notes" }),
   tasks: many(tasks, { relationName: "user_tasks" }),
   authoredTasks: many(tasks, { relationName: "authored_tasks" }),
+  problemReports: many(problemReports, { relationName: "user_reports" }),
+  resolvedReports: many(problemReports, { relationName: "resolved_reports" }),
 }));
 
 export const progressRelations = relations(progress, ({ one }) => ({
@@ -281,6 +300,19 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
   }),
 }));
 
+export const problemReportsRelations = relations(problemReports, ({ one }) => ({
+  user: one(users, {
+    fields: [problemReports.userId],
+    references: [users.id],
+    relationName: "user_reports",
+  }),
+  resolver: one(users, {
+    fields: [problemReports.resolvedBy],
+    references: [users.id],
+    relationName: "resolved_reports",
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -348,6 +380,12 @@ export const insertTrainingModuleSchema = createInsertSchema(trainingModules).om
   updatedAt: true,
 });
 
+export const insertProblemReportSchema = createInsertSchema(problemReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -375,6 +413,8 @@ export type InsertTestAssignment = z.infer<typeof insertTestAssignmentSchema>;
 export type TestAssignment = typeof testAssignments.$inferSelect;
 export type TrainingModule = typeof trainingModules.$inferSelect;
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
+export type InsertProblemReport = z.infer<typeof insertProblemReportSchema>;
+export type ProblemReport = typeof problemReports.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({

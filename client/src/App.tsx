@@ -14,6 +14,7 @@ import TestTaking from "@/pages/test-taking";
 import EnhancedAdmin from "@/pages/enhanced-admin";
 import ModuleAdmin from "@/pages/module-admin";
 import AdminControl from "@/pages/admin-control";
+import ProblemReports from "@/pages/problem-reports";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
@@ -54,6 +55,8 @@ function App() {
         return <ModuleAdmin user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "admin-control":
         return <AdminControl user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+      case "problem-reports":
+        return <ProblemReports user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       default:
         return <Dashboard user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
     }

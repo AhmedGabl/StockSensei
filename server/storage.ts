@@ -1,10 +1,10 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
-  type TrainingModule, type InsertTrainingModule
+  type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
@@ -79,6 +79,13 @@ export interface IStorage {
   updateTrainingModule(id: string, updates: Partial<TrainingModule>): Promise<TrainingModule>;
   deleteTrainingModule(id: string): Promise<void>;
   reorderTrainingModules(moduleOrders: { id: string; orderIndex: number }[]): Promise<void>;
+
+  // Problem Report operations
+  getProblemReports(): Promise<(ProblemReport & { user: Pick<User, 'name' | 'email'> })[]>;
+  getUserProblemReports(userId: string): Promise<ProblemReport[]>;
+  createProblemReport(report: InsertProblemReport): Promise<ProblemReport>;
+  updateProblemReport(id: string, updates: Partial<ProblemReport>): Promise<ProblemReport>;
+  deleteProblemReport(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -511,6 +518,58 @@ export class DatabaseStorage implements IStorage {
         .set({ orderIndex, updatedAt: new Date() })
         .where(eq(trainingModules.id, id));
     }
+  }
+
+  // Problem Report operations
+  async getProblemReports(): Promise<(ProblemReport & { user: Pick<User, 'name' | 'email'> })[]> {
+    return await db
+      .select({
+        id: problemReports.id,
+        userId: problemReports.userId,
+        title: problemReports.title,
+        description: problemReports.description,
+        category: problemReports.category,
+        priority: problemReports.priority,
+        status: problemReports.status,
+        adminNotes: problemReports.adminNotes,
+        resolvedBy: problemReports.resolvedBy,
+        resolvedAt: problemReports.resolvedAt,
+        createdAt: problemReports.createdAt,
+        updatedAt: problemReports.updatedAt,
+        user: {
+          name: users.name,
+          email: users.email
+        }
+      })
+      .from(problemReports)
+      .leftJoin(users, eq(problemReports.userId, users.id))
+      .orderBy(desc(problemReports.createdAt));
+  }
+
+  async getUserProblemReports(userId: string): Promise<ProblemReport[]> {
+    return await db
+      .select()
+      .from(problemReports)
+      .where(eq(problemReports.userId, userId))
+      .orderBy(desc(problemReports.createdAt));
+  }
+
+  async createProblemReport(report: InsertProblemReport): Promise<ProblemReport> {
+    const [created] = await db.insert(problemReports).values(report).returning();
+    return created;
+  }
+
+  async updateProblemReport(id: string, updates: Partial<ProblemReport>): Promise<ProblemReport> {
+    const [updated] = await db
+      .update(problemReports)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(problemReports.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteProblemReport(id: string): Promise<void> {
+    await db.delete(problemReports).where(eq(problemReports.id, id));
   }
 }
 
