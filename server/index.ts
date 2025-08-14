@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import ConnectPgSimple from "connect-pg-simple";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -56,12 +56,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration - using memory store temporarily due to Neon endpoint disabled
-const MemoryStoreSession = MemoryStore(session);
+// Session configuration
+const PgSession = ConnectPgSimple(session);
 
 app.use(session({
-  store: new MemoryStoreSession({
-    checkPeriod: 86400000 // prune expired entries every 24h
+  store: new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'session',
+    createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now(),
   resave: false,

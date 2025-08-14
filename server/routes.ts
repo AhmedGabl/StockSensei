@@ -219,65 +219,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Evaluation call endpoints for enhanced functionality
-  app.post("/api/practice-calls/:id/evaluate", requireAuth, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const { scores, feedback, evaluatorId, criteria } = req.body;
-      
-      // Create detailed evaluation record
-      const evaluation = await storage.createCallEvaluation({
-        callId: id,
-        evaluatorId: evaluatorId || req.user.id,
-        scores, // Object with different scoring criteria
-        feedback,
-        criteria,
-        evaluatedAt: new Date()
-      });
-      
-      res.json({ evaluation });
-    } catch (error) {
-      console.error("Error creating call evaluation:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/practice-calls/:id/evaluations", requireAuth, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const evaluations = await storage.getCallEvaluations(id);
-      res.json({ evaluations });
-    } catch (error) {
-      console.error("Error fetching call evaluations:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/practice-calls/ai-evaluate", requireAuth, async (req: any, res) => {
-    try {
-      const { callId, transcript, scenario } = req.body;
-      
-      // Use AI service for automated evaluation
-      const aiEvaluation = await aiTrainingService.evaluateCall(transcript, scenario);
-      
-      // Store AI evaluation
-      const evaluation = await storage.createCallEvaluation({
-        callId,
-        evaluatorId: null, // AI evaluation
-        scores: aiEvaluation.scores,
-        feedback: aiEvaluation.feedback,
-        criteria: aiEvaluation.criteria,
-        evaluatedAt: new Date(),
-        isAiGenerated: true
-      });
-      
-      res.json({ evaluation, aiAnalysis: aiEvaluation });
-    } catch (error) {
-      console.error("Error with AI evaluation:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
   // Admin routes
   app.get("/api/admin/users", requireAuth, async (req: any, res) => {
     try {

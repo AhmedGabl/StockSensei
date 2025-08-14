@@ -6,9 +6,8 @@ import {
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
   type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport
 } from "@shared/schema";
-// Database import commented out due to Neon endpoint disabled
-// import { db } from "./db";
-// import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
+import { db } from "./db";
+import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -26,18 +25,6 @@ export interface IStorage {
   createPracticeCall(call: InsertPracticeCall): Promise<PracticeCall>;
   updatePracticeCall(id: string, updates: Partial<PracticeCall>): Promise<PracticeCall>;
   getUserPracticeCalls(userId: string): Promise<PracticeCall[]>;
-  
-  // Call evaluation operations
-  createCallEvaluation(evaluation: {
-    callId: string;
-    evaluatorId: string | null;
-    scores: Record<string, number>;
-    feedback: string;
-    criteria: string[];
-    evaluatedAt: Date;
-    isAiGenerated?: boolean;
-  }): Promise<any>;
-  getCallEvaluations(callId: string): Promise<any[]>;
 
   // Material operations
   getMaterials(tags?: string[]): Promise<Material[]>;
@@ -101,8 +88,6 @@ export interface IStorage {
   deleteProblemReport(id: string): Promise<void>;
 }
 
-// DatabaseStorage temporarily commented out due to Neon endpoint disabled
-/* 
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -586,249 +571,6 @@ export class DatabaseStorage implements IStorage {
   async deleteProblemReport(id: string): Promise<void> {
     await db.delete(problemReports).where(eq(problemReports.id, id));
   }
-
-  // Call evaluation operations (using simple storage for now)
-  private evaluations: Array<{
-    id: string;
-    callId: string;
-    evaluatorId: string | null;
-    scores: Record<string, number>;
-    feedback: string;
-    criteria: string[];
-    evaluatedAt: Date;
-    isAiGenerated?: boolean;
-  }> = [];
-
-  async createCallEvaluation(evaluation: {
-    callId: string;
-    evaluatorId: string | null;
-    scores: Record<string, number>;
-    feedback: string;
-    criteria: string[];
-    evaluatedAt: Date;
-    isAiGenerated?: boolean;
-  }): Promise<any> {
-    const newEvaluation = {
-      id: crypto.randomUUID(),
-      ...evaluation
-    };
-    this.evaluations.push(newEvaluation);
-    return newEvaluation;
-  }
-
-  async getCallEvaluations(callId: string): Promise<any[]> {
-    return this.evaluations.filter(evaluation => evaluation.callId === callId);
-  }
-}
-*/
-
-// Temporary fallback storage due to Neon database endpoint being disabled
-class MemStorage implements IStorage {
-  private users: User[] = [
-    {
-      id: "131191e0-1762-45e8-a957-64fc25ea928b",
-      email: "qaysq28@gmail.com",
-      name: "CM Student",
-      passwordHash: "$2b$10$rGHzF7r5n8x9X3K4mO4M5eOYi9YvC7z5C7z5C7z5C7z5C7z5C7z5C",
-      role: "STUDENT",
-      createdAt: new Date("2024-01-01")
-    },
-    {
-      id: "35d9663e-2c4c-49e0-a38b-0e0301687f48",
-      email: "admin@cm.com",
-      name: "Admin User", 
-      passwordHash: "$2b$10$rGHzF7r5n8x9X3K4mO4M5eOYi9YvC7z5C7z5C7z5C7z5C7z5C7z5C",
-      role: "ADMIN",
-      createdAt: new Date("2024-01-01")
-    }
-  ];
-  private progress: Progress[] = [];
-  private practiceCalls: PracticeCall[] = [];
-  private materials: Material[] = [];
-  private tests: Test[] = [];
-  private questions: Question[] = [];
-  private options: Option[] = [];
-  private attempts: Attempt[] = [];
-  private answers: Answer[] = [];
-  private notes: Note[] = [];
-  private tasks: Task[] = [];
-  private testAssignments: TestAssignment[] = [];
-  private trainingModules: TrainingModule[] = [];
-  private problemReports: ProblemReport[] = [];
-  private evaluations: Array<{
-    id: string;
-    callId: string;
-    evaluatorId: string | null;
-    scores: Record<string, number>;
-    feedback: string;
-    criteria: string[];
-    evaluatedAt: Date;
-    isAiGenerated?: boolean;
-  }> = [];
-
-  // User operations
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.find(u => u.id === id);
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return this.users.find(u => u.email === email);
-  }
-
-  async createUser(user: InsertUser): Promise<User> {
-    const newUser: User = {
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      name: user.name || null,
-      ...user
-    };
-    this.users.push(newUser);
-    return newUser;
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return [...this.users];
-  }
-
-  // Progress operations
-  async getUserProgress(userId: string): Promise<Progress[]> {
-    return this.progress.filter(p => p.userId === userId);
-  }
-
-  async getProgress(userId: string, module: string): Promise<Progress | undefined> {
-    return this.progress.find(p => p.userId === userId && p.module === module);
-  }
-
-  async upsertProgress(progressData: InsertProgress): Promise<Progress> {
-    const existing = this.progress.find(p => p.userId === progressData.userId && p.module === progressData.module);
-    if (existing) {
-      Object.assign(existing, progressData);
-      return existing;
-    }
-    const newProgress: Progress = {
-      id: crypto.randomUUID(),
-      lastTouched: new Date(),
-      score: null,
-      ...progressData
-    };
-    this.progress.push(newProgress);
-    return newProgress;
-  }
-
-  // Practice call operations
-  async createPracticeCall(call: InsertPracticeCall): Promise<PracticeCall> {
-    const newCall: PracticeCall = {
-      id: crypto.randomUUID(),
-      startedAt: new Date(),
-      endedAt: null,
-      outcome: null,
-      notes: null,
-      ...call
-    };
-    this.practiceCalls.push(newCall);
-    return newCall;
-  }
-
-  async updatePracticeCall(id: string, updates: Partial<PracticeCall>): Promise<PracticeCall> {
-    const call = this.practiceCalls.find(c => c.id === id);
-    if (!call) throw new Error("Practice call not found");
-    Object.assign(call, updates);
-    return call;
-  }
-
-  async getUserPracticeCalls(userId: string): Promise<PracticeCall[]> {
-    return this.practiceCalls.filter(c => c.userId === userId);
-  }
-
-  // Call evaluation operations
-  async createCallEvaluation(evaluation: {
-    callId: string;
-    evaluatorId: string | null;
-    scores: Record<string, number>;
-    feedback: string;
-    criteria: string[];
-    evaluatedAt: Date;
-    isAiGenerated?: boolean;
-  }): Promise<any> {
-    const newEvaluation = {
-      id: crypto.randomUUID(),
-      ...evaluation
-    };
-    this.evaluations.push(newEvaluation);
-    return newEvaluation;
-  }
-
-  async getCallEvaluations(callId: string): Promise<any[]> {
-    return this.evaluations.filter(evaluation => evaluation.callId === callId);
-  }
-
-  // Stub implementations for other required methods
-  async getMaterials(): Promise<Material[]> { return []; }
-  async createMaterial(): Promise<Material> { throw new Error("Not implemented"); }
-  async updateMaterial(): Promise<Material> { throw new Error("Not implemented"); }
-  async deleteMaterial(): Promise<void> { throw new Error("Not implemented"); }
-  async restoreMaterial(): Promise<Material> { throw new Error("Not implemented"); }
-  async getTests(): Promise<Test[]> { return []; }
-  async getTest(): Promise<Test | undefined> { return undefined; }
-  async createTest(): Promise<Test> { throw new Error("Not implemented"); }
-  async updateTest(): Promise<Test> { throw new Error("Not implemented"); }
-  async getTestQuestions(): Promise<(Question & { options?: Option[] })[]> { return []; }
-  async createQuestion(): Promise<Question> { throw new Error("Not implemented"); }
-  async createOption(): Promise<Option> { throw new Error("Not implemented"); }
-  async getUserAttempts(): Promise<Attempt[]> { return []; }
-  async createAttempt(): Promise<Attempt> { throw new Error("Not implemented"); }
-  async updateAttempt(): Promise<Attempt> { throw new Error("Not implemented"); }
-  async getBestScore(): Promise<number | null> { return null; }
-  async createAnswer(): Promise<Answer> { throw new Error("Not implemented"); }
-  async getAttemptAnswers(): Promise<Answer[]> { return []; }
-  async getUserNotes(): Promise<Note[]> { return []; }
-  async createNote(): Promise<Note> { throw new Error("Not implemented"); }
-  async deleteNote(): Promise<void> { throw new Error("Not implemented"); }
-  async getUserTasks(): Promise<Task[]> { return []; }
-  async createTask(): Promise<Task> { throw new Error("Not implemented"); }
-  async updateTask(): Promise<Task> { throw new Error("Not implemented"); }
-  async getUserAssignedTests(): Promise<(TestAssignment & { test: Test })[]> { return []; }
-  async getTestAssignments(): Promise<(TestAssignment & { user: User })[]> { return []; }
-  async createTestAssignment(): Promise<TestAssignment> { throw new Error("Not implemented"); }
-  async updateTestAssignment(): Promise<TestAssignment> { throw new Error("Not implemented"); }
-  async deleteTestAssignment(): Promise<void> { throw new Error("Not implemented"); }
-  async getTrainingModules(): Promise<TrainingModule[]> { 
-    // Return some default modules
-    return [
-      {
-        id: "8044ff8b-0096-4d22-b694-98e8fe48c4a2",
-        title: "SOP for 1st Call",
-        description: "Standard Operating Procedures for first customer interaction",
-        scenarios: ["First Call", "Introduction"],
-        estimatedDuration: 15,
-        orderIndex: 1,
-        isEnabled: true,
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-01")
-      },
-      {
-        id: "7f3e5c9a-2b8d-4e61-a3c7-1f9e8b7d6c5a",
-        title: "Voice Practice",
-        description: "AI-powered voice roleplay scenarios",
-        scenarios: ["Voice Call", "Roleplay"],
-        estimatedDuration: 20,
-        orderIndex: 2,
-        isEnabled: true,
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-01")
-      }
-    ];
-  }
-  async createTrainingModule(): Promise<TrainingModule> { throw new Error("Not implemented"); }
-  async updateTrainingModule(): Promise<TrainingModule> { throw new Error("Not implemented"); }
-  async deleteTrainingModule(): Promise<void> { throw new Error("Not implemented"); }
-  async reorderTrainingModules(): Promise<void> { throw new Error("Not implemented"); }
-  async getProblemReports(): Promise<(ProblemReport & { user: Pick<User, 'name' | 'email'> })[]> { return []; }
-  async getUserProblemReports(): Promise<ProblemReport[]> { return []; }
-  async createProblemReport(): Promise<ProblemReport> { throw new Error("Not implemented"); }
-  async updateProblemReport(): Promise<ProblemReport> { throw new Error("Not implemented"); }
-  async deleteProblemReport(): Promise<void> { throw new Error("Not implemented"); }
 }
 
-// Use MemStorage temporarily due to Neon database endpoint being disabled
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
