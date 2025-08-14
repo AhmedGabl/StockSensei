@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,6 +15,24 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
   const [callStarted, setCallStarted] = useState(false);
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // AI Analysis mutation
+  const analyzeCallMutation = useMutation({
+    mutationFn: async (transcript: string) => {
+      const response = await apiRequest('POST', '/api/analyze-call', { transcript });
+      return await response.json();
+    },
+    onSuccess: (analysis: any) => {
+      toast({
+        title: "Call Analysis Complete",
+        description: `Score: ${analysis.score}/10 - ${analysis.feedback}`,
+        duration: 5000,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Analysis error:', error);
+    }
+  });
 
   const startCall = async () => {
     try {

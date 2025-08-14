@@ -6,6 +6,8 @@ import { loginSchema, registerSchema, insertProblemReportSchema } from "@shared/
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { getChatResponse, analyzePracticeCall } from "./openai";
+import type { ChatMessage } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -1044,6 +1046,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting problem report:", error);
       res.status(500).json({ message: "Failed to delete problem report" });
+    }
+  });
+
+  // AI Chat API routes
+  app.post("/api/chat", requireAuth, async (req: any, res) => {
+    try {
+      const { messages } = req.body;
+      
+      if (!Array.isArray(messages) || messages.length === 0) {
+        return res.status(400).json({ message: "Messages array is required" });
+      }
+
+      // Validate message format
+      for (const msg of messages) {
+        if (!msg.role || !msg.content) {
+          return res.status(400).json({ message: "Each message must have role and content" });
+        }
+      }
+
+      const response = await getChatResponse(messages);
+      res.json({ message: response });
+    } catch (error) {
+      console.error("AI Chat error:", error);
+      res.status(500).json({ message: "Failed to get AI response" });
+    }
+  });
+
+  // AI Practice Call Analysis API
+  app.post("/api/analyze-call", requireAuth, async (req: any, res) => {
+    try {
+      const { transcript } = req.body;
+      
+      if (!transcript || typeof transcript !== 'string') {
+        return res.status(400).json({ message: "Transcript is required" });
+      }
+
+      const analysis = await analyzePracticeCall(transcript);
+      res.json(analysis);
+    } catch (error) {
+      console.error("AI Analysis error:", error);
+      res.status(500).json({ message: "Failed to analyze practice call" });
     }
   });
 
