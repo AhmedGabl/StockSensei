@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -56,16 +57,30 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration
-const PgSession = ConnectPgSimple(session);
+// Session configuration with fallback
+let sessionStore;
+const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now();
 
-app.use(session({
-  store: new PgSession({
+try {
+  // Try to use PostgreSQL session store
+  const PgSession = ConnectPgSimple(session);
+  sessionStore = new PgSession({
     conString: process.env.DATABASE_URL,
     tableName: 'session',
     createTableIfMissing: true
-  }),
-  secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production-' + Date.now(),
+  });
+  console.log('Using PostgreSQL session store');
+} catch (error) {
+  console.warn('Failed to connect to PostgreSQL, using memory session store:', error instanceof Error ? error.message : String(error));
+  const MemStore = MemoryStore(session);
+  sessionStore = new MemStore({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  });
+}
+
+app.use(session({
+  store: sessionStore,
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   rolling: true, // Refresh session on each request
