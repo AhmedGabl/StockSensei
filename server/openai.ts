@@ -1,8 +1,9 @@
 import OpenAI from "openai";
 
-// Configure for direct OpenAI API (better JSON reliability)
+// Configure for OpenRouter API gateway with OpenAI models
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
 });
 
 export interface ChatMessage {
@@ -13,7 +14,7 @@ export interface ChatMessage {
 export async function getChatResponse(messages: ChatMessage[]): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "openai/gpt-4o", // OpenRouter format for OpenAI GPT-4o
       messages: [
         {
           role: "system",
@@ -39,7 +40,7 @@ export async function analyzePracticeCall(transcript: string): Promise<{
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "openai/gpt-4o", // OpenRouter format for OpenAI GPT-4o
       messages: [
         {
           role: "system",
@@ -79,7 +80,7 @@ export async function scoreShortAnswer(
 ): Promise<{ isCorrect: boolean; score: number; explanation: string }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "openai/gpt-4o", // OpenRouter format for OpenAI GPT-4o
       messages: [
         {
           role: "system",

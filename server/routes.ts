@@ -1726,7 +1726,7 @@ Format as JSON with this exact structure:
       }
 
       const response = await getChatResponse(messages);
-      res.json({ message: response });
+      res.json({ response });
     } catch (error) {
       console.error("AI Chat error:", error);
       res.status(500).json({ message: "Failed to get AI response" });

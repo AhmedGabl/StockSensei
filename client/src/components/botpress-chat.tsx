@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { User } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Send } from 'lucide-react';
 
 interface BotpressChatProps {
   user: User;
@@ -7,171 +11,172 @@ interface BotpressChatProps {
   onToggle: () => void;
 }
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps) {
   const webchatRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useFallback, setUseFallback] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: 'Hello! I\'m your 51Talk Training Assistant. Ask me anything about Class Mentor training, student management, or 51Talk procedures.',
+      timestamp: new Date()
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
-  useEffect(() => {
-    if (!webchatRef.current) return;
+  const sendMessage = async (message: string) => {
+    if (!message.trim()) return;
 
-    const initializeBotpress = () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Clear any existing content
-        webchatRef.current!.innerHTML = '';
-
-        // Create unique container ID to avoid conflicts
-        const containerId = `webchat-container-${Date.now()}`;
-
-        // Set up the HTML structure
-        webchatRef.current!.innerHTML = `
-          <style>
-            .bpWebchat {
-              position: unset !important;
-              width: 100% !important;
-              height: 100% !important;
-              max-height: 100% !important;
-              max-width: 100% !important;
-              border: none !important;
-              border-radius: 8px !important;
-              box-shadow: none !important;
-            }
-
-            .bpFab {
-              display: none !important;
-            }
-
-            .bpHeader {
-              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
-              color: white !important;
-            }
-
-            .bpSendButton {
-              background: #f97316 !important;
-            }
-
-            .bpUserMessage {
-              background: #f97316 !important;
-            }
-
-            .bpContainer {
-              border: none !important;
-              box-shadow: none !important;
-            }
-          </style>
-          <div id="${containerId}" style="width: 100%; height: 300px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b;">
-              <div style="text-align: center;">
-                <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
-                <div>Loading 51Talk Training Assistant...</div>
-              </div>
-            </div>
-          </div>
-        `;
-
-        // Load Botpress script
-        const script = document.createElement('script');
-        script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
-        script.onload = () => {
-          try {
-            // Wait a bit for the script to initialize
-            setTimeout(() => {
-              if ((window as any).botpress) {
-                (window as any).botpress.init({
-                  "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
-                  "configuration": {
-                    "version": "v1",
-                    "website": {},
-                    "email": {},
-                    "phone": {},
-                    "termsOfService": {},
-                    "privacyPolicy": {},
-                    "color": "#f97316",
-                    "variant": "solid", 
-                    "headerVariant": "glass",
-                    "themeMode": "light",
-                    "fontFamily": "inter",
-                    "radius": 4,
-                    "feedbackEnabled": false,
-                    "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)"
-                  },
-                  "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
-                  "selector": `#${containerId}`
-                });
-
-                (window as any).botpress.on("webchat:ready", () => {
-                  setIsLoading(false);
-                  (window as any).botpress.open();
-                });
-
-                (window as any).botpress.on("webchat:error", (error: any) => {
-                  console.error("Botpress error:", error);
-                  setError("Chat service unavailable. Please try again later.");
-                  setIsLoading(false);
-                });
-              } else {
-                throw new Error("Botpress script failed to load");
-              }
-            }, 100);
-          } catch (err) {
-            console.error("Botpress initialization error:", err);
-            setError("Failed to initialize chat. Please refresh and try again.");
-            setIsLoading(false);
-          }
-        };
-
-        script.onerror = () => {
-          console.error("Failed to load Botpress script");
-          setError("Chat service unavailable. Please check your internet connection.");
-          setIsLoading(false);
-        };
-
-        document.head.appendChild(script);
-
-        // Cleanup function
-        return () => {
-          if (document.head.contains(script)) {
-            document.head.removeChild(script);
-          }
-        };
-      } catch (err) {
-        console.error("Botpress setup error:", err);
-        setError("Failed to setup chat. Please try again.");
-        setIsLoading(false);
-      }
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: message,
+      timestamp: new Date()
     };
 
-    const cleanup = initializeBotpress();
-    return cleanup;
-  }, []);
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsTyping(true);
 
-  if (error) {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: [{ role: 'user', content: message }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+      
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'I apologize, but I\'m having trouble responding right now. Please try asking your question again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!webchatRef.current || useFallback) return;
+
+    const timer = setTimeout(() => {
+      setUseFallback(true);
+      setIsLoading(false);
+    }, 5000); // Switch to fallback after 5 seconds
+
+    return () => clearTimeout(timer);
+  }, [useFallback]);
+
+  if (useFallback || error) {
     return (
-      <div className="h-full w-full flex items-center justify-center border border-slate-200 rounded-lg">
-        <div className="text-center p-6">
-          <div className="text-red-500 text-2xl mb-2">⚠️</div>
-          <div className="text-slate-600 mb-4">{error}</div>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-          >
-            Refresh Page
-          </button>
+      <div className="h-full w-full flex flex-col border border-slate-200 rounded-lg">
+        {/* Chat Header */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 rounded-t-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+              <span className="text-xs">🤖</span>
+            </div>
+            <h3 className="font-medium">51Talk Training Assistant</h3>
+          </div>
+        </div>
+
+        {/* Chat Messages */}
+        <ScrollArea className="flex-1 p-4 min-h-[250px] max-h-[250px]">
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-3 rounded-lg ${
+                  message.role === 'user' 
+                    ? 'bg-orange-500 text-white' 
+                    : 'bg-slate-100 text-slate-800'
+                }`}>
+                  <p className="text-sm">{message.content}</p>
+                  <p className="text-xs opacity-70 mt-1">
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-slate-100 text-slate-800 p-3 rounded-lg">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Chat Input */}
+        <div className="p-3 border-t">
+          <div className="flex gap-2">
+            <Input
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage(inputMessage)}
+              placeholder="Ask about Class Mentor training, procedures, or student management..."
+              className="flex-1"
+              disabled={isTyping}
+            />
+            <Button 
+              onClick={() => sendMessage(inputMessage)}
+              disabled={isTyping || !inputMessage.trim()}
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full">
-      <div 
-        ref={webchatRef}
-        className="w-full h-full"
-        style={{ minHeight: '400px' }}
-      />
+    <div className="h-full w-full flex items-center justify-center border border-slate-200 rounded-lg">
+      <div className="text-center p-6">
+        <div className="text-2xl mb-2">🤖</div>
+        <div className="text-slate-600 mb-4">Loading 51Talk Training Assistant...</div>
+        <Button 
+          variant="outline"
+          onClick={() => setUseFallback(true)}
+          className="text-orange-600 border-orange-600 hover:bg-orange-50"
+        >
+          Use Built-in Chat
+        </Button>
+      </div>
     </div>
   );
 }
