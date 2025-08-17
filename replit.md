@@ -9,6 +9,7 @@ A fully functional, comprehensive training Home Page built for Class Mentors (CM
 
 ## Recent Changes
 
+- ✅ **Enhanced Navigation Visibility**: Updated selected navigation tabs to use clear 51Talk orange branding instead of hard-to-see white text
 - ✅ **Full AI-Native Implementation**: Complete AI chatbot and voice roleplay system deployed
 - ✅ **OpenAI Integration**: AI-powered chat assistant and practice call analysis functionality
 - ✅ **Ringg AI Integration**: Live voice roleplay agent with real API credentials and custom styling
