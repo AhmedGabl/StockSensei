@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Material } from "@/lib/types";
+import { apiRequest } from "@/lib/queryClient";
 
 interface FileViewerProps {
   material: Material | null;
@@ -14,6 +15,20 @@ export function FileViewer({ material, isOpen, onClose }: FileViewerProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   if (!material) return null;
+
+  // Record material view when dialog opens
+  useEffect(() => {
+    if (isOpen && material) {
+      const recordView = async () => {
+        try {
+          await apiRequest("POST", `/api/materials/${material.id}/view`);
+        } catch (error) {
+          console.error("Failed to record material view:", error);
+        }
+      };
+      recordView();
+    }
+  }, [isOpen, material]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -61,7 +76,14 @@ export function FileViewer({ material, isOpen, onClose }: FileViewerProps) {
     }
   };
 
-  const handleView = () => {
+  const handleView = async () => {
+    // Record material view
+    try {
+      await apiRequest("POST", `/api/materials/${material.id}/view`);
+    } catch (error) {
+      console.error("Failed to record material view:", error);
+    }
+
     if (material.filePath) {
       window.open(material.filePath, '_blank');
     } else if (material.url) {
