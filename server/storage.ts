@@ -41,6 +41,11 @@ export interface IStorage {
   getMaterialViewCount(materialId: string): Promise<number>;
   getAllMaterialViewsSummary(): Promise<Record<string, { totalViews: number; uniqueViewers: number }>>;
   
+  // Material tag operations
+  getAllMaterialTags(): Promise<string[]>;
+  createMaterialTag(name: string): Promise<string>;
+  deleteMaterialTag(name: string): Promise<void>;
+  
   // Activity logging operations
   logActivity(log: InsertActivityLog): Promise<ActivityLog>;
   getUserActivityLogs(userId: string, limit?: number): Promise<ActivityLog[]>;
@@ -781,6 +786,46 @@ export class DatabaseStorage implements IStorage {
       };
     }
     return summary;
+  }
+
+  async getAllMaterialTags(): Promise<string[]> {
+    const result = await db
+      .select({ tags: materials.tags })
+      .from(materials)
+      .where(isNull(materials.deletedAt));
+
+    const tagSet = new Set<string>();
+    for (const row of result) {
+      if (row.tags && Array.isArray(row.tags)) {
+        row.tags.forEach(tag => tagSet.add(tag));
+      }
+    }
+    return Array.from(tagSet).sort();
+  }
+
+  async createMaterialTag(name: string): Promise<string> {
+    // Since tags are stored as arrays in materials, we just return the name
+    // The tag will be available when materials use it
+    return name;
+  }
+
+  async deleteMaterialTag(name: string): Promise<void> {
+    // Remove the tag from all materials that have it
+    const materialsWithTag = await db
+      .select()
+      .from(materials)
+      .where(and(
+        isNull(materials.deletedAt),
+        sql`${materials.tags} @> ARRAY[${name}]::text[]`
+      ));
+
+    for (const material of materialsWithTag) {
+      const updatedTags = (material.tags || []).filter(tag => tag !== name);
+      await db
+        .update(materials)
+        .set({ tags: updatedTags })
+        .where(eq(materials.id, material.id));
+    }
   }
 
   // Activity logging operations

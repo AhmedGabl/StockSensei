@@ -24,7 +24,7 @@ interface MaterialsProps {
   onLogout: () => void;
 }
 
-const MATERIAL_TAGS = ["SOP", "VOIP", "REFERRALS", "YOUTH", "ADULT"];
+// Tags will be fetched from database instead of hardcoded
 
 export default function Materials({ user, onNavigate, onLogout }: MaterialsProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -36,6 +36,8 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [analyticsDialogOpen, setAnalyticsDialogOpen] = useState(false);
   const [selectedMaterialForAnalytics, setSelectedMaterialForAnalytics] = useState<Material | null>(null);
+  const [tagManagementOpen, setTagManagementOpen] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
@@ -51,14 +53,22 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   const { logMaterialView } = useActivityTracker();
 
   const { data: materialsData, isLoading } = useQuery({
-    queryKey: ["/api/materials", selectedTags],
+    queryKey: ["/api/materials"],
     queryFn: async () => {
-      const tagsParam = selectedTags.length > 0 ? `?tags=${selectedTags.join(',')}` : '';
-      const response = await apiRequest("GET", `/api/materials${tagsParam}`);
+      const response = await apiRequest("GET", "/api/materials");
       return await response.json();
     },
     refetchOnWindowFocus: true,
     staleTime: 0 // Always refetch to get latest changes
+  });
+
+  // Fetch available tags for filtering
+  const { data: tagsData } = useQuery({
+    queryKey: ["/api/materials/tags"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/materials/tags");
+      return await response.json();
+    }
   });
 
   const materials = materialsData?.materials || [];
@@ -83,9 +93,17 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
     }
   });
 
-  const filteredMaterials = materials.filter((material: Material) =>
-    material.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMaterials = materials.filter((material: Material) => {
+    // Filter by search term
+    const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         material.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filter by selected tags
+    const matchesTags = selectedTags.length === 0 || 
+                       selectedTags.some(tag => material.tags?.includes(tag));
+    
+    return matchesSearch && matchesTags;
+  });
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -103,6 +121,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/materials/tags"] });
       toast({
         title: "Success",
         description: "Material uploaded successfully!",
@@ -122,6 +141,52 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
       toast({
         title: "Error",
         description: "Failed to upload material. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Tag management mutations
+  const createTagMutation = useMutation({
+    mutationFn: async (tagName: string) => {
+      const response = await apiRequest("POST", "/api/materials/tags", { name: tagName });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials/tags"] });
+      setNewTagName("");
+      toast({
+        title: "Success",
+        description: "Tag created successfully!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create tag. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTagMutation = useMutation({
+    mutationFn: async (tagName: string) => {
+      const response = await apiRequest("DELETE", `/api/materials/tags/${encodeURIComponent(tagName)}`);
+      return await response.json();
+    },
+    onSuccess: (_, tagName) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials/tags"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      setSelectedTags(prev => prev.filter(tag => tag !== tagName));
+      toast({
+        title: "Success",
+        description: "Tag deleted successfully!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete tag. Please try again.",
         variant: "destructive",
       });
     },
@@ -351,7 +416,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                     <div>
                       <Label>Tags</Label>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {MATERIAL_TAGS.map((tag) => (
+                        {(tagsData?.tags || []).map((tag: string) => (
                           <Button
                             key={tag}
                             type="button"
@@ -369,6 +434,9 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                             {tag}
                           </Button>
                         ))}
+                        {(tagsData?.tags || []).length === 0 && (
+                          <p className="text-sm text-slate-500">No tags available. Create tags using the filter section.</p>
+                        )}
                       </div>
                     </div>
 
@@ -442,7 +510,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
             >
               All
             </Button>
-            {MATERIAL_TAGS.map((tag) => (
+            {(tagsData?.tags || []).map((tag: string) => (
               <Button
                 key={tag}
                 variant={selectedTags.includes(tag) ? "default" : "outline"}
@@ -451,8 +519,62 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                 className="whitespace-nowrap"
               >
                 {tag}
+                {user.role === "ADMIN" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteTagMutation.mutate(tag);
+                    }}
+                    className="ml-2 text-red-500 hover:text-red-700"
+                    title="Delete tag"
+                  >
+                    ×
+                  </button>
+                )}
               </Button>
             ))}
+            {user.role === "ADMIN" && (
+              <Dialog open={tagManagementOpen} onOpenChange={setTagManagementOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="border-dashed border-2">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Tag
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Tag</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="tagName">Tag Name</Label>
+                      <Input
+                        id="tagName"
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value.toUpperCase())}
+                        placeholder="Enter tag name"
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button variant="outline" onClick={() => setTagManagementOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (newTagName.trim()) {
+                            createTagMutation.mutate(newTagName.trim());
+                            setTagManagementOpen(false);
+                          }
+                        }}
+                        disabled={!newTagName.trim() || createTagMutation.isPending}
+                      >
+                        Add Tag
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
 
@@ -654,24 +776,27 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                 <div>
                   <Label>Tags</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {MATERIAL_TAGS.map((tag) => (
+                    {(tagsData?.tags || []).map((tag: string) => (
                       <Button
                         key={tag}
                         type="button"
-                        variant={editingMaterial.tags.includes(tag) ? "default" : "outline"}
+                        variant={editingMaterial.tags?.includes(tag) ? "default" : "outline"}
                         size="sm"
                         onClick={() => {
                           setEditingMaterial(prev => prev ? ({
                             ...prev,
-                            tags: prev.tags.includes(tag)
+                            tags: prev.tags?.includes(tag)
                               ? prev.tags.filter(t => t !== tag)
-                              : [...prev.tags, tag]
+                              : [...(prev.tags || []), tag]
                           }) : null);
                         }}
                       >
                         {tag}
                       </Button>
                     ))}
+                    {(tagsData?.tags || []).length === 0 && (
+                      <p className="text-sm text-slate-500">No tags available. Create tags using the filter section.</p>
+                    )}
                   </div>
                 </div>
 

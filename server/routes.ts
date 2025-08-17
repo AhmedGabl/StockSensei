@@ -524,6 +524,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tag management routes
+  app.get("/api/materials/tags", requireAuth, async (req: any, res) => {
+    try {
+      const tags = await storage.getAllMaterialTags();
+      res.json({ tags });
+    } catch (error) {
+      console.error("Error getting material tags:", error);
+      res.status(500).json({ message: "Failed to get tags" });
+    }
+  });
+
+  app.post("/api/materials/tags", requireAdmin, async (req: any, res) => {
+    try {
+      const { name } = req.body;
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: "Tag name is required" });
+      }
+      
+      const tag = await storage.createMaterialTag(name.trim().toUpperCase());
+      res.json({ tag });
+    } catch (error) {
+      console.error("Error creating material tag:", error);
+      res.status(500).json({ message: "Failed to create tag" });
+    }
+  });
+
+  app.delete("/api/materials/tags/:name", requireAdmin, async (req: any, res) => {
+    try {
+      const { name } = req.params;
+      await storage.deleteMaterialTag(decodeURIComponent(name));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting material tag:", error);
+      res.status(500).json({ message: "Failed to delete tag" });
+    }
+  });
+
   // Test Management API routes
   app.get("/api/tests", requireAuth, async (req: any, res) => {
     try {
