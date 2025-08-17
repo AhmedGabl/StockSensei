@@ -834,7 +834,7 @@ function AssignTestForm({ test, users, groups, onAssign, onAssignToGroup, isLoad
               ) : (
                 groups.map((group: any) => (
                   <SelectItem key={group.id} value={group.id}>
-                    {group.name} ({group.members?.length || 0} members)
+                    {group.name} ({group.memberCount || 0} members)
                   </SelectItem>
                 ))
               )}
