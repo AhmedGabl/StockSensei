@@ -125,18 +125,18 @@ export default function TestBuilder() {
               <div className="space-y-2">
                 <Label>Source Material (Optional)</Label>
                 <Select
-                  value={form.materialId}
+                  value={form.materialId || "none"}
                   onValueChange={(value) => setForm(prev => ({ 
                     ...prev, 
-                    materialId: value,
-                    topic: value ? "" : prev.topic 
+                    materialId: value === "none" ? "" : value,
+                    topic: value !== "none" ? "" : prev.topic 
                   }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a material to base test on" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No material selected</SelectItem>
+                    <SelectItem value="none">No material selected</SelectItem>
                     {materials.map((material: any) => (
                       <SelectItem key={material.id} value={material.id}>
                         <div className="flex items-center gap-2">
