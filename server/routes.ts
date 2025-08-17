@@ -1041,14 +1041,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { testId } = req.params;
       const submissionData = submitAttemptSchema.parse(req.body);
       
-      // Check test access (public or assigned)
+      // Check test access and attempt limits for non-admin users
+      let assignmentId: string | undefined;
       if (req.user.role !== "ADMIN") {
-        const { publicTests, assignedTests } = await storage.getStudentVisibleTests(req.user.id);
-        const hasAccess = publicTests.some(t => t.id === testId) || assignedTests.some(t => t.id === testId);
+        const assignedTests = await storage.getUserAssignedTests(req.user.id);
+        const assignment = assignedTests.find(a => a.testId === testId);
         
-        if (!hasAccess) {
-          return res.status(403).json({ message: "Test not accessible to you" });
+        if (!assignment) {
+          return res.status(403).json({ message: "Test not assigned to you" });
         }
+
+        // Check if user has exceeded maximum attempts
+        const userAttempts = await storage.getUserAttempts(req.user.id, testId);
+        const completedAttempts = userAttempts.filter(attempt => attempt.submittedAt !== null);
+        
+        if (completedAttempts.length >= (assignment.maxAttempts || 3)) {
+          return res.status(403).json({ 
+            message: `Maximum attempts (${assignment.maxAttempts || 3}) reached for this test` 
+          });
+        }
+
+        assignmentId = assignment.id;
       }
 
       const test = await storage.getTest(testId);
@@ -1062,6 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const testAttempt = await storage.createTestAttempt({
         testId,
         userId: req.user.id,
+        assignmentId,
         submittedAt: new Date(),
       });
 
@@ -1236,7 +1250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tests/:testId/assign", requireAdmin, async (req: any, res) => {
     try {
       const { testId } = req.params;
-      const { userIds, dueDate } = req.body;
+      const { userIds, dueDate, maxAttempts = 3 } = req.body;
       
       const assignments = [];
       for (const userId of userIds) {
@@ -1244,7 +1258,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           testId,
           userId,
           assignedBy: req.user.id,
-          dueDate: dueDate ? new Date(dueDate) : null
+          dueDate: dueDate ? new Date(dueDate) : null,
+          maxAttempts: Math.max(1, parseInt(maxAttempts) || 3)
         });
         assignments.push(assignment);
       }
@@ -2324,20 +2339,42 @@ Format as JSON with this exact structure:
   app.post("/api/groups/:id/assign-test", requireAdmin, async (req: any, res) => {
     try {
       const { id: groupId } = req.params;
-      const { testId, dueDate } = req.body;
+      const { testId, dueDate, maxAttempts = 3 } = req.body;
       
       if (!testId) {
         return res.status(400).json({ message: "testId is required" });
       }
       
-      const assignment = await storage.assignTestToGroup(
+      // First create the group assignment record
+      const groupAssignment = await storage.assignTestToGroup(
         groupId, 
         testId, 
         req.user.id,
         dueDate ? new Date(dueDate) : undefined
       );
+
+      // Then create individual assignments for all group members
+      const groupData = await storage.getGroupById(groupId);
+      const assignments = [];
       
-      res.json({ assignment });
+      if (groupData?.members) {
+        for (const member of groupData.members) {
+          const assignment = await storage.createTestAssignment({
+            testId,
+            userId: member.user.id,
+            assignedBy: req.user.id,
+            dueDate: dueDate ? new Date(dueDate) : null,
+            maxAttempts: Math.max(1, parseInt(maxAttempts) || 3)
+          });
+          assignments.push(assignment);
+        }
+      }
+      
+      res.json({ 
+        groupAssignment,
+        individualAssignments: assignments,
+        assignedToMembers: assignments.length
+      });
     } catch (error) {
       console.error("Error assigning test to group:", error);
       res.status(500).json({ message: "Failed to assign test to group" });

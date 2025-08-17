@@ -118,8 +118,8 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   });
 
   const assignTestMutation = useMutation({
-    mutationFn: ({ testId, userIds, dueDate }: { testId: string; userIds: string[]; dueDate?: string }) => 
-      apiRequest("POST", `/api/tests/${testId}/assign`, { userIds, dueDate }),
+    mutationFn: ({ testId, userIds, dueDate, maxAttempts }: { testId: string; userIds: string[]; dueDate?: string; maxAttempts?: number }) => 
+      apiRequest("POST", `/api/tests/${testId}/assign`, { userIds, dueDate, maxAttempts }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       setIsAssignDialogOpen(false);
@@ -131,8 +131,8 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   });
 
   const assignTestToGroupMutation = useMutation({
-    mutationFn: ({ groupId, testId, dueDate }: { groupId: string; testId: string; dueDate?: string }) => 
-      apiRequest("POST", `/api/groups/${groupId}/assign-test`, { testId, dueDate }),
+    mutationFn: ({ groupId, testId, dueDate, maxAttempts }: { groupId: string; testId: string; dueDate?: string; maxAttempts?: number }) => 
+      apiRequest("POST", `/api/groups/${groupId}/assign-test`, { testId, dueDate, maxAttempts }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       setIsAssignDialogOpen(false);
@@ -216,6 +216,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
         return Array.from(uniqueTests.values());
       })();
   const attempts = (attemptsData as any)?.attempts || [];
+  const assignedTests = (assignedTestsData as any)?.assignedTests || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -505,6 +506,13 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                 ? Math.round(testAttempts.reduce((sum: number, attempt: any) => sum + (attempt.scorePercent || 0), 0) / testAttempts.length)
                 : 0;
 
+              // For students, find assignment info including attempt limits
+              const assignment = assignedTests.find((a: any) => a.testId === test.id);
+              const completedAttempts = testAttempts.filter((attempt: any) => attempt.submittedAt !== null);
+              const maxAttempts = assignment?.maxAttempts || 3;
+              const attemptsRemaining = maxAttempts - completedAttempts.length;
+              const canTakeTest = user.role === "ADMIN" || attemptsRemaining > 0;
+
               return (
                 <Card key={test.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
@@ -579,16 +587,18 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                             size="sm"
                             onClick={() => onNavigate(`test-taking/${test.id}`)}
                             className="gap-2"
+                            disabled={!canTakeTest}
+                            title={canTakeTest ? "Take test" : "Maximum attempts reached"}
                           >
                             <Play className="h-4 w-4" />
-                            Take Test
+                            {canTakeTest ? "Take Test" : "Max Attempts Reached"}
                           </Button>
                         )}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className={`grid ${user.role === "ADMIN" ? "grid-cols-3" : "grid-cols-4"} gap-4 text-sm`}>
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span>{testAttempts.length} attempts</span>
@@ -597,6 +607,13 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                         <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         <span>Avg: {averageScore}%</span>
                       </div>
+                      {user.role !== "ADMIN" && (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-1 rounded ${attemptsRemaining > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {attemptsRemaining} of {maxAttempts} left
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>{new Date(test.createdAt).toLocaleDateString()}</span>
@@ -682,21 +699,23 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
             test={selectedTestForAssignment}
             users={(usersData as any)?.users || []}
             groups={(groupsData as any)?.groups || []}
-            onAssign={(userIds, dueDate) => {
+            onAssign={(userIds, dueDate, maxAttempts) => {
               if (selectedTestForAssignment) {
                 assignTestMutation.mutate({
                   testId: selectedTestForAssignment.id,
                   userIds,
-                  dueDate
+                  dueDate,
+                  maxAttempts
                 });
               }
             }}
-            onAssignToGroup={(groupId, dueDate) => {
+            onAssignToGroup={(groupId, dueDate, maxAttempts) => {
               if (selectedTestForAssignment) {
                 assignTestToGroupMutation.mutate({
                   groupId,
                   testId: selectedTestForAssignment.id,
-                  dueDate
+                  dueDate,
+                  maxAttempts
                 });
               }
             }}
@@ -713,8 +732,8 @@ interface AssignTestFormProps {
   test: Test | null;
   users: any[];
   groups: any[];
-  onAssign: (userIds: string[], dueDate?: string) => void;
-  onAssignToGroup: (groupId: string, dueDate?: string) => void;
+  onAssign: (userIds: string[], dueDate?: string, maxAttempts?: number) => void;
+  onAssignToGroup: (groupId: string, dueDate?: string, maxAttempts?: number) => void;
   isLoading: boolean;
 }
 
@@ -723,19 +742,22 @@ function AssignTestForm({ test, users, groups, onAssign, onAssignToGroup, isLoad
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [dueDate, setDueDate] = useState("");
+  const [maxAttempts, setMaxAttempts] = useState<number>(3);
 
   const students = users.filter(user => user.role === "STUDENT");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (assignmentType === "students" && selectedUsers.length > 0) {
-      onAssign(selectedUsers, dueDate || undefined);
+      onAssign(selectedUsers, dueDate || undefined, maxAttempts);
       setSelectedUsers([]);
       setDueDate("");
+      setMaxAttempts(3);
     } else if (assignmentType === "groups" && selectedGroup) {
-      onAssignToGroup(selectedGroup, dueDate || undefined);
+      onAssignToGroup(selectedGroup, dueDate || undefined, maxAttempts);
       setSelectedGroup("");
       setDueDate("");
+      setMaxAttempts(3);
     }
   };
 
@@ -851,6 +873,24 @@ function AssignTestForm({ test, users, groups, onAssign, onAssignToGroup, isLoad
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
         />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="maxAttempts" className="text-sm font-medium">Maximum Attempts:</label>
+        <div className="flex items-center gap-4">
+          <Input
+            id="maxAttempts"
+            type="number"
+            min="1"
+            max="99"
+            value={maxAttempts}
+            onChange={(e) => setMaxAttempts(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-20"
+          />
+          <span className="text-sm text-muted-foreground">
+            Students can attempt this test up to {maxAttempts} time{maxAttempts !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
 
       <div className="flex justify-end gap-2">
