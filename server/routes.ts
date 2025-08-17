@@ -1160,13 +1160,30 @@ Format as JSON with structure:
       ]);
 
       try {
-        // Clean the AI response to handle potential markdown code blocks
+        // Clean the AI response to handle potential markdown code blocks and other formatting
         let cleanResponse = aiResponse.trim();
+        
+        // Remove markdown code blocks
         if (cleanResponse.startsWith('```json')) {
           cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
         } else if (cleanResponse.startsWith('```')) {
           cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
         }
+        
+        // Find JSON content between { and } (in case there's extra text)
+        const jsonStart = cleanResponse.indexOf('{');
+        const jsonEnd = cleanResponse.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          cleanResponse = cleanResponse.substring(jsonStart, jsonEnd + 1);
+        }
+        
+        // Fix common JSON formatting issues
+        cleanResponse = cleanResponse
+          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
+          .replace(/:\s*([^",\[\]{}]+)([,}])/g, ':"$1"$2') // Quote unquoted string values
+          .replace(/:\s*true\s*([,}])/g, ':true$1') // Fix boolean true
+          .replace(/:\s*false\s*([,}])/g, ':false$1') // Fix boolean false
+          .replace(/:\s*null\s*([,}])/g, ':null$1'); // Fix null values
         
         const testData = JSON.parse(cleanResponse);
         

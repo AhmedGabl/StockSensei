@@ -58,21 +58,47 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
       <nav className="bg-white border-b border-slate-200 px-4 py-3 fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold brand-orange">CM Training</h1>
-            <div className="hidden md:flex items-center space-x-1 bg-slate-100 rounded-lg p-1">
-              {navItems.map((item) => (
+            <button 
+              onClick={() => onNavigate?.("dashboard")}
+              className="text-2xl font-bold brand-orange hover:text-orange-600 transition-colors cursor-pointer"
+            >
+              CM Training
+            </button>
+            <div className="flex items-center space-x-1 bg-slate-100 rounded-lg p-1">
+              {navItems.slice(0, 4).map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onNavigate?.(item.id)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  className={`px-2 lg:px-3 py-1.5 text-xs lg:text-sm font-medium rounded-md transition-colors ${
                     currentPage === item.id || (currentPage === "home" && item.id === "dashboard")
                       ? "bg-white text-brand-orange font-semibold shadow-md border border-brand-orange"
                       : "text-slate-600 hover:text-orange-600 hover:bg-orange-50"
                   }`}
                 >
-                  {item.label}
+                  <i className={`${item.icon} mr-1 lg:mr-2`}></i>
+                  <span className="hidden sm:inline">{item.label}</span>
                 </button>
               ))}
+              
+              {/* More menu for additional items */}
+              {navItems.length > 4 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="px-2 lg:px-3 py-1.5 text-xs lg:text-sm font-medium rounded-md transition-colors text-slate-600 hover:text-orange-600 hover:bg-orange-50">
+                      <i className="fas fa-ellipsis-h"></i>
+                      <span className="hidden sm:inline ml-2">More</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {navItems.slice(4).map((item) => (
+                      <DropdownMenuItem key={item.id} onClick={() => onNavigate?.(item.id)}>
+                        <i className={`${item.icon} w-4 h-4 mr-2`}></i>
+                        {item.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-3">
