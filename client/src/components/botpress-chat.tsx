@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 interface BotpressChatProps {
   user: User;
@@ -8,14 +10,79 @@ interface BotpressChatProps {
   onToggle: () => void;
 }
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps) {
   const webchatRef = useRef<HTMLDivElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: 'Hello! I\'m your Q&A assistant. I can help answer questions about training materials, class management techniques, student interaction best practices, and technology usage. What would you like to know?',
+      timestamp: new Date()
+    }
+  ]);
 
-  useEffect(() => {
-    // Use a working fallback Q&A chat while Botpress is configured
-    setIsLoading(false);
-  }, []);
+  const chatMutation = useMutation({
+    mutationFn: async (message: string) => {
+      const response = await apiRequest('/api/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          message,
+          context: 'You are a Q&A assistant for Class Mentor training. Help with training materials, class management, student interactions, and platform usage.'
+        })
+      });
+      return response.response;
+    },
+    onSuccess: (response) => {
+      const assistantMessage: ChatMessage = {
+        id: Date.now().toString() + '_assistant',
+        role: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    },
+    onError: (error) => {
+      console.error('Chat error:', error);
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString() + '_error',
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  });
+
+  const handleSendMessage = () => {
+    if (!inputValue.trim() || chatMutation.isPending) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString() + '_user',
+      role: 'user',
+      content: inputValue.trim(),
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    chatMutation.mutate(inputValue.trim());
+    setInputValue('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -40,23 +107,47 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
         
         {/* Chat Messages Area */}
         <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <div className="flex items-start gap-2">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-sm">🤖</span>
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex items-start gap-2 ${
+                message.role === 'user' ? 'flex-row-reverse' : ''
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                message.role === 'user' 
+                  ? 'bg-orange-500 text-white' 
+                  : 'bg-blue-500 text-white'
+              }`}>
+                {message.role === 'user' ? '👤' : '🤖'}
               </div>
-              <div>
-                <p className="text-gray-800">Hello! I'm your Q&A assistant. I can help answer questions about:</p>
-                <ul className="mt-2 text-sm text-gray-600 space-y-1">
-                  <li>• Training materials and procedures</li>
-                  <li>• Class management techniques</li>
-                  <li>• Student interaction best practices</li>
-                  <li>• Technology and platform usage</li>
-                </ul>
-                <p className="mt-2 text-gray-800">What would you like to know?</p>
+              <div className={`max-w-[80%] p-3 rounded-lg ${
+                message.role === 'user'
+                  ? 'bg-orange-50 text-gray-800'
+                  : 'bg-blue-50 text-gray-800'
+              }`}>
+                <p className="whitespace-pre-wrap">{message.content}</p>
+                <span className="text-xs text-gray-500 mt-1 block">
+                  {message.timestamp.toLocaleTimeString()}
+                </span>
               </div>
             </div>
-          </div>
+          ))}
+          
+          {chatMutation.isPending && (
+            <div className="flex items-start gap-2">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                🤖
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Input Area */}
@@ -64,16 +155,21 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
           <div className="flex gap-2">
             <input
               type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
               placeholder="Type your question here..."
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              disabled={chatMutation.isPending}
             />
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white px-4">
+            <Button 
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim() || chatMutation.isPending}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4"
+            >
               Send
             </Button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Note: Botpress integration is being configured. This interface will be fully functional once connected.
-          </p>
         </div>
       </div>
     </div>
