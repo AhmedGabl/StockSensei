@@ -184,7 +184,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   // Get tests based on user role
   const tests = user.role === "ADMIN" 
     ? (testsData as any)?.tests || []
-    : (assignedTestsData as any)?.assignedTests || [];
+    : ((assignedTestsData as any)?.assignedTests || []).map((assignment: any) => assignment.test);
   const attempts = (attemptsData as any)?.attempts || [];
 
   return (
@@ -483,7 +483,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                           className="gap-2"
                         >
                           <FileText className="h-4 w-4" />
-                          View
+                          {user.role === "ADMIN" ? "View" : "Take Test"}
                         </Button>
                         {user.role === "ADMIN" && (
                           <>
