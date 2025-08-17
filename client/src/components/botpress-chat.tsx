@@ -97,41 +97,66 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
 
   if (useFallback || error) {
     return (
-      <div className="h-full w-full flex flex-col border border-slate-200 rounded-lg">
+      <div className="h-full w-full flex flex-col bg-white rounded-lg border border-orange-200 shadow-lg overflow-hidden">
         {/* Chat Header */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-xs">🤖</span>
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
+              <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">🤖</span>
+              </div>
             </div>
-            <h3 className="font-medium">51Talk Training Assistant</h3>
+            <div>
+              <h3 className="font-semibold text-lg">51Talk Training Assistant</h3>
+              <p className="text-orange-100 text-xs">Online • Ready to help</p>
+            </div>
           </div>
         </div>
 
         {/* Chat Messages */}
-        <ScrollArea className="flex-1 p-4 min-h-[250px] max-h-[250px]">
+        <ScrollArea className="flex-1 p-4 bg-gray-50 min-h-[300px] max-h-[300px]">
           <div className="space-y-4">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-lg ${
-                  message.role === 'user' 
-                    ? 'bg-orange-500 text-white' 
-                    : 'bg-slate-100 text-slate-800'
-                }`}>
-                  <p className="text-sm">{message.content}</p>
-                  <p className="text-xs opacity-70 mt-1">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                <div className={`max-w-[85%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
+                  {message.role === 'assistant' && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">🤖</span>
+                      </div>
+                      <span className="text-xs text-gray-600 font-medium">51Talk Training Assistant</span>
+                    </div>
+                  )}
+                  <div className={`p-4 rounded-2xl shadow-sm ${
+                    message.role === 'user' 
+                      ? 'bg-orange-500 text-white rounded-br-md' 
+                      : 'bg-white text-gray-800 rounded-bl-md border border-gray-200'
+                  }`}>
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    <p className={`text-xs mt-2 ${
+                      message.role === 'user' ? 'text-orange-100' : 'text-gray-500'
+                    }`}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-slate-100 text-slate-800 p-3 rounded-lg">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="max-w-[85%]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">🤖</span>
+                    </div>
+                    <span className="text-xs text-gray-600 font-medium">51Talk Training Assistant</span>
+                  </div>
+                  <div className="bg-white text-gray-800 p-4 rounded-2xl rounded-bl-md border border-gray-200 shadow-sm">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -140,25 +165,30 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
         </ScrollArea>
 
         {/* Chat Input */}
-        <div className="p-3 border-t">
-          <div className="flex gap-2">
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage(inputMessage)}
-              placeholder="Ask about Class Mentor training, procedures, or student management..."
-              className="flex-1"
-              disabled={isTyping}
-            />
+        <div className="p-4 bg-white border-t border-gray-200">
+          <div className="flex gap-3 items-end">
+            <div className="flex-1 relative">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(inputMessage)}
+                placeholder="Ask about Class Mentor training, procedures, or student management..."
+                className="pr-12 py-3 rounded-full border-gray-300 focus:border-orange-400 focus:ring-orange-400 resize-none"
+                disabled={isTyping}
+              />
+            </div>
             <Button 
               onClick={() => sendMessage(inputMessage)}
               disabled={isTyping || !inputMessage.trim()}
               size="sm"
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-orange-500 hover:bg-orange-600 rounded-full w-10 h-10 p-0 shadow-md"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Powered by AI • Ask me anything about 51Talk training
+          </p>
         </div>
       </div>
     );
