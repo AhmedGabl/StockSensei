@@ -85,15 +85,10 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
   };
 
   useEffect(() => {
-    if (!webchatRef.current || useFallback) return;
-
-    const timer = setTimeout(() => {
-      setUseFallback(true);
-      setIsLoading(false);
-    }, 5000); // Switch to fallback after 5 seconds
-
-    return () => clearTimeout(timer);
-  }, [useFallback]);
+    // Always use fallback chat for now since the main integration isn't working
+    setUseFallback(true);
+    setIsLoading(false);
+  }, []);
 
   if (useFallback || error) {
     return (
@@ -114,7 +109,7 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
         </div>
 
         {/* Chat Messages */}
-        <ScrollArea className="flex-1 p-4 bg-gray-50 min-h-[300px] max-h-[300px]">
+        <ScrollArea className="flex-1 p-4 bg-gray-50 min-h-[200px] max-h-[250px]">
           <div className="space-y-4">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
