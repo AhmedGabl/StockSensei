@@ -1130,8 +1130,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Enhanced material content extraction would go here
                 // For now, we use the description and available metadata
                 console.log(`Processing ${material.type} material: ${material.title}`);
-              } catch (contentError) {
-                console.log(`Could not extract additional content from ${material.type}: ${contentError.message}`);
+              } catch (contentError: unknown) {
+                console.log(`Could not extract additional content from ${material.type}: ${contentError instanceof Error ? contentError.message : 'Unknown error'}`);
               }
             }
           }

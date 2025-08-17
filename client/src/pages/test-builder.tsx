@@ -47,24 +47,38 @@ export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderP
 
   const generateTest = useMutation({
     mutationFn: async (data: GenerateTestForm) => {
+      console.log("Starting test generation with data:", data);
       const response = await fetch("/api/admin/tests/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // Include session cookies for authentication
         body: JSON.stringify(data),
       });
+      
+      console.log("Test generation response status:", response.status);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to generate test");
+        console.log("Test generation error data:", errorData);
+        throw new Error(errorData.message || "Failed to generate test - AI response was incomplete or malformed");
       }
-      return response.json();
+      
+      const result = await response.json();
+      console.log("Test generation success:", result);
+      return result;
     },
     onSuccess: (data) => {
+      console.log("Test generation successful, data:", data);
       toast({
-        title: "Test Generated Successfully",
-        description: `Created "${data.test.title}" with AI assistance`,
+        title: "✅ Test Generated Successfully!",
+        description: `Created "${data.test.title}" with ${data.test.questions?.length || 'multiple'} AI-generated questions`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
+      
+      // Invalidate queries to refresh the test list
+      queryClient.invalidateQueries({ queryKey: ["/api/tests"] }).catch(err => {
+        console.log("Query invalidation failed, but test was created successfully:", err);
+      });
+      
       // Reset form
       setForm({
         topic: "",
@@ -77,11 +91,21 @@ export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderP
     },
     onError: (error: any) => {
       console.error("Test generation error:", error);
-      toast({
-        title: "Generation Failed",
-        description: error.message || "Failed to generate test",
-        variant: "destructive",
-      });
+      
+      // Check if the error is due to authentication vs actual generation failure
+      if (error.message?.includes("Authentication required")) {
+        toast({
+          title: "Session Expired",
+          description: "Please refresh the page and try again. Your session may have expired.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error.message || "The AI had trouble generating the test. Please try with simpler requirements or a different topic.",
+          variant: "destructive",
+        });
+      }
     },
   });
 
