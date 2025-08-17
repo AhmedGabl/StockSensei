@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BotpressChat } from "./botpress-chat";
+import { DirectChatAssistant } from "./chat-assistant";
 import { User } from "@/lib/types";
 
 interface AIAssistantHubProps {
@@ -542,11 +542,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
 
           <TabsContent value="chat" className="h-96 mt-4">
             <div className="h-full border rounded-lg">
-              <BotpressChat
-                user={user}
-                isCollapsed={false}
-                onToggle={() => {}}
-              />
+              <DirectChatAssistant user={user} />
             </div>
           </TabsContent>
 
