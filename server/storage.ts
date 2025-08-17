@@ -557,7 +557,7 @@ export class DatabaseStorage implements IStorage {
 
   // Problem Report operations
   async getProblemReports(): Promise<(ProblemReport & { user: Pick<User, 'name' | 'email'> })[]> {
-    return await db
+    const results = await db
       .select({
         id: problemReports.id,
         userId: problemReports.userId,
@@ -571,14 +571,31 @@ export class DatabaseStorage implements IStorage {
         resolvedAt: problemReports.resolvedAt,
         createdAt: problemReports.createdAt,
         updatedAt: problemReports.updatedAt,
-        user: {
-          name: users.name,
-          email: users.email
-        }
+        userName: users.name,
+        userEmail: users.email
       })
       .from(problemReports)
       .leftJoin(users, eq(problemReports.userId, users.id))
       .orderBy(desc(problemReports.createdAt));
+    
+    return results.map(result => ({
+      id: result.id,
+      userId: result.userId,
+      title: result.title,
+      description: result.description,
+      category: result.category,
+      priority: result.priority,
+      status: result.status,
+      adminNotes: result.adminNotes,
+      resolvedBy: result.resolvedBy,
+      resolvedAt: result.resolvedAt,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+      user: {
+        name: result.userName || '',
+        email: result.userEmail || ''
+      }
+    }));
   }
 
   async getUserProblemReports(userId: string): Promise<ProblemReport[]> {
@@ -915,93 +932,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getMaterialViews(materialId: string): Promise<MaterialView[]> {
-    return await db
-      .select()
-      .from(materialViews)
-      .where(eq(materialViews.materialId, materialId))
-      .orderBy(desc(materialViews.viewedAt));
-  }
 
-  async getMaterialViewCount(materialId: string): Promise<number> {
-    const [result] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(materialViews)
-      .where(eq(materialViews.materialId, materialId));
-    return result.count;
-  }
-
-  // Quiz/Test operations
-  async createTest(data: Omit<Test, 'id' | 'createdAt'>): Promise<Test> {
-    const [test] = await db
-      .insert(tests)
-      .values(data)
-      .returning();
-    return test;
-  }
-
-  async getTests(includeUnpublished = false): Promise<Test[]> {
-    const query = db.select().from(tests);
-    
-    if (!includeUnpublished) {
-      query.where(eq(tests.isPublished, true));
-    }
-    
-    return await query.orderBy(desc(tests.createdAt));
-  }
-
-  async getTest(id: string): Promise<Test | null> {
-    const [test] = await db
-      .select()
-      .from(tests)
-      .where(eq(tests.id, id));
-    return test || null;
-  }
-
-  async updateTest(id: string, updates: Partial<Test>): Promise<Test> {
-    const [test] = await db
-      .update(tests)
-      .set(updates)
-      .where(eq(tests.id, id))
-      .returning();
-    return test;
-  }
-
-  async deleteTest(id: string): Promise<void> {
-    await db.delete(tests).where(eq(tests.id, id));
-  }
-
-  async createQuestion(data: Omit<Question, 'id'>): Promise<Question> {
-    const [question] = await db
-      .insert(questions)
-      .values(data)
-      .returning();
-    return question;
-  }
-
-  async getTestQuestions(testId: string): Promise<Question[]> {
-    return await db
-      .select()
-      .from(questions)
-      .where(eq(questions.testId, testId))
-      .orderBy(questions.id);
-  }
-
-  async createOption(data: Omit<Option, 'id'>): Promise<Option> {
-    const [option] = await db
-      .insert(options)
-      .values(data)
-      .returning();
-    return option;
-  }
-
-  async getQuestionOptions(questionId: string): Promise<Option[]> {
-    return await db
-      .select()
-      .from(options)
-      .where(eq(options.questionId, questionId))
-      .orderBy(options.id);
-  }
 }
 
 export const storage = new DatabaseStorage();
