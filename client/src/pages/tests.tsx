@@ -488,22 +488,17 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (user.role === "ADMIN") {
-                              viewTestMutation.mutate(test.id);
-                            } else {
-                              // For students, navigate directly to test-taking
-                              onNavigate(`test-taking/${test.id}`);
-                            }
-                          }}
-                          className="gap-2"
-                        >
-                          <FileText className="h-4 w-4" />
-                          {user.role === "ADMIN" ? "View" : "Take Test"}
-                        </Button>
+                        {user.role === "ADMIN" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => viewTestMutation.mutate(test.id)}
+                            className="gap-2"
+                          >
+                            <FileText className="h-4 w-4" />
+                            View
+                          </Button>
+                        )}
                         {user.role === "ADMIN" && (
                           <>
                             {!test.isPublished && (
