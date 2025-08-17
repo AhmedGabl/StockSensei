@@ -542,11 +542,23 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
 
           <TabsContent value="chat" className="h-96 mt-4">
             <div className="h-full border rounded-lg">
-              <BotpressChat
-                user={user}
-                isCollapsed={false}
-                onToggle={() => {}}
-              />
+              <div className="p-4 space-y-4">
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                      <i className="fas fa-robot text-white text-sm"></i>
+                    </div>
+                    <h3 className="font-semibold text-orange-900">51Talk Training Assistant</h3>
+                  </div>
+                  <p className="text-orange-800 text-sm">Ask me anything about Class Mentor training, student management, or 51Talk procedures.</p>
+                </div>
+                
+                <BotpressChat
+                  user={user}
+                  isCollapsed={false}
+                  onToggle={() => {}}
+                />
+              </div>
             </div>
           </TabsContent>
 
