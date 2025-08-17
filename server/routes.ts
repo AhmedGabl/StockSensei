@@ -1160,7 +1160,15 @@ Format as JSON with structure:
       ]);
 
       try {
-        const testData = JSON.parse(aiResponse);
+        // Clean the AI response to handle potential markdown code blocks
+        let cleanResponse = aiResponse.trim();
+        if (cleanResponse.startsWith('```json')) {
+          cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanResponse.startsWith('```')) {
+          cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        const testData = JSON.parse(cleanResponse);
         
         // Create the test in draft mode
         const test = await storage.createTest({

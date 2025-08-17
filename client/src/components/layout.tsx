@@ -29,7 +29,7 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
   };
   
   const navItems = [
-    { id: "home", label: "Home Page", icon: "fas fa-home" },
+    { id: "dashboard", label: "Home", icon: "fas fa-home" },
     { id: "materials", label: "Materials", icon: "fas fa-book" },
     { id: "tests", label: "Tests", icon: "fas fa-clipboard-list" },
     ...(user.role === "ADMIN" ? [
@@ -65,7 +65,7 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
                   key={item.id}
                   onClick={() => onNavigate?.(item.id)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    currentPage === item.id
+                    currentPage === item.id || (currentPage === "home" && item.id === "dashboard")
                       ? "bg-brand-orange text-white font-semibold shadow-md"
                       : "text-slate-600 hover:text-orange-600 hover:bg-orange-50"
                   }`}
