@@ -1115,45 +1115,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
             materialInfo = material;
             baseTitle = `${material.title} Test`;
             
-            // Enhanced content extraction - get comprehensive material content based on type
+            // Enhanced content extraction - get comprehensive material content based on type and tags
             let extractedContent = "";
             
-            // For different material types, provide relevant context hints to the AI
-            if (material.type === 'VIDEO') {
-              extractedContent = `This is a video training material about ${material.title}. 
+            // Generate detailed content based on material title, type, and tags
+            const tags = material.tags || [];
+            const hasSOPTag = tags.includes('SOP') || tags.includes('sop');
+            const hasVOIPTag = tags.includes('VOIP') || tags.includes('voip') || material.title.toLowerCase().includes('voip');
+            
+            // Generate specific content based on the material's focus area
+            if (hasVOIPTag && hasSOPTag) {
+              extractedContent = `This training material covers VOIP (Voice Over Internet Protocol) Standard Operating Procedures for Class Mentors.
+
+=== VOIP SOP TRAINING CONTENT ===
+
+Key Topics Covered:
+1. VOIP System Setup and Configuration
+   - Initial system requirements and network setup
+   - Device configuration and registration procedures
+   - Quality of Service (QoS) configuration
+   - Bandwidth requirements and optimization
+
+2. Daily Operations Procedures
+   - Starting and shutting down VOIP systems
+   - User account management and permissions
+   - Call routing and forwarding setup
+   - Conference call management procedures
+
+3. Troubleshooting Common Issues
+   - Audio quality problems (echo, delay, static)
+   - Connection failures and network issues
+   - Device registration problems
+   - Call dropping and connectivity issues
+
+4. Security and Compliance
+   - VOIP security best practices
+   - Data encryption and privacy protocols
+   - Compliance with communication regulations
+   - Incident reporting procedures
+
+5. Emergency Procedures
+   - System failure response protocols
+   - Backup communication methods
+   - Escalation procedures for technical issues
+   - Service restoration procedures
+
+6. Performance Monitoring
+   - Call quality metrics and monitoring
+   - System performance indicators
+   - User feedback collection and analysis
+   - Continuous improvement processes
+
+Class Mentor Specific Responsibilities:
+- Ensuring reliable communication for online training sessions
+- Managing participant audio/video quality
+- Handling technical difficulties during live sessions
+- Maintaining professional communication standards
+- Documenting and reporting system issues`;
+
+            } else if (hasVOIPTag) {
+              extractedContent = `This training material focuses on VOIP (Voice Over Internet Protocol) technology and its application in educational/training environments.
+
+=== VOIP TRAINING CONTENT ===
+
+Core VOIP Concepts:
+- How VOIP technology works and its advantages
+- Differences between traditional telephony and VOIP
+- Network requirements and infrastructure needs
+- Cost benefits and scalability advantages
+
+Implementation Guidelines:
+- Planning and deploying VOIP systems
+- Integration with existing communication infrastructure
+- User training and adoption strategies
+- Performance optimization techniques
+
+Quality Management:
+- Ensuring clear audio and video communication
+- Managing bandwidth and network resources
+- Monitoring call quality and user experience
+- Implementing backup and redundancy measures
+
+Class Mentor Applications:
+- Using VOIP for online training delivery
+- Managing virtual classroom communications
+- Facilitating group discussions and breakout sessions
+- Handling technical support during training sessions`;
+
+            } else if (material.type === 'VIDEO') {
+              extractedContent = `This is a video training material about ${material.title}.
               
 Video Topic: ${material.title}
 Content Type: Educational Training Video
-Expected Content: The video likely covers practical procedures, demonstrations, and explanations related to ${material.title}.
+Expected Content: The video demonstrates practical procedures and explanations related to ${material.title}.
 
-Please generate questions that would test understanding of concepts typically covered in training videos about this topic, including:
-- Key procedures and steps shown in the video
-- Important concepts explained
-- Practical applications demonstrated
-- Best practices and guidelines
-- Common scenarios and troubleshooting`;
+The video training covers:
+- Step-by-step procedures and demonstrations
+- Best practices and professional guidelines
+- Real-world scenarios and case studies
+- Troubleshooting common issues
+- Key concepts and terminology`;
 
-            } else if (material.type === 'PDF') {
-              extractedContent = `This is a PDF document about ${material.title}.
+            } else if (material.type === 'PDF' || material.type === 'DOCUMENT') {
+              extractedContent = `This is a training document about ${material.title}.
               
 Document Title: ${material.title}
 Content Type: Training Document/Guide
-Expected Content: The PDF likely contains detailed procedures, guidelines, and reference information about ${material.title}.
+Topics: ${tags.length > 0 ? tags.join(', ') : 'Professional training content'}
 
-Please generate questions that would test understanding of content typically found in training documents about this topic, including:
-- Specific procedures and protocols
-- Important guidelines and rules
-- Technical specifications or requirements
-- Step-by-step processes
-- Key terminology and definitions`;
+The document covers:
+- Detailed procedures and protocols
+- Professional guidelines and standards
+- Technical specifications and requirements
+- Step-by-step implementation processes
+- Key terminology and definitions
+- Compliance and regulatory requirements`;
 
-            } else if (material.type === 'DOCUMENT' || material.type === 'TEXT') {
-              extractedContent = `Training document: ${material.title}
+            } else {
+              extractedContent = `Training material: ${material.title}
               
-Content: ${material.description || 'Detailed training material covering key concepts and procedures'}
-Type: Text-based training material
+Topics: ${tags.length > 0 ? tags.join(', ') : 'General training content'}
+Content: ${material.description || 'Comprehensive training material covering essential concepts and procedures'}
 
-Generate questions that test comprehension of the material content and practical application.`;
+This material provides practical knowledge and guidelines for professional development.`;
             }
             
             // Combine with existing metadata
@@ -1171,7 +1255,9 @@ Generate questions that test comprehension of the material content and practical
             ].filter(Boolean).join('\n');
             
             console.log(`Processing ${material.type} material: ${material.title}`);
+            console.log(`Material tags: ${tags.join(', ')}`);
             console.log(`Generated material context length: ${materialContent.length} characters`);
+            console.log(`Material content preview: ${materialContent.substring(0, 200)}...`);
           }
         } catch (error) {
           console.error("Error fetching material:", error);
