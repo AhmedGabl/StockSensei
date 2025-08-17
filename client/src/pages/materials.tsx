@@ -15,7 +15,7 @@ import { User, Material } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { FileViewer } from "@/components/file-viewer";
-import { Eye, Edit, Trash2, Download, Plus, Upload, CloudUpload } from "lucide-react";
+import { Eye, Edit, Trash2, Download, Plus, Upload, CloudUpload, BarChart3 } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
 
 interface MaterialsProps {
@@ -34,6 +34,8 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   const [selectedFile, setSelectedFile] = useState<Material | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [analyticsDialogOpen, setAnalyticsDialogOpen] = useState(false);
+  const [selectedMaterialForAnalytics, setSelectedMaterialForAnalytics] = useState<Material | null>(null);
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
@@ -60,6 +62,16 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   });
 
   const materials = materialsData?.materials || [];
+
+  // Fetch material views for analytics (admin only)
+  const { data: materialViewsData } = useQuery({
+    queryKey: ["/api/materials", selectedMaterialForAnalytics?.id, "views"],
+    enabled: !!selectedMaterialForAnalytics && user.role === "ADMIN",
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/materials/${selectedMaterialForAnalytics!.id}/views`);
+      return await response.json();
+    }
+  });
 
   const filteredMaterials = materials.filter((material: Material) =>
     material.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -506,6 +518,18 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                           <Button 
                             variant="ghost" 
                             size="sm"
+                            onClick={() => {
+                              setSelectedMaterialForAnalytics(material);
+                              setAnalyticsDialogOpen(true);
+                            }}
+                            title="View analytics"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <BarChart3 className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
                             onClick={() => handleEditMaterial(material)}
                             title="Edit material"
                           >
@@ -625,6 +649,95 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                   >
                     {editMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Material Analytics Dialog */}
+        <Dialog open={analyticsDialogOpen} onOpenChange={setAnalyticsDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-3">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+                <div>
+                  <span>Material Analytics: {selectedMaterialForAnalytics?.title}</span>
+                  <p className="text-sm font-normal text-slate-500">View engagement and usage statistics</p>
+                </div>
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedMaterialForAnalytics && materialViewsData && (
+              <div className="space-y-6">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">{materialViewsData.totalViews || 0}</div>
+                      <div className="text-sm text-slate-500">Total Views</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">{materialViewsData.uniqueViewers || 0}</div>
+                      <div className="text-sm text-slate-500">Unique Viewers</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {materialViewsData.averageDuration ? `${Math.round(materialViewsData.averageDuration / 60)}m` : "N/A"}
+                      </div>
+                      <div className="text-sm text-slate-500">Avg. Duration</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Detailed Views List */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Individual Views</h3>
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-3 border-b grid grid-cols-4 gap-4 text-sm font-medium text-slate-600">
+                      <div>User</div>
+                      <div>Viewed At</div>
+                      <div>Duration</div>
+                      <div>Progress</div>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {materialViewsData.views && materialViewsData.views.length > 0 ? (
+                        materialViewsData.views.map((view: any, index: number) => (
+                          <div key={index} className="px-4 py-3 border-b last:border-b-0 grid grid-cols-4 gap-4 text-sm hover:bg-slate-50">
+                            <div>
+                              <div className="font-medium">{view.user?.name || "Unknown User"}</div>
+                              <div className="text-slate-500">{view.user?.email || "No email"}</div>
+                            </div>
+                            <div className="text-slate-600">
+                              {new Date(view.viewedAt).toLocaleDateString()} at {new Date(view.viewedAt).toLocaleTimeString()}
+                            </div>
+                            <div className="text-slate-600">
+                              {view.duration ? `${Math.round(view.duration / 60)}m ${view.duration % 60}s` : "N/A"}
+                            </div>
+                            <div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full" 
+                                  style={{ width: `${view.progress || 0}%` }}
+                                ></div>
+                              </div>
+                              <div className="text-xs text-slate-500 mt-1">{view.progress || 0}%</div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-slate-500">
+                          <BarChart3 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                          <p>No views recorded yet</p>
+                          <p className="text-sm">Analytics will appear here once users start viewing this material</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
