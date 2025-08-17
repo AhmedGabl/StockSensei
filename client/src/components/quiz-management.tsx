@@ -211,7 +211,7 @@ export default function QuizManagement() {
         </div>
         <Dialog open={createTestOpen} onOpenChange={setCreateTestOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+            <Button className="bg-brand-orange hover:bg-brand-red text-white">
               <Plus className="mr-2 h-4 w-4" />
               Create Quiz
             </Button>
@@ -275,7 +275,7 @@ export default function QuizManagement() {
                   )}
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Badge className={test.isPublished ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                  <Badge className={test.isPublished ? "bg-brand-green text-white" : "bg-gray-100 text-gray-800"}>
                     {test.isPublished ? "Published" : "Draft"}
                   </Badge>
                 </div>
@@ -291,6 +291,7 @@ export default function QuizManagement() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleViewTest(test)}
+                    className="border-brand-blue brand-blue hover:bg-brand-blue hover:text-white"
                   >
                     <Eye className="mr-2 h-4 w-4" />
                     View Questions
@@ -302,6 +303,10 @@ export default function QuizManagement() {
                       testId: test.id, 
                       isPublished: !test.isPublished 
                     })}
+                    className={test.isPublished ? 
+                      "border-brand-purple brand-purple hover:bg-brand-purple hover:text-white" : 
+                      "bg-brand-purple hover:bg-brand-blue text-white"
+                    }
                   >
                     <Settings className="mr-2 h-4 w-4" />
                     {test.isPublished ? "Unpublish" : "Publish"}
@@ -479,7 +484,7 @@ export default function QuizManagement() {
                                 key={option.id}
                                 className={`p-2 rounded text-sm ${
                                   option.isCorrect
-                                    ? "bg-green-100 text-green-800 border border-green-200"
+                                    ? "bg-brand-green text-white border border-brand-green"
                                     : "bg-gray-50 text-gray-700"
                                 }`}
                               >

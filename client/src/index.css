@@ -13,21 +13,29 @@
   --card-foreground: hsl(222, 84%, 4.9%);
   --border: hsl(214, 32%, 91%);
   --input: hsl(214, 32%, 91%);
-  --primary: hsl(24, 95%, 53%);
+  /* 51Talk Orange - Primary brand color */
+  --primary: hsl(14, 100%, 57%);
   --primary-foreground: hsl(0, 0%, 98%);
-  --secondary: hsl(210, 40%, 98%);
-  --secondary-foreground: hsl(222, 84%, 4.9%);
+  /* 51Talk Blue - Secondary brand color */
+  --secondary: hsl(216, 87%, 55%);
+  --secondary-foreground: hsl(0, 0%, 98%);
   --accent: hsl(210, 40%, 98%);
   --accent-foreground: hsl(222, 84%, 4.9%);
   --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(24, 95%, 53%);
+  --ring: hsl(14, 100%, 57%);
   --radius: 0.75rem;
-  --chart-1: hsl(24, 95%, 53%);
-  --chart-2: hsl(221, 83%, 53%);
-  --chart-3: hsl(142, 71%, 45%);
-  --chart-4: hsl(280, 65%, 60%);
-  --chart-5: hsl(340, 75%, 55%);
+  /* 51Talk Brand Color Palette */
+  --brand-orange: hsl(14, 100%, 57%);
+  --brand-blue: hsl(216, 87%, 55%);
+  --brand-green: hsl(142, 76%, 36%);
+  --brand-purple: hsl(262, 83%, 58%);
+  --brand-red: hsl(0, 79%, 63%);
+  --chart-1: hsl(14, 100%, 57%);
+  --chart-2: hsl(216, 87%, 55%);
+  --chart-3: hsl(142, 76%, 36%);
+  --chart-4: hsl(262, 83%, 58%);
+  --chart-5: hsl(0, 79%, 63%);
 }
 
 .dark {
@@ -61,18 +69,88 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
 
-  /* Protect against Ringg AI CSS conflicts */
+@layer utilities {
+  /* 51Talk Brand Color Utilities */
+  .brand-orange {
+    color: hsl(var(--brand-orange));
+  }
+  .bg-brand-orange {
+    background-color: hsl(var(--brand-orange));
+  }
+  .border-brand-orange {
+    border-color: hsl(var(--brand-orange));
+  }
+  .hover\:bg-brand-orange:hover {
+    background-color: hsl(var(--brand-orange));
+  }
+  
+  .brand-blue {
+    color: hsl(var(--brand-blue));
+  }
+  .bg-brand-blue {
+    background-color: hsl(var(--brand-blue));
+  }
+  .border-brand-blue {
+    border-color: hsl(var(--brand-blue));
+  }
+  .hover\:bg-brand-blue:hover {
+    background-color: hsl(var(--brand-blue));
+  }
+  
+  .brand-green {
+    color: hsl(var(--brand-green));
+  }
+  .bg-brand-green {
+    background-color: hsl(var(--brand-green));
+  }
+  .border-brand-green {
+    border-color: hsl(var(--brand-green));
+  }
+  .hover\:bg-brand-green:hover {
+    background-color: hsl(var(--brand-green));
+  }
+  
+  .brand-purple {
+    color: hsl(var(--brand-purple));
+  }
+  .bg-brand-purple {
+    background-color: hsl(var(--brand-purple));
+  }
+  .border-brand-purple {
+    border-color: hsl(var(--brand-purple));
+  }
+  .hover\:bg-brand-purple:hover {
+    background-color: hsl(var(--brand-purple));
+  }
+  
+  .brand-red {
+    color: hsl(var(--brand-red));
+  }
+  .bg-brand-red {
+    background-color: hsl(var(--brand-red));
+  }
+  .border-brand-red {
+    border-color: hsl(var(--brand-red));
+  }
+  .hover\:bg-brand-red:hover {
+    background-color: hsl(var(--brand-red));
+  }
+}
+
+/* Protect against Ringg AI CSS conflicts */
   :root {
     --background: hsl(0, 0%, 100%) !important;
     --foreground: hsl(222, 84%, 4.9%) !important;
-    --primary: hsl(24, 95%, 53%) !important;
+    --primary: hsl(14, 100%, 57%) !important;
     --border: hsl(214, 32%, 91%) !important;
     --card: hsl(0, 0%, 100%) !important;
   }
 
   .dark {
     --background: hsl(240, 10%, 3.9%) !important;
+    --primary: hsl(14, 100%, 57%) !important;
     --foreground: hsl(0, 0%, 98%) !important;
     --card: hsl(240, 10%, 3.9%) !important;
   }
@@ -124,4 +202,3 @@
   .cm-training-app .bg-amber-100 { 
     background-color: hsl(48, 100%, 96%) !important; 
   }
-}

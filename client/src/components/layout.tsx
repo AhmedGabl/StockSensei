@@ -53,7 +53,7 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
       <nav className="bg-white border-b border-slate-200 px-4 py-3 fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-slate-800">CM Training</h1>
+            <h1 className="text-2xl font-bold brand-orange">CM Training</h1>
             <div className="hidden md:flex items-center space-x-1 bg-slate-100 rounded-lg p-1">
               {navItems.map((item) => (
                 <button
@@ -61,8 +61,8 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
                   onClick={() => onNavigate?.(item.id)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     currentPage === item.id
-                      ? "text-white bg-primary"
-                      : "text-slate-600 hover:text-slate-800"
+                      ? "text-white bg-brand-blue"
+                      : "text-slate-600 hover:brand-orange"
                   }`}
                 >
                   {item.label}
