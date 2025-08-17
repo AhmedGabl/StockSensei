@@ -188,7 +188,7 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
 
   return (
     <Layout user={user} currentPage="home" onNavigate={onNavigate} onLogout={onLogout}>
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto p-4 pb-24 md:ml-24 md:mr-24 ml-20 mr-20">
         <div className="space-y-6">
           {/* Welcome Section */}
           <div className="bg-gradient-to-r from-primary to-primary-600 rounded-xl p-6 text-white">
