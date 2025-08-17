@@ -38,9 +38,18 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
     },
   });
 
+  const { data: groupsData } = useQuery({
+    queryKey: [`/api/users/${user.id}/groups`],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/users/${user.id}/groups`);
+      return await response.json();
+    },
+  });
+
   const progress = progressData?.progress || [];
   const practiceCalls = practiceCallsData?.calls || [];
   const notes = notesData?.notes?.filter((note: any) => note.isVisibleToStudent) || [];
+  const userGroups = groupsData?.groups || [];
 
   const getOverallProgress = (): number => {
     if (progress.length === 0) return 0;
@@ -97,6 +106,11 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
                   <Badge className="bg-emerald-100 text-emerald-700 capitalize">
                     {user.role.toLowerCase()}
                   </Badge>
+                  {userGroups.length > 0 && (
+                    <Badge className="bg-brand-orange-light text-brand-orange">
+                      Group: {userGroups[0].group.name}
+                    </Badge>
+                  )}
                   <span className="text-sm text-slate-500">
                     Joined {new Date().toLocaleDateString()}
                   </span>
