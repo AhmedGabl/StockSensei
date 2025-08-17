@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { User } from "@/lib/types";
 import { Layout } from "@/components/layout";
 import { GroupManagement } from "@/components/group-management";
+import QuizManagement from "@/components/quiz-management";
 
 interface AdminUser extends User {
   createdAt: string;
@@ -175,9 +176,10 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="groups">Student Groups</TabsTrigger>
+            <TabsTrigger value="quizzes">Quiz Management</TabsTrigger>
           </TabsList>
           
           <TabsContent value="users" className="mt-6">
@@ -234,6 +236,10 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
           
           <TabsContent value="groups" className="mt-6">
             <GroupManagement />
+          </TabsContent>
+          
+          <TabsContent value="quizzes" className="mt-6">
+            <QuizManagement />
           </TabsContent>
         </Tabs>
 

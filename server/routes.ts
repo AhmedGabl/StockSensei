@@ -221,6 +221,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin quiz management routes
+  app.post("/api/admin/tests", requireAdmin, async (req: any, res) => {
+    try {
+      const test = await storage.createTest({
+        ...req.body,
+        createdById: req.user.id,
+      });
+      res.json({ test });
+    } catch (error) {
+      console.error("Error creating test:", error);
+      res.status(500).json({ message: "Failed to create test" });
+    }
+  });
+
+  app.patch("/api/admin/tests/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const test = await storage.updateTest(id, req.body);
+      res.json({ test });
+    } catch (error) {
+      console.error("Error updating test:", error);
+      res.status(500).json({ message: "Failed to update test" });
+    }
+  });
+
+  app.delete("/api/admin/tests/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteTest(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting test:", error);
+      res.status(500).json({ message: "Failed to delete test" });
+    }
+  });
+
+  app.post("/api/admin/tests/:id/questions", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { text, kind, options } = req.body;
+      
+      const question = await storage.createQuestion({
+        testId: id,
+        text,
+        kind,
+      });
+
+      // Create options for the question
+      for (const option of options) {
+        await storage.createOption({
+          questionId: question.id,
+          text: option.text,
+          isCorrect: option.isCorrect,
+        });
+      }
+
+      res.json({ question });
+    } catch (error) {
+      console.error("Error creating question:", error);
+      res.status(500).json({ message: "Failed to create question" });
+    }
+  });
+
   // Admin routes
   app.get("/api/admin/users", requireAuth, async (req: any, res) => {
     try {
@@ -423,6 +486,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error restoring material:", error);
       res.status(500).json({ message: "Failed to restore material" });
+    }
+  });
+
+  // Material view tracking routes
+  app.post("/api/materials/:id/view", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const view = await storage.recordMaterialView(id, req.user.id);
+      res.json({ view });
+    } catch (error) {
+      console.error("Error recording material view:", error);
+      res.status(500).json({ message: "Failed to record view" });
+    }
+  });
+
+  app.get("/api/materials/:id/views", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const views = await storage.getMaterialViews(id);
+      const count = await storage.getMaterialViewCount(id);
+      res.json({ views, count });
+    } catch (error) {
+      console.error("Error getting material views:", error);
+      res.status(500).json({ message: "Failed to get views" });
     }
   });
 

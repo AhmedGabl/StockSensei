@@ -1,11 +1,11 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers, materialViews,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
   type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport,
-  type Group, type InsertGroup, type GroupMember, type InsertGroupMember
+  type Group, type InsertGroup, type GroupMember, type InsertGroupMember, type MaterialView, type InsertMaterialView
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
@@ -33,6 +33,11 @@ export interface IStorage {
   updateMaterial(id: string, updates: Partial<Material>): Promise<Material>;
   deleteMaterial(id: string): Promise<void>; // Soft delete
   restoreMaterial(id: string): Promise<Material>;
+  
+  // Material view operations
+  recordMaterialView(materialId: string, userId: string): Promise<MaterialView>;
+  getMaterialViews(materialId: string): Promise<MaterialView[]>;
+  getMaterialViewCount(materialId: string): Promise<number>;
 
   // Test operations
   getTests(publishedOnly?: boolean): Promise<Test[]>;
@@ -675,6 +680,114 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(groups, eq(groupMembers.groupId, groups.id))
       .where(eq(groupMembers.userId, userId))
       .orderBy(groups.name);
+  }
+
+  // Material view operations
+  async recordMaterialView(materialId: string, userId: string): Promise<MaterialView> {
+    try {
+      // Try to create a new view record
+      const [view] = await db
+        .insert(materialViews)
+        .values({ materialId, userId })
+        .returning();
+      return view;
+    } catch (error) {
+      // If it already exists, update the viewed_at timestamp
+      const [view] = await db
+        .update(materialViews)
+        .set({ viewedAt: new Date() })
+        .where(and(eq(materialViews.materialId, materialId), eq(materialViews.userId, userId)))
+        .returning();
+      return view;
+    }
+  }
+
+  async getMaterialViews(materialId: string): Promise<MaterialView[]> {
+    return await db
+      .select()
+      .from(materialViews)
+      .where(eq(materialViews.materialId, materialId))
+      .orderBy(desc(materialViews.viewedAt));
+  }
+
+  async getMaterialViewCount(materialId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(materialViews)
+      .where(eq(materialViews.materialId, materialId));
+    return result.count;
+  }
+
+  // Quiz/Test operations
+  async createTest(data: Omit<Test, 'id' | 'createdAt'>): Promise<Test> {
+    const [test] = await db
+      .insert(tests)
+      .values(data)
+      .returning();
+    return test;
+  }
+
+  async getTests(includeUnpublished = false): Promise<Test[]> {
+    const query = db.select().from(tests);
+    
+    if (!includeUnpublished) {
+      query.where(eq(tests.isPublished, true));
+    }
+    
+    return await query.orderBy(desc(tests.createdAt));
+  }
+
+  async getTest(id: string): Promise<Test | null> {
+    const [test] = await db
+      .select()
+      .from(tests)
+      .where(eq(tests.id, id));
+    return test || null;
+  }
+
+  async updateTest(id: string, updates: Partial<Test>): Promise<Test> {
+    const [test] = await db
+      .update(tests)
+      .set(updates)
+      .where(eq(tests.id, id))
+      .returning();
+    return test;
+  }
+
+  async deleteTest(id: string): Promise<void> {
+    await db.delete(tests).where(eq(tests.id, id));
+  }
+
+  async createQuestion(data: Omit<Question, 'id'>): Promise<Question> {
+    const [question] = await db
+      .insert(questions)
+      .values(data)
+      .returning();
+    return question;
+  }
+
+  async getTestQuestions(testId: string): Promise<Question[]> {
+    return await db
+      .select()
+      .from(questions)
+      .where(eq(questions.testId, testId))
+      .orderBy(questions.id);
+  }
+
+  async createOption(data: Omit<Option, 'id'>): Promise<Option> {
+    const [option] = await db
+      .insert(options)
+      .values(data)
+      .returning();
+    return option;
+  }
+
+  async getQuestionOptions(questionId: string): Promise<Option[]> {
+    return await db
+      .select()
+      .from(options)
+      .where(eq(options.questionId, questionId))
+      .orderBy(options.id);
   }
 }
 

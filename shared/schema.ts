@@ -184,6 +184,13 @@ export const groupMembers = pgTable("group_members", {
   joinedAt: timestamp("joined_at").notNull().default(sql`now()`),
 });
 
+export const materialViews = pgTable("material_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  materialId: varchar("material_id").notNull().references(() => materials.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  viewedAt: timestamp("viewed_at").notNull().default(sql`now()`),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   progress: many(progress),
@@ -200,6 +207,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   problemReports: many(problemReports, { relationName: "user_reports" }),
   resolvedReports: many(problemReports, { relationName: "resolved_reports" }),
   groupMemberships: many(groupMembers),
+  materialViews: many(materialViews),
 }));
 
 export const progressRelations = relations(progress, ({ one }) => ({
@@ -216,11 +224,12 @@ export const practiceCallsRelations = relations(practiceCalls, ({ one }) => ({
   }),
 }));
 
-export const materialsRelations = relations(materials, ({ one }) => ({
+export const materialsRelations = relations(materials, ({ one, many }) => ({
   uploader: one(users, {
     fields: [materials.uploadedBy],
     references: [users.id],
   }),
+  views: many(materialViews),
 }));
 
 export const testsRelations = relations(tests, ({ one, many }) => ({
@@ -346,6 +355,17 @@ export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
   }),
 }));
 
+export const materialViewsRelations = relations(materialViews, ({ one }) => ({
+  material: one(materials, {
+    fields: [materialViews.materialId],
+    references: [materials.id],
+  }),
+  user: one(users, {
+    fields: [materialViews.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -429,6 +449,11 @@ export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
   joinedAt: true,
 });
 
+export const insertMaterialViewSchema = createInsertSchema(materialViews).omit({
+  id: true,
+  viewedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -462,6 +487,8 @@ export type InsertGroup = z.infer<typeof insertGroupSchema>;
 export type Group = typeof groups.$inferSelect;
 export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
 export type GroupMember = typeof groupMembers.$inferSelect;
+export type InsertMaterialView = z.infer<typeof insertMaterialViewSchema>;
+export type MaterialView = typeof materialViews.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({
