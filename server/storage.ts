@@ -299,8 +299,11 @@ export class DatabaseStorage implements IStorage {
       isPublished: tests.isPublished,
       isDraft: tests.isDraft,
       llmScoringEnabled: tests.llmScoringEnabled,
+      generationPrompt: tests.generationPrompt,
+      baseMaterialId: tests.baseMaterialId,
       createdById: tests.createdById,
       createdAt: tests.createdAt,
+      updatedAt: tests.updatedAt,
     })
     .from(tests)
     .innerJoin(testAssignments, eq(tests.id, testAssignments.testId))
