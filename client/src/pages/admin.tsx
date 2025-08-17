@@ -179,9 +179,9 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">User Management</TabsTrigger>
-            <TabsTrigger value="groups" className="data-[state=active]:bg-brand-blue data-[state=active]:text-white">Student Groups</TabsTrigger>
+            <TabsTrigger value="groups" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">Student Groups</TabsTrigger>
             <TabsTrigger value="activity" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">Activity Tracking</TabsTrigger>
-            <TabsTrigger value="quizzes" className="data-[state=active]:bg-brand-purple data-[state=active]:text-white">Quiz Management</TabsTrigger>
+            <TabsTrigger value="quizzes" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">Quiz Management</TabsTrigger>
           </TabsList>
           
           <TabsContent value="users" className="mt-6">
