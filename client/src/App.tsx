@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthGuard } from "@/components/auth-guard";
 import AuthPage from "@/pages/auth";
-import Dashboard from "@/pages/dashboard";
+import HomePage from "@/pages/dashboard";
 import Materials from "@/pages/materials";
 import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
@@ -17,12 +17,12 @@ import AdminControl from "@/pages/admin-control";
 import ProblemReports from "@/pages/problem-reports";
 
 function App() {
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const [currentPage, setCurrentPage] = useState("home");
   const [authKey, setAuthKey] = useState(0);
 
   const handleAuthSuccess = () => {
     setAuthKey(prev => prev + 1);
-    setCurrentPage("dashboard");
+    setCurrentPage("home");
   };
 
   const handleLogout = () => {
@@ -30,7 +30,7 @@ function App() {
     queryClient.clear();
     // Reset auth state by incrementing key
     setAuthKey(prev => prev + 1);
-    setCurrentPage("dashboard");
+    setCurrentPage("home");
   };
 
   const renderPage = (user: any) => {
@@ -57,8 +57,9 @@ function App() {
         return <AdminControl user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "problem-reports":
         return <ProblemReports user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+      case "home":
       default:
-        return <Dashboard user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+        return <HomePage user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
     }
   };
 

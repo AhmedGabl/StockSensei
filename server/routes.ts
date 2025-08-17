@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { aiTrainingService } from "./aiService";
-import { loginSchema, registerSchema, insertProblemReportSchema } from "@shared/schema";
+import { loginSchema, registerSchema, insertProblemReportSchema, insertGroupSchema, insertGroupMemberSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -1087,6 +1087,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("AI Analysis error:", error);
       res.status(500).json({ message: "Failed to analyze practice call" });
+    }
+  });
+
+  // Group Management API routes
+  app.get("/api/groups", requireAdmin, async (req: any, res) => {
+    try {
+      const groups = await storage.getGroups();
+      res.json({ groups });
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      res.status(500).json({ message: "Failed to fetch groups" });
+    }
+  });
+
+  app.get("/api/groups/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const group = await storage.getGroup(id);
+      
+      if (!group) {
+        return res.status(404).json({ message: "Group not found" });
+      }
+      
+      res.json({ group });
+    } catch (error) {
+      console.error("Error fetching group:", error);
+      res.status(500).json({ message: "Failed to fetch group" });
+    }
+  });
+
+  app.post("/api/groups", requireAdmin, async (req: any, res) => {
+    try {
+      const data = insertGroupSchema.parse(req.body);
+      const group = await storage.createGroup(data);
+      res.json({ group });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating group:", error);
+      res.status(500).json({ message: "Failed to create group" });
+    }
+  });
+
+  app.patch("/api/groups/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const group = await storage.updateGroup(id, updates);
+      res.json({ group });
+    } catch (error) {
+      console.error("Error updating group:", error);
+      res.status(500).json({ message: "Failed to update group" });
+    }
+  });
+
+  app.delete("/api/groups/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteGroup(id);
+      res.json({ message: "Group deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      res.status(500).json({ message: "Failed to delete group" });
+    }
+  });
+
+  app.post("/api/groups/:id/members", requireAdmin, async (req: any, res) => {
+    try {
+      const { id: groupId } = req.params;
+      const { userIds, role = "MEMBER" } = req.body;
+      
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "userIds array is required" });
+      }
+      
+      const members = [];
+      for (const userId of userIds) {
+        const member = await storage.addGroupMember({
+          groupId,
+          userId,
+          role
+        });
+        members.push(member);
+      }
+      
+      res.json({ members });
+    } catch (error) {
+      console.error("Error adding group members:", error);
+      res.status(500).json({ message: "Failed to add group members" });
+    }
+  });
+
+  app.delete("/api/groups/:groupId/members/:userId", requireAdmin, async (req: any, res) => {
+    try {
+      const { groupId, userId } = req.params;
+      await storage.removeGroupMember(groupId, userId);
+      res.json({ message: "Member removed successfully" });
+    } catch (error) {
+      console.error("Error removing group member:", error);
+      res.status(500).json({ message: "Failed to remove group member" });
+    }
+  });
+
+  app.get("/api/users/:userId/groups", requireAuth, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Allow users to fetch their own groups or admins to fetch any user's groups
+      if (req.user.id !== userId && req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const groups = await storage.getUserGroups(userId);
+      res.json({ groups });
+    } catch (error) {
+      console.error("Error fetching user groups:", error);
+      res.status(500).json({ message: "Failed to fetch user groups" });
     }
   });
 

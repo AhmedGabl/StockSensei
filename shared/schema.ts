@@ -11,6 +11,7 @@ export const questionTypeEnum = pgEnum("question_type", ["MCQ", "TRUE_FALSE"]);
 export const taskStatusEnum = pgEnum("task_status", ["OPEN", "DONE"]);
 export const reportStatusEnum = pgEnum("report_status", ["OPEN", "IN_PROGRESS", "RESOLVED"]);
 export const reportPriorityEnum = pgEnum("report_priority", ["LOW", "MEDIUM", "HIGH", "URGENT"]);
+export const groupRoleEnum = pgEnum("group_role", ["MEMBER", "LEADER"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -167,6 +168,22 @@ export const problemReports = pgTable("problem_reports", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
+// Student Groups system
+export const groups = pgTable("groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const groupMembers = pgTable("group_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: groupRoleEnum("role").notNull().default("MEMBER"),
+  joinedAt: timestamp("joined_at").notNull().default(sql`now()`),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   progress: many(progress),
@@ -182,6 +199,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   authoredTasks: many(tasks, { relationName: "authored_tasks" }),
   problemReports: many(problemReports, { relationName: "user_reports" }),
   resolvedReports: many(problemReports, { relationName: "resolved_reports" }),
+  groupMemberships: many(groupMembers),
 }));
 
 export const progressRelations = relations(progress, ({ one }) => ({
@@ -313,6 +331,21 @@ export const problemReportsRelations = relations(problemReports, ({ one }) => ({
   }),
 }));
 
+export const groupsRelations = relations(groups, ({ many }) => ({
+  members: many(groupMembers),
+}));
+
+export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
+  group: one(groups, {
+    fields: [groupMembers.groupId],
+    references: [groups.id],
+  }),
+  user: one(users, {
+    fields: [groupMembers.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -386,6 +419,16 @@ export const insertProblemReportSchema = createInsertSchema(problemReports).omit
   updatedAt: true,
 });
 
+export const insertGroupSchema = createInsertSchema(groups).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
+  id: true,
+  joinedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -415,6 +458,10 @@ export type TrainingModule = typeof trainingModules.$inferSelect;
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 export type InsertProblemReport = z.infer<typeof insertProblemReportSchema>;
 export type ProblemReport = typeof problemReports.$inferSelect;
+export type InsertGroup = z.infer<typeof insertGroupSchema>;
+export type Group = typeof groups.$inferSelect;
+export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
+export type GroupMember = typeof groupMembers.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({

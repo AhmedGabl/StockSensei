@@ -1,0 +1,100 @@
+# Build Update Prompt — “UI Refresh & Student Group Management”
+
+## 1. UI Design Update (51Talk inspiration)
+
+* **Design direction:**
+
+  * Look at the **51Talk company logo** and derive a professional design system: primary + secondary colors, accents, typography feel.
+  * Update the **global theme** (Tailwind config + shadcn/ui tokens) to reflect this palette.
+  * Use consistent widget styling (cards, tabs, modals, inputs, toasts) inspired by 51Talk’s branding: bright, educational, approachable but professional.
+* **Scope:**
+
+  * Apply color scheme across `Layout`, `Navigation`, `Buttons`, `Cards`, `Tabs`.
+  * Ensure accessibility (contrast, readable typography).
+  * Keep layout structure (header/sidebar) unchanged—this is a **style update only**.
+
+## 2. Navigation rename (“Dashboard” → “Home Page”)
+
+* Replace all references to **“Dashboard”** in:
+
+  * **Frontend:** navigation menu, routes, page title, components.
+  * **Backend/Routes:** keep API endpoints the same; only update UI strings.
+  * **Notes:** Ensure no broken links; update React Router/Wouter paths if needed.
+* New label: **“Home Page”** (consistent across app).
+
+## 3. Student Group Management (Full-stack feature)
+
+We want to reform how students are handled by adding **groups**.
+
+### Database (Drizzle + PostgreSQL)
+
+Add new tables/relations:
+
+```sql
+groups {
+  id: text (primary key)
+  name: text
+  description: text (nullable)
+  createdAt: timestamp
+}
+
+groupMembers {
+  id: text (primary key)
+  groupId: text (foreign key -> groups.id)
+  userId: text (foreign key -> users.id)
+  role: enum('MEMBER','LEADER') default 'MEMBER'
+  joinedAt: timestamp
+}
+```
+
+### Backend (Express API)
+
+* **Groups (admin only):**
+
+  * `POST /api/groups` → create group
+  * `GET /api/groups` → list groups
+  * `GET /api/groups/:id` → get group + members
+  * `POST /api/groups/:id/members` → add student(s) to group
+  * `DELETE /api/groups/:id/members/:userId` → remove student from group
+
+* **Students:**
+
+  * Extend `/api/users/:id` → include group memberships in response.
+
+### Frontend (React)
+
+* **Admin → Student Management**
+
+  * Add a **“Groups” tab** inside Admin → Student Management.
+  * Admin can:
+
+    * Create new group (name + description).
+    * View all groups in a list (with student counts).
+    * Select a group → see all students in that group with relevant details (progress, tests, calls, notes).
+    * Add/remove students from groups via searchable dropdown.
+
+* **Student Profile (student view)**
+
+  * Show “Group” section in Profile page.
+  * Display group name(s) the student belongs to.
+
+### Linking & Fixes
+
+* Ensure all **frontend → backend linking** is implemented (React Query hooks to new endpoints).
+* Handle **edge cases**:
+
+  * Prevent duplicate student entries in the same group.
+  * Show empty state (“No group assigned”) in student profile.
+  * Delete group → cascade remove from `groupMembers`.
+
+### Acceptance criteria
+
+* Admin creates “Group A” → appears under Groups.
+* Admin assigns 3 students → group details show 3 members.
+* Student profile now shows “Group A”.
+* All existing student features (progress, tests, notes) remain intact and accessible, just enriched with group context.
+
+---
+
+⚠️ **Do not touch authentication, sessions, or existing file/test/note features.** Extend only.
+

@@ -1,10 +1,11 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
-  type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport
+  type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport,
+  type Group, type InsertGroup, type GroupMember, type InsertGroupMember
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
@@ -86,6 +87,16 @@ export interface IStorage {
   createProblemReport(report: InsertProblemReport): Promise<ProblemReport>;
   updateProblemReport(id: string, updates: Partial<ProblemReport>): Promise<ProblemReport>;
   deleteProblemReport(id: string): Promise<void>;
+
+  // Group operations
+  getGroups(): Promise<(Group & { memberCount: number })[]>;
+  getGroup(id: string): Promise<(Group & { members: (GroupMember & { user: User })[] }) | undefined>;
+  createGroup(group: InsertGroup): Promise<Group>;
+  updateGroup(id: string, updates: Partial<Group>): Promise<Group>;
+  deleteGroup(id: string): Promise<void>;
+  addGroupMember(member: InsertGroupMember): Promise<GroupMember>;
+  removeGroupMember(groupId: string, userId: string): Promise<void>;
+  getUserGroups(userId: string): Promise<(GroupMember & { group: Group })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -570,6 +581,100 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProblemReport(id: string): Promise<void> {
     await db.delete(problemReports).where(eq(problemReports.id, id));
+  }
+
+  // Group operations
+  async getGroups(): Promise<(Group & { memberCount: number })[]> {
+    return await db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        description: groups.description,
+        createdAt: groups.createdAt,
+        memberCount: sql<number>`count(${groupMembers.id})::int`
+      })
+      .from(groups)
+      .leftJoin(groupMembers, eq(groups.id, groupMembers.groupId))
+      .groupBy(groups.id)
+      .orderBy(groups.name);
+  }
+
+  async getGroup(id: string): Promise<(Group & { members: (GroupMember & { user: User })[] }) | undefined> {
+    const [group] = await db.select().from(groups).where(eq(groups.id, id));
+    if (!group) return undefined;
+
+    const members = await db
+      .select({
+        id: groupMembers.id,
+        groupId: groupMembers.groupId,
+        userId: groupMembers.userId,
+        role: groupMembers.role,
+        joinedAt: groupMembers.joinedAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          name: users.name,
+          role: users.role,
+          passwordHash: users.passwordHash,
+          createdAt: users.createdAt
+        }
+      })
+      .from(groupMembers)
+      .innerJoin(users, eq(groupMembers.userId, users.id))
+      .where(eq(groupMembers.groupId, id))
+      .orderBy(users.name);
+
+    return { ...group, members };
+  }
+
+  async createGroup(group: InsertGroup): Promise<Group> {
+    const [created] = await db.insert(groups).values(group).returning();
+    return created;
+  }
+
+  async updateGroup(id: string, updates: Partial<Group>): Promise<Group> {
+    const [updated] = await db
+      .update(groups)
+      .set(updates)
+      .where(eq(groups.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteGroup(id: string): Promise<void> {
+    await db.delete(groups).where(eq(groups.id, id));
+  }
+
+  async addGroupMember(member: InsertGroupMember): Promise<GroupMember> {
+    const [created] = await db.insert(groupMembers).values(member).returning();
+    return created;
+  }
+
+  async removeGroupMember(groupId: string, userId: string): Promise<void> {
+    await db
+      .delete(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+  }
+
+  async getUserGroups(userId: string): Promise<(GroupMember & { group: Group })[]> {
+    return await db
+      .select({
+        id: groupMembers.id,
+        groupId: groupMembers.groupId,
+        userId: groupMembers.userId,
+        role: groupMembers.role,
+        joinedAt: groupMembers.joinedAt,
+        group: {
+          id: groups.id,
+          name: groups.name,
+          description: groups.description,
+          createdAt: groups.createdAt
+        }
+      })
+      .from(groupMembers)
+      .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+      .where(eq(groupMembers.userId, userId))
+      .orderBy(groups.name);
   }
 }
 

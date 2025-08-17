@@ -13,13 +13,13 @@ import type { TrainingModule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-interface DashboardProps {
+interface HomePageProps {
   user: User;
   onNavigate: (page: string) => void;
   onLogout: () => void;
 }
 
-export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
+export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) {
   const [practiceCallOpen, setPracticeCallOpen] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState("");
   const queryClient = useQueryClient();
@@ -147,7 +147,7 @@ export default function Dashboard({ user, onNavigate, onLogout }: DashboardProps
   ];
 
   return (
-    <Layout user={user} currentPage="dashboard" onNavigate={onNavigate} onLogout={onLogout}>
+    <Layout user={user} currentPage="home" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="max-w-7xl mx-auto p-4">
         <div className="space-y-6">
           {/* Welcome Section */}

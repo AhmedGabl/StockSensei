@@ -4,25 +4,30 @@
 
 :root {
   --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --foreground: hsl(222, 84%, 4.9%);
+  --muted: hsl(210, 40%, 98%);
+  --muted-foreground: hsl(215, 16%, 46.9%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --popover-foreground: hsl(222, 84%, 4.9%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
+  --card-foreground: hsl(222, 84%, 4.9%);
+  --border: hsl(214, 32%, 91%);
+  --input: hsl(214, 32%, 91%);
+  --primary: hsl(24, 95%, 53%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(210, 40%, 98%);
+  --secondary-foreground: hsl(222, 84%, 4.9%);
+  --accent: hsl(210, 40%, 98%);
+  --accent-foreground: hsl(222, 84%, 4.9%);
   --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
-  --radius: 0.5rem;
+  --ring: hsl(24, 95%, 53%);
+  --radius: 0.75rem;
+  --chart-1: hsl(24, 95%, 53%);
+  --chart-2: hsl(221, 83%, 53%);
+  --chart-3: hsl(142, 71%, 45%);
+  --chart-4: hsl(280, 65%, 60%);
+  --chart-5: hsl(340, 75%, 55%);
 }
 
 .dark {
@@ -60,9 +65,9 @@
   /* Protect against Ringg AI CSS conflicts */
   :root {
     --background: hsl(0, 0%, 100%) !important;
-    --foreground: hsl(20, 14.3%, 4.1%) !important;
-    --primary: hsl(207, 90%, 54%) !important;
-    --border: hsl(20, 5.9%, 90%) !important;
+    --foreground: hsl(222, 84%, 4.9%) !important;
+    --primary: hsl(24, 95%, 53%) !important;
+    --border: hsl(214, 32%, 91%) !important;
     --card: hsl(0, 0%, 100%) !important;
   }
 
@@ -88,20 +93,20 @@
   }
 
   .cm-training-app .text-gray-600 {
-    color: hsl(0, 0%, 45%) !important;
+    color: hsl(215, 16%, 46.9%) !important;
   }
 
   .cm-training-app .text-gray-900 {
-    color: hsl(0, 0%, 9%) !important;
+    color: hsl(222, 84%, 4.9%) !important;
   }
 
   .cm-training-app .border-gray-200 {
-    border-color: hsl(0, 0%, 90%) !important;
+    border-color: hsl(214, 32%, 91%) !important;
   }
 
   /* Protect card and component styling */
   .cm-training-app .gradient-bg {
-    background: linear-gradient(135deg, hsl(207, 90%, 54%) 0%, hsl(207, 90%, 48%) 100%) !important;
+    background: linear-gradient(135deg, hsl(24, 95%, 53%) 0%, hsl(24, 95%, 48%) 100%) !important;
   }
 
   .cm-training-app .bg-emerald-100 { 
@@ -109,7 +114,7 @@
   }
 
   .cm-training-app .bg-blue-100 { 
-    background-color: hsl(214, 100%, 97%) !important; 
+    background-color: hsl(221, 83%, 97%) !important; 
   }
 
   .cm-training-app .bg-purple-100 { 

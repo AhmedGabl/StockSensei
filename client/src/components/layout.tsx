@@ -15,7 +15,7 @@ interface LayoutProps {
   onLogout?: () => void;
 }
 
-export function Layout({ children, user, currentPage = "dashboard", onNavigate, onLogout }: LayoutProps) {
+export function Layout({ children, user, currentPage = "home", onNavigate, onLogout }: LayoutProps) {
   const [aiHubOpen, setAiHubOpen] = useState(false);
 
   const handleStartPracticeCall = async () => {
@@ -29,7 +29,7 @@ export function Layout({ children, user, currentPage = "dashboard", onNavigate, 
   };
   
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: "fas fa-home" },
+    { id: "home", label: "Home Page", icon: "fas fa-home" },
     { id: "materials", label: "Materials", icon: "fas fa-book" },
     { id: "problem-reports", label: "Report Issue", icon: "fas fa-exclamation-triangle" },
     { id: "profile", label: "Profile", icon: "fas fa-user" },
