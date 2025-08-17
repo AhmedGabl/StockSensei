@@ -12,16 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Plus, Settings, MessageSquare, ClipboardCheck, TrendingUp, Trash2, Edit, UserPlus } from "lucide-react";
-import { apiRequest } from "@/lib/api";
-import Layout from "@/components/layout";
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  role: string;
-  createdAt: string;
-}
+import { apiRequest } from "@/lib/queryClient";
+import { Layout } from "@/components/layout";
+import { User } from "@/lib/types";
 
 interface Group {
   id: string;
@@ -197,10 +190,10 @@ export default function GroupManagement({ user, onNavigate, onLogout }: GroupMan
       const response = await apiRequest("DELETE", `/api/groups/${groupId}`);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, groupId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       toast({ title: "Group deleted successfully" });
-      if (selectedGroup?.id === arguments[0]) {
+      if (selectedGroup?.id === groupId) {
         setSelectedGroup(null);
       }
     },
