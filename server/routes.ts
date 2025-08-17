@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { aiTrainingService } from "./aiService";
-import { loginSchema, registerSchema, insertProblemReportSchema, insertGroupSchema, insertGroupMemberSchema } from "@shared/schema";
+import { loginSchema, registerSchema, insertProblemReportSchema, insertGroupSchema, insertGroupMemberSchema, submitAttemptSchema, generateTestSchema, qaRequestSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -561,7 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test Management API routes
+  // Enhanced Test Management API routes
   app.get("/api/tests", requireAuth, async (req: any, res) => {
     try {
       if (req.user.role === "ADMIN") {
@@ -569,10 +569,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const tests = await storage.getTests(false);
         res.json({ tests });
       } else {
-        // Students can only see tests assigned to them
-        const assignedTests = await storage.getUserAssignedTests(req.user.id);
-        const tests = assignedTests.map(assignment => assignment.test);
-        res.json({ tests });
+        // Students see public tests + assigned tests (fixed visibility)
+        const { publicTests, assignedTests } = await storage.getStudentVisibleTests(req.user.id);
+        res.json({ publicTests, assignedTests });
       }
     } catch (error) {
       console.error("Error fetching tests:", error);
@@ -589,13 +588,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Test not found" });
       }
       
-      // Check if non-admin user has access to this test
+      // Enhanced access control: check public tests OR assigned tests
       if (req.user.role !== "ADMIN") {
-        const assignedTests = await storage.getUserAssignedTests(req.user.id);
-        const hasAccess = assignedTests.some(assignment => assignment.testId === id);
+        const { publicTests, assignedTests } = await storage.getStudentVisibleTests(req.user.id);
+        const hasAccess = publicTests.some(t => t.id === id) || assignedTests.some(t => t.id === id);
         
         if (!hasAccess) {
-          return res.status(403).json({ message: "Test not assigned to you" });
+          return res.status(403).json({ message: "Test not accessible to you" });
         }
       }
       
@@ -842,6 +841,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced Test Attempt API routes (new detailed tracking)
+  app.post("/api/tests/:testId/submit", requireAuth, async (req: any, res) => {
+    try {
+      const { testId } = req.params;
+      const submissionData = submitAttemptSchema.parse(req.body);
+      
+      // Check test access (public or assigned)
+      if (req.user.role !== "ADMIN") {
+        const { publicTests, assignedTests } = await storage.getStudentVisibleTests(req.user.id);
+        const hasAccess = publicTests.some(t => t.id === testId) || assignedTests.some(t => t.id === testId);
+        
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Test not accessible to you" });
+        }
+      }
+
+      const test = await storage.getTest(testId);
+      if (!test) {
+        return res.status(404).json({ message: "Test not found" });
+      }
+
+      const questions = await storage.getTestQuestions(testId);
+      
+      // Create enhanced test attempt
+      const testAttempt = await storage.createTestAttempt({
+        testId,
+        userId: req.user.id,
+        submittedAt: new Date(),
+      });
+
+      let totalPoints = 0;
+      let earnedPoints = 0;
+      const answers = [];
+
+      // Process and score each answer
+      for (const answerData of submissionData.answers) {
+        const question = questions.find(q => q.id === answerData.questionId);
+        if (!question) continue;
+
+        totalPoints += 1; // Each question worth 1 point for simplicity
+        
+        let answerPayload: any = {};
+        let correct = false;
+        let awardedPoints = 0;
+
+        if (question.kind === "MCQ" && answerData.optionId) {
+          answerPayload = { optionId: answerData.optionId };
+          const selectedOption = question.options?.find(o => o.id === answerData.optionId);
+          correct = selectedOption?.isCorrect || false;
+        } else if (question.kind === "TRUE_FALSE" && answerData.valueBool !== undefined) {
+          answerPayload = { valueBool: answerData.valueBool };
+          // For TRUE_FALSE, the correct answer should be stored in the first option's isCorrect
+          const correctAnswer = question.options?.[0]?.isCorrect;
+          correct = answerData.valueBool === correctAnswer;
+        } else if (question.kind === "SHORT" && answerData.valueText) {
+          answerPayload = { valueText: answerData.valueText };
+          // For SHORT answers, we'll use LLM scoring if enabled
+          correct = false; // Will be determined by LLM or manual review later
+        }
+
+        if (correct) {
+          awardedPoints = 1;
+          earnedPoints += awardedPoints;
+        }
+
+        const testAnswer = await storage.createTestAnswer({
+          attemptId: testAttempt.id,
+          questionId: answerData.questionId,
+          answerPayload: JSON.stringify(answerPayload),
+          correct,
+          awardedPoints,
+        });
+
+        answers.push(testAnswer);
+      }
+
+      // Calculate score percentage
+      const scorePercent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+      
+      // Update attempt with score and scoring method
+      const updatedAttempt = await storage.updateTestAttempt(testAttempt.id, {
+        scorePercent,
+        scorer: 'RULE', // Using rule-based scoring for MCQ/TRUE_FALSE
+      });
+
+      // Update test assignment if applicable
+      const assignedTests = await storage.getUserAssignedTests(req.user.id);
+      const assignment = assignedTests.find(a => a.testId === testId);
+      if (assignment) {
+        await storage.updateTestAssignment(assignment.id, {
+          isCompleted: true,
+          completedAt: new Date(),
+        });
+      }
+
+      res.json({ 
+        attempt: updatedAttempt, 
+        scorePercent, 
+        answers,
+        message: "Test submitted successfully" 
+      });
+    } catch (error) {
+      console.error("Error submitting enhanced test attempt:", error);
+      res.status(500).json({ message: "Failed to submit test" });
+    }
+  });
+
   // Student Notes API routes
   app.get("/api/users/:userId/notes", requireAuth, async (req: any, res) => {
     try {
@@ -944,6 +1050,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error removing assignment:", error);
       res.status(500).json({ message: "Failed to remove assignment" });
+    }
+  });
+
+  // Enhanced Q&A and AI Assistance routes
+  app.post("/api/qa/ask", requireAuth, async (req: any, res) => {
+    try {
+      const { question, context } = req.body;
+      
+      // Use AI service for Q&A assistance
+      const response = await getChatResponse([
+        {
+          role: "system",
+          content: "You are a helpful training assistant for Class Mentors. Provide clear, helpful answers about call center operations, SOPs, and customer service best practices. Keep responses concise and actionable."
+        },
+        {
+          role: "user", 
+          content: context ? `Context: ${context}\n\nQuestion: ${question}` : question
+        }
+      ]);
+
+      res.json({ answer: response });
+    } catch (error) {
+      console.error("Error processing Q&A request:", error);
+      res.status(500).json({ message: "Failed to process question" });
+    }
+  });
+
+  // AI Test Builder route
+  app.post("/api/admin/tests/generate", requireAdmin, async (req: any, res) => {
+    try {
+      const { topic, difficulty, questionCount, questionTypes } = req.body;
+      
+      // Use AI to generate test content
+      const prompt = `Generate a ${difficulty} difficulty test about "${topic}" with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
+
+For each question, provide:
+1. The question text
+2. For MCQ: 4 options with one correct answer
+3. For TRUE_FALSE: the correct boolean answer
+4. For SHORT: suggested answer guidelines
+
+Format as JSON with structure:
+{
+  "title": "Test Title",
+  "description": "Test Description", 
+  "questions": [
+    {
+      "text": "Question text",
+      "kind": "MCQ|TRUE_FALSE|SHORT",
+      "options": [{"text": "Option text", "isCorrect": boolean}] // for MCQ only
+    }
+  ]
+}`;
+
+      const aiResponse = await getChatResponse([
+        {
+          role: "system",
+          content: "You are an expert test creator for Class Mentor training. Generate comprehensive, practical questions that test real-world knowledge. Always respond with valid JSON only."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]);
+
+      try {
+        const testData = JSON.parse(aiResponse);
+        
+        // Create the test in draft mode
+        const test = await storage.createTest({
+          title: testData.title,
+          description: testData.description,
+          isPublished: false,
+          isDraft: true,
+          llmScoringEnabled: questionTypes.includes('SHORT'),
+          createdById: req.user.id,
+        });
+
+        // Create questions and options
+        for (const questionData of testData.questions) {
+          const question = await storage.createQuestion({
+            testId: test.id,
+            text: questionData.text,
+            kind: questionData.kind,
+          });
+
+          if (questionData.options && questionData.kind === "MCQ") {
+            for (const optionData of questionData.options) {
+              await storage.createOption({
+                questionId: question.id,
+                text: optionData.text,
+                isCorrect: optionData.isCorrect,
+              });
+            }
+          } else if (questionData.kind === "TRUE_FALSE") {
+            // For TRUE_FALSE, create a single option to store the correct answer
+            await storage.createOption({
+              questionId: question.id,
+              text: "True/False Answer",
+              isCorrect: questionData.correctAnswer || true,
+            });
+          }
+        }
+
+        res.json({ test, message: "Test generated successfully" });
+      } catch (parseError) {
+        console.error("Failed to parse AI response:", parseError);
+        res.status(500).json({ message: "Failed to parse AI-generated test" });
+      }
+    } catch (error) {
+      console.error("Error generating test:", error);
+      res.status(500).json({ message: "Failed to generate test" });
+    }
+  });
+
+  // Enhanced Test Attempt Analytics routes
+  app.get("/api/admin/tests/:testId/attempts", requireAdmin, async (req: any, res) => {
+    try {
+      const { testId } = req.params;
+      const attempts = await storage.getTestAttempts(testId);
+      res.json({ attempts });
+    } catch (error) {
+      console.error("Error fetching test attempts:", error);
+      res.status(500).json({ message: "Failed to fetch test attempts" });
+    }
+  });
+
+  app.get("/api/admin/attempts/:attemptId", requireAdmin, async (req: any, res) => {
+    try {
+      const { attemptId } = req.params;
+      const attempt = await storage.getTestAttempt(attemptId);
+      
+      if (!attempt) {
+        return res.status(404).json({ message: "Attempt not found" });
+      }
+
+      res.json({ attempt });
+    } catch (error) {
+      console.error("Error fetching attempt details:", error);
+      res.status(500).json({ message: "Failed to fetch attempt details" });
     }
   });
 

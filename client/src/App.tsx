@@ -11,6 +11,8 @@ import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Tests from "@/pages/tests";
 import TestTaking from "@/pages/test-taking";
+import TestBuilder from "@/pages/test-builder";
+import QAAssistant from "@/pages/qa-assistant";
 import EnhancedAdmin from "@/pages/enhanced-admin";
 import ModuleAdmin from "@/pages/module-admin";
 import AdminControl from "@/pages/admin-control";
@@ -49,6 +51,10 @@ function App() {
         return <Admin user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "tests":
         return <Tests user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+      case "test-builder":
+        return <TestBuilder />;
+      case "qa-assistant":
+        return <QAAssistant />;
       case "enhanced-admin":
         return <EnhancedAdmin user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "module-admin":

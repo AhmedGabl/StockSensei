@@ -1,12 +1,12 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers, materialViews, activityLogs,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers, materialViews, activityLogs, testAttempts, testAnswers,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
   type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport,
   type Group, type InsertGroup, type GroupMember, type InsertGroupMember, type MaterialView, type InsertMaterialView,
-  type ActivityLog, type InsertActivityLog
+  type ActivityLog, type InsertActivityLog, type TestAttempt, type InsertTestAttempt, type TestAnswer, type InsertTestAnswer
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
@@ -60,6 +60,7 @@ export interface IStorage {
 
   // Test operations
   getTests(publishedOnly?: boolean): Promise<Test[]>;
+  getStudentVisibleTests(userId: string): Promise<{ publicTests: Test[]; assignedTests: Test[] }>;
   getTest(id: string): Promise<Test | undefined>;
   createTest(test: InsertTest): Promise<Test>;
   updateTest(id: string, updates: Partial<Test>): Promise<Test>;
@@ -71,13 +72,23 @@ export interface IStorage {
   // Option operations
   createOption(option: InsertOption): Promise<Option>;
   
-  // Attempt operations
+  // Enhanced Test Attempt operations
+  createTestAttempt(attempt: InsertTestAttempt): Promise<TestAttempt>;
+  getTestAttempts(testId: string): Promise<(TestAttempt & { user: Pick<User, 'name' | 'email'> })[]>;
+  getTestAttempt(attemptId: string): Promise<(TestAttempt & { answers: TestAnswer[] }) | undefined>;
+  updateTestAttempt(attemptId: string, updates: Partial<TestAttempt>): Promise<TestAttempt>;
+  
+  // Enhanced Test Answer operations
+  createTestAnswer(answer: InsertTestAnswer): Promise<TestAnswer>;
+  updateTestAnswer(answerId: string, updates: Partial<TestAnswer>): Promise<TestAnswer>;
+  
+  // Legacy Attempt operations (kept for backwards compatibility)
   getUserAttempts(userId: string, testId?: string): Promise<Attempt[]>;
   createAttempt(attempt: InsertAttempt): Promise<Attempt>;
   updateAttempt(id: string, updates: Partial<Attempt>): Promise<Attempt>;
   getBestScore(userId: string, testId: string): Promise<number | null>;
   
-  // Answer operations
+  // Legacy Answer operations (kept for backwards compatibility)
   createAnswer(answer: InsertAnswer): Promise<Answer>;
   getAttemptAnswers(attemptId: string): Promise<Answer[]>;
   
@@ -259,11 +270,36 @@ export class DatabaseStorage implements IStorage {
   async getTests(publishedOnly = false): Promise<Test[]> {
     if (publishedOnly) {
       return await db.select().from(tests)
-        .where(eq(tests.isPublished, true))
+        .where(and(eq(tests.isPublished, true), eq(tests.isDraft, false)))
         .orderBy(desc(tests.createdAt));
     }
     
     return await db.select().from(tests).orderBy(desc(tests.createdAt));
+  }
+
+  async getStudentVisibleTests(userId: string): Promise<{ publicTests: Test[]; assignedTests: Test[] }> {
+    // Get public tests (published and not draft)
+    const publicTests = await db.select().from(tests)
+      .where(and(eq(tests.isPublished, true), eq(tests.isDraft, false)))
+      .orderBy(desc(tests.createdAt));
+
+    // Get assigned tests via testAssignments
+    const assignedTests = await db.select({
+      id: tests.id,
+      title: tests.title,
+      description: tests.description,
+      isPublished: tests.isPublished,
+      isDraft: tests.isDraft,
+      llmScoringEnabled: tests.llmScoringEnabled,
+      createdById: tests.createdById,
+      createdAt: tests.createdAt,
+    })
+    .from(tests)
+    .innerJoin(testAssignments, eq(tests.id, testAssignments.testId))
+    .where(eq(testAssignments.userId, userId))
+    .orderBy(desc(tests.createdAt));
+
+    return { publicTests, assignedTests };
   }
 
   async getTest(id: string): Promise<Test | undefined> {
@@ -346,7 +382,82 @@ export class DatabaseStorage implements IStorage {
     return option;
   }
 
-  // Attempt operations
+  // Enhanced Test Attempt operations
+  async createTestAttempt(attemptData: InsertTestAttempt): Promise<TestAttempt> {
+    const [attempt] = await db
+      .insert(testAttempts)
+      .values(attemptData)
+      .returning();
+    return attempt;
+  }
+
+  async getTestAttempts(testId: string): Promise<(TestAttempt & { user: Pick<User, 'name' | 'email'> })[]> {
+    return await db
+      .select({
+        id: testAttempts.id,
+        testId: testAttempts.testId,
+        userId: testAttempts.userId,
+        assignmentId: testAttempts.assignmentId,
+        startedAt: testAttempts.startedAt,
+        submittedAt: testAttempts.submittedAt,
+        scorePercent: testAttempts.scorePercent,
+        scorer: testAttempts.scorer,
+        llmModel: testAttempts.llmModel,
+        user: {
+          name: users.name,
+          email: users.email,
+        },
+      })
+      .from(testAttempts)
+      .innerJoin(users, eq(testAttempts.userId, users.id))
+      .where(eq(testAttempts.testId, testId))
+      .orderBy(desc(testAttempts.startedAt));
+  }
+
+  async getTestAttempt(attemptId: string): Promise<(TestAttempt & { answers: TestAnswer[] }) | undefined> {
+    const [attempt] = await db
+      .select()
+      .from(testAttempts)
+      .where(eq(testAttempts.id, attemptId));
+
+    if (!attempt) return undefined;
+
+    const answers = await db
+      .select()
+      .from(testAnswers)
+      .where(eq(testAnswers.attemptId, attemptId));
+
+    return { ...attempt, answers };
+  }
+
+  async updateTestAttempt(attemptId: string, updates: Partial<TestAttempt>): Promise<TestAttempt> {
+    const [attempt] = await db
+      .update(testAttempts)
+      .set(updates)
+      .where(eq(testAttempts.id, attemptId))
+      .returning();
+    return attempt;
+  }
+
+  // Enhanced Test Answer operations
+  async createTestAnswer(answerData: InsertTestAnswer): Promise<TestAnswer> {
+    const [answer] = await db
+      .insert(testAnswers)
+      .values(answerData)
+      .returning();
+    return answer;
+  }
+
+  async updateTestAnswer(answerId: string, updates: Partial<TestAnswer>): Promise<TestAnswer> {
+    const [answer] = await db
+      .update(testAnswers)
+      .set(updates)
+      .where(eq(testAnswers.id, answerId))
+      .returning();
+    return answer;
+  }
+
+  // Legacy Attempt operations (kept for backwards compatibility)
   async getUserAttempts(userId: string, testId?: string): Promise<Attempt[]> {
     if (testId) {
       return await db.select().from(attempts)

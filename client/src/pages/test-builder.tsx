@@ -1,0 +1,219 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Wand2, Plus, X } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+
+interface GenerateTestForm {
+  topic: string;
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+  questionCount: number;
+  questionTypes: ("MCQ" | "TRUE_FALSE" | "SHORT")[];
+}
+
+export default function TestBuilder() {
+  const [form, setForm] = useState<GenerateTestForm>({
+    topic: "",
+    difficulty: "MEDIUM",
+    questionCount: 5,
+    questionTypes: ["MCQ"]
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const generateTest = useMutation({
+    mutationFn: async (data: GenerateTestForm) => {
+      const response = await fetch("/api/admin/tests/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to generate test");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Test Generated Successfully",
+        description: `Created "${data.test.title}" with AI assistance`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
+      // Reset form
+      setForm({
+        topic: "",
+        difficulty: "MEDIUM", 
+        questionCount: 5,
+        questionTypes: ["MCQ"]
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate test",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleQuestionTypeChange = (type: "MCQ" | "TRUE_FALSE" | "SHORT", checked: boolean) => {
+    if (checked) {
+      setForm(prev => ({
+        ...prev,
+        questionTypes: [...prev.questionTypes, type]
+      }));
+    } else {
+      setForm(prev => ({
+        ...prev,
+        questionTypes: prev.questionTypes.filter(t => t !== type)
+      }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.topic.trim()) {
+      toast({
+        title: "Topic Required",
+        description: "Please enter a topic for the test",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (form.questionTypes.length === 0) {
+      toast({
+        title: "Question Types Required", 
+        description: "Please select at least one question type",
+        variant: "destructive",
+      });
+      return;
+    }
+    generateTest.mutate(form);
+  };
+
+  return (
+    <div className="container mx-auto p-6 max-w-2xl">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wand2 className="h-5 w-5" />
+            AI Test Builder
+          </CardTitle>
+          <CardDescription>
+            Generate comprehensive tests automatically using AI. Specify your topic and preferences, and our AI will create relevant questions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="topic">Test Topic</Label>
+              <Input
+                id="topic"
+                placeholder="e.g., Customer Service SOPs, Call Center Operations"
+                value={form.topic}
+                onChange={(e) => setForm(prev => ({ ...prev, topic: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="difficulty">Difficulty Level</Label>
+                <Select
+                  value={form.difficulty}
+                  onValueChange={(value: "EASY" | "MEDIUM" | "HARD") => 
+                    setForm(prev => ({ ...prev, difficulty: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EASY">Easy</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HARD">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="questionCount">Number of Questions</Label>
+                <Input
+                  id="questionCount"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={form.questionCount}
+                  onChange={(e) => setForm(prev => ({ 
+                    ...prev, 
+                    questionCount: parseInt(e.target.value) || 5 
+                  }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Question Types</Label>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="mcq"
+                    checked={form.questionTypes.includes("MCQ")}
+                    onCheckedChange={(checked) => 
+                      handleQuestionTypeChange("MCQ", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="mcq">Multiple Choice Questions (MCQ)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="truefalse"
+                    checked={form.questionTypes.includes("TRUE_FALSE")}
+                    onCheckedChange={(checked) => 
+                      handleQuestionTypeChange("TRUE_FALSE", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="truefalse">True/False Questions</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="short"
+                    checked={form.questionTypes.includes("SHORT")}
+                    onCheckedChange={(checked) => 
+                      handleQuestionTypeChange("SHORT", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="short">Short Answer Questions</Label>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={generateTest.isPending}
+            >
+              {generateTest.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating Test...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  Generate Test with AI
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

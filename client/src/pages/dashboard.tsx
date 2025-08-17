@@ -121,6 +121,20 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
           action: () => onNavigate("tests"),
         },
         {
+          icon: "fas fa-magic",
+          title: "AI Test Builder",
+          description: "Generate tests with AI assistance",
+          color: "purple",
+          action: () => onNavigate("test-builder"),
+        },
+        {
+          icon: "fas fa-robot",
+          title: "Q&A Assistant",
+          description: "AI-powered training assistant",
+          color: "cyan",
+          action: () => onNavigate("qa-assistant"),
+        },
+        {
           icon: "fas fa-users",
           title: "Manage Groups",
           description: "Create and manage student groups",

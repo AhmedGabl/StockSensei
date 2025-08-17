@@ -1,0 +1,268 @@
+Awesome — here’s a single, copy-paste **Replit (Ghostwriter) build prompt** that fixes the Tests feature visibility + scoring, adds an **LLM-assisted Q\&A & auto-scoring flow (OpenRouter)**, and delivers an **Admin Test Builder** that can generate questions from selected materials. It’s written for your **React + Express + Drizzle + PostgreSQL** stack and **extends** existing APIs without breaking auth/sessions or current data flows. I’ve aligned terms with your current routes/tables so it’s a clean fit. Citations reference the tech doc you shared.
+
+---
+
+# Build Update Prompt — “Tests Fix + LLM Scoring + Test Builder”
+
+## Guardrails (do not break)
+
+* Keep **authentication/session** as implemented (express-session + Postgres store). No changes to cookie settings or middleware. &#x20;
+* Do not remove or regress existing routes for **materials, modules, practice-calls, notes, tests**. Extend only.&#x20;
+* Preserve current AI endpoints; we’ll **add** OpenRouter usage alongside the existing OpenAI flow. &#x20;
+
+---
+
+## 1) BUGFIX: Assigned tests must appear on the student side
+
+**Problem:** Admin assigns a test, but students can’t see/take it.
+
+### Server (Express) — adjustments
+
+* Update **student-visible tests** logic to include:
+
+  1. Tests with `isEnabled=true` (global availability), **OR**
+  2. Tests explicitly **assigned** to the authenticated student via `testAssignments`.
+     Use a single query to return merged, de-duplicated results.
+
+* Endpoints impacted (extend responses; do not rename):
+
+  * `GET /api/tests` → returns:
+
+    * `publicTests`: all `isEnabled=true`
+    * `assignedTests`: any test linked to the current user via `testAssignments`
+  * `GET /api/tests/:id` → allow if user is assigned or test is public
+  * `POST /api/submit-test` → keep signature; see “Scoring” changes below
+    (Current tests & assignments API: reference your doc.)  &#x20;
+
+### Client (React)
+
+* Student **Tests** page:
+
+  * Show two sections: **Assigned to You** and **Available to All** (public).
+  * Ensure React Query hooks read the new `GET /api/tests` shape (two lists).
+  * Clicking a test routes to test-taking view.
+
+**Acceptance:**
+
+* Admin assigns Test X → Student sees it under **Assigned to You** and can take it.
+* Public (enabled) tests appear under **Available to All**.
+
+---
+
+## 2) Scoring & Review: store answers, compute scores, and let admin review
+
+**Goal:** After submit, save student answers, compute score (auto via LLM or rule-based), and let admin view answers + score and override if needed.
+
+### DB (Drizzle models)
+
+Add detailed attempts/answers tables (non-breaking):
+
+```sql
+testAttempts {
+  id: text (pk)
+  testId: text (fk -> tests.id)
+  userId: text (fk -> users.id)
+  startedAt: timestamp
+  submittedAt: timestamp
+  scorePercent: integer (nullable)
+  scorer: text  -- 'RULE' | 'LLM' | 'MANUAL'
+  llmModel: text (nullable)
+}
+
+testAnswers {
+  id: text (pk)
+  attemptId: text (fk -> testAttempts.id)
+  questionId: text
+  answerPayload: jsonb  -- supports MCQ/TF/text
+  correct: boolean (nullable) -- set when evaluated
+  awardedPoints: integer (nullable)
+  rubricNote: text (nullable)
+}
+```
+
+> Keep existing `tests` and `testAssignments` as-is. `testAssignments.lastScore` can still be updated to mirror best/latest.&#x20;
+
+### Server (Express)
+
+* Update `POST /api/submit-test`:
+
+  * Create `testAttempts` row; store each submitted answer in `testAnswers`.
+  * If **rule-based** (e.g., MCQ/TF includes correct keys), compute score directly.
+  * If **LLM scoring enabled** (see next section), queue/perform LLM scoring and update `scorePercent`, `correct`, `awardedPoints`, `rubricNote`.
+  * Update `testAssignments.lastScore` where applicable (if the test was assigned to the user).
+* Add (admin only):
+
+  * `GET /api/tests/:id/attempts` → list attempts with user, timestamps, score
+  * `GET /api/attempts/:id` → full attempt with per-question answers & evaluation
+  * `PATCH /api/attempts/:id` → admin can **override score** and/or per-question `awardedPoints` and notes
+
+### Client (Admin)
+
+* **Admin → Tests → Attempts**: table with filters (by test, by student) + details drawer:
+
+  * Show Q/A pairs, auto-score, rubric notes; allow override + save.
+
+**Acceptance:**
+
+* Student submits → attempt & answers stored; score populated; admin can review/override.
+
+---
+
+## 3) LLM Q\&A assistant + LLM auto-scoring (OpenRouter)
+
+**Goal:** Provide a Q\&A chatbot to help students during preparation; enable auto-scoring for short answers using the LLM; keep admin options intact.
+
+### Environment
+
+Add (do not remove existing OpenAI envs):
+
+```
+OPENROUTER_API_KEY=your-openrouter-key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+LLM_SCORING_MODEL=openrouter/<model-id>   # e.g., openrouter/openai/gpt-4o-mini-translate or similar
+```
+
+(Existing OpenAI/OpenAI routes remain; we are **adding** OpenRouter path.)&#x20;
+
+### Server (Express)
+
+* **Q\&A assistant**:
+
+  * `POST /api/qa` → messages\[] → proxy to OpenRouter using `OPENROUTER_API_KEY` and `OPENROUTER_BASE_URL`.
+  * Safety: limit tokens; strip PII; rate limit per user.
+* **LLM scoring**:
+
+  * New util `scoreWithLLM({ test, attempt, rubric? })`:
+
+    * Build a prompt with: test questions, student answers, optional rubric/answer-key, and scoring policy.
+    * Model returns per-question judgment + rationale + total percent.
+    * Persist back into `testAnswers` (per-question) and `testAttempts.scorePercent` (overall), with `scorer='LLM'` and `llmModel` set.
+
+> Keep the existing AI routes for chat & analyze-call intact; this is additive.&#x20;
+
+### Client
+
+* **Student**: Add a “Study Q\&A” panel on Tests page (collapsible) that calls `/api/qa`.
+* **Admin**: In attempt view, show whether `scorer='LLM'` and the model used; allow manual override.
+
+**Acceptance:**
+
+* Q\&A works with OpenRouter.
+* Short-answer questions get auto-scored; admin sees rationale and can override.
+
+---
+
+## 4) Admin “Test Builder” portal with **Generate from Materials**
+
+**Goal:** Let admin upload/select materials and auto-generate a draft test, then edit and publish.
+
+### DB
+
+Keep `materials` as-is for sources; we only **reference** them.&#x20;
+Optionally extend `tests` with:
+
+```sql
+tests {
+  ...existing
+  isDraft: boolean default true
+  llmScoringEnabled: boolean default false
+}
+```
+
+### Server
+
+* `POST /api/tests/generate` (admin only):
+
+  * Payload: `{ materialIds: string[], numQuestions: number, kinds?: ('MCQ'|'TRUE_FALSE'|'SHORT')[], difficulty?: 'EASY'|'MEDIUM'|'HARD' }`
+  * Fetch materials by IDs; create an LLM prompt and generate question set.
+  * Save as a **draft test** (`isDraft=true`, `isEnabled=false`).
+* `PATCH /api/tests/:id` (admin only):
+
+  * Allow editing questions JSON, toggling `isDraft`, `isEnabled`, `llmScoringEnabled`, and optional rubric.
+* `GET /api/tests/:id` already exists — ensure it returns full draft for admin; students only see published and/or assigned tests (see section 1).&#x20;
+
+### Client (Admin)
+
+* New **“Test Builder”** (under Admin → Tests):
+
+  * Step 1: **Select materials** (searchable list from `/api/materials`).
+  * Step 2: Configure generation (kinds, count, difficulty).
+  * Step 3: Generate → show **Draft** in editor (inline CRUD for questions/options).
+  * Step 4: **Publish** → `isDraft=false`, `isEnabled=true` or assign to students/groups (existing assignment flow).&#x20;
+
+**Acceptance:**
+
+* Admin selects 2 materials → generates 10 questions (mixed types) → edits 2 → publishes → students see/assigned students see.
+
+---
+
+## 5) Navigation wording
+
+* Replace **“Dashboard”** label with **“Home Page”** everywhere in the UI (nav, titles), without changing route semantics. (Safe UI string change.)
+
+---
+
+## 6) Validation, security, and UX polish
+
+* Zod validate all new payloads; enforce role checks (`ADMIN`) on admin routes.
+* Rate limit `/api/qa` and `/api/tests/generate`.
+* Friendly toasts for success/error; loading skeletons on attempts/test builder.
+* No leaking of correct answers in student GET routes; provide them only in admin attempt views.
+* Comprehensive error handling consistent with existing middleware.&#x20;
+
+---
+
+## Drizzle migration sketch (one migration; adjust to your patterns)
+
+```ts
+// drizzle migration pseudo
+export async function up(db: any) {
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS "testAttempts" (
+      "id" text PRIMARY KEY,
+      "testId" text NOT NULL REFERENCES "tests"("id"),
+      "userId" text NOT NULL REFERENCES "users"("id"),
+      "startedAt" timestamp NOT NULL DEFAULT NOW(),
+      "submittedAt" timestamp,
+      "scorePercent" integer,
+      "scorer" text,
+      "llmModel" text
+    );
+    CREATE TABLE IF NOT EXISTS "testAnswers" (
+      "id" text PRIMARY KEY,
+      "attemptId" text NOT NULL REFERENCES "testAttempts"("id") ON DELETE CASCADE,
+      "questionId" text NOT NULL,
+      "answerPayload" jsonb NOT NULL,
+      "correct" boolean,
+      "awardedPoints" integer,
+      "rubricNote" text
+    );
+    ALTER TABLE "tests" ADD COLUMN IF NOT EXISTS "isDraft" boolean DEFAULT true;
+    ALTER TABLE "tests" ADD COLUMN IF NOT EXISTS "llmScoringEnabled" boolean DEFAULT false;
+  `);
+}
+```
+
+---
+
+## Smoke tests (must pass)
+
+1. **Visibility fix**: Assign Test A to Student S → `GET /api/tests` returns it for S → S can open and submit.
+2. **Attempt storage**: Submit answers → creates `testAttempts` + `testAnswers`; updates `testAssignments.lastScore` (if assigned).
+3. **LLM scoring**: For a short-answer test with `llmScoringEnabled=true`, score is filled by `/scoreWithLLM` path; admin sees per-question rationale and may override.
+4. **Q\&A**: `/api/qa` answers prep questions; basic rate limiting works.
+5. **Test Builder**: Generate from materials → draft → edit → publish → student sees.
+6. **Nav label**: “Home Page” appears; no broken links.
+
+---
+
+### Notes for developers
+
+* Keep response shapes backwards-compatible where possible; add fields rather than change names.
+* Prefer **feature flags** (`llmScoringEnabled`) to isolate LLM scoring until fully vetted.
+* Log model + prompt IDs for reproducibility in `testAttempts.llmModel`.
+* All additions should align with the documented app structure and endpoints. &#x20;
+
+---
+
+If anything conflicts with current code, **extend rather than replace**, and leave brief comments explaining the decision.

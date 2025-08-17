@@ -7,7 +7,8 @@ export const roleEnum = pgEnum("role", ["STUDENT", "TRAINER", "ADMIN"]);
 export const progressStatusEnum = pgEnum("progress_status", ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]);
 export const practiceCallOutcomeEnum = pgEnum("practice_call_outcome", ["PASSED", "IMPROVE", "N/A"]);
 export const materialTypeEnum = pgEnum("material_type", ["PDF", "POWERPOINT", "VIDEO", "SCRIPT", "DOCUMENT"]);
-export const questionTypeEnum = pgEnum("question_type", ["MCQ", "TRUE_FALSE"]);
+export const questionTypeEnum = pgEnum("question_type", ["MCQ", "TRUE_FALSE", "SHORT"]);
+export const scorerEnum = pgEnum("scorer", ["RULE", "LLM", "MANUAL"]);
 export const taskStatusEnum = pgEnum("task_status", ["OPEN", "DONE"]);
 export const reportStatusEnum = pgEnum("report_status", ["OPEN", "IN_PROGRESS", "RESOLVED"]);
 export const reportPriorityEnum = pgEnum("report_priority", ["LOW", "MEDIUM", "HIGH", "URGENT"]);
@@ -65,6 +66,8 @@ export const tests = pgTable("tests", {
   title: text("title").notNull(),
   description: text("description"),
   isPublished: boolean("is_published").notNull().default(false),
+  isDraft: boolean("is_draft").notNull().default(true),
+  llmScoringEnabled: boolean("llm_scoring_enabled").notNull().default(false),
   createdById: varchar("created_by_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
@@ -99,6 +102,30 @@ export const testAssignments = pgTable("test_assignments", {
   maxAttempts: integer("max_attempts").notNull().default(3), // Admin-controlled attempt limit
 });
 
+// Enhanced attempts and answers for detailed tracking and LLM scoring
+export const testAttempts = pgTable("test_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  testId: varchar("test_id").notNull().references(() => tests.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  assignmentId: varchar("assignment_id").references(() => testAssignments.id),
+  startedAt: timestamp("started_at").notNull().default(sql`now()`),
+  submittedAt: timestamp("submitted_at"),
+  scorePercent: integer("score_percent"),
+  scorer: scorerEnum("scorer"),
+  llmModel: text("llm_model"),
+});
+
+export const testAnswers = pgTable("test_answers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  attemptId: varchar("attempt_id").notNull().references(() => testAttempts.id, { onDelete: "cascade" }),
+  questionId: varchar("question_id").notNull(),
+  answerPayload: text("answer_payload").notNull(), // JSON string to support all answer types
+  correct: boolean("correct"),
+  awardedPoints: integer("awarded_points"),
+  rubricNote: text("rubric_note"),
+});
+
+// Legacy attempts table - keeping for backwards compatibility
 export const attempts = pgTable("attempts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -458,6 +485,15 @@ export const insertTestAssignmentSchema = createInsertSchema(testAssignments).om
   assignedAt: true,
 });
 
+export const insertTestAttemptSchema = createInsertSchema(testAttempts).omit({
+  id: true,
+  startedAt: true,
+});
+
+export const insertTestAnswerSchema = createInsertSchema(testAnswers).omit({
+  id: true,
+});
+
 export const insertTrainingModuleSchema = createInsertSchema(trainingModules).omit({
   id: true,
   createdAt: true,
@@ -515,6 +551,10 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTestAssignment = z.infer<typeof insertTestAssignmentSchema>;
 export type TestAssignment = typeof testAssignments.$inferSelect;
+export type InsertTestAttempt = z.infer<typeof insertTestAttemptSchema>;
+export type TestAttempt = typeof testAttempts.$inferSelect;
+export type InsertTestAnswer = z.infer<typeof insertTestAnswerSchema>;
+export type TestAnswer = typeof testAnswers.$inferSelect;
 export type TrainingModule = typeof trainingModules.$inferSelect;
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 export type InsertProblemReport = z.infer<typeof insertProblemReportSchema>;
@@ -538,12 +578,12 @@ export const registerSchema = loginSchema.extend({
   name: z.string().min(1),
 });
 
-// Test creation schema with nested questions and options
+// Test creation schema with nested questions and options (enhanced)
 export const createTestSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   questions: z.array(z.object({
-    kind: z.enum(["MCQ", "TRUE_FALSE"]),
+    kind: z.enum(["MCQ", "TRUE_FALSE", "SHORT"]),
     text: z.string().min(1),
     explanation: z.string().optional(),
     options: z.array(z.object({
@@ -553,13 +593,34 @@ export const createTestSchema = z.object({
   })).min(1),
 });
 
-// Test attempt submission schema
+// Test attempt submission schema (enhanced)
 export const submitAttemptSchema = z.object({
   answers: z.array(z.object({
     questionId: z.string(),
     optionId: z.string().optional(), // For MCQ
     valueBool: z.boolean().optional(), // For TRUE_FALSE
+    valueText: z.string().optional(), // For SHORT answer
   })),
+});
+
+// New schemas for enhanced test features
+export const qaRequestSchema = z.object({
+  question: z.string().min(1),
+  context: z.string().optional(),
+});
+
+export const generateTestSchema = z.object({
+  topic: z.string().min(1),
+  difficulty: z.enum(["EASY", "MEDIUM", "HARD"]).default("MEDIUM"),
+  questionCount: z.number().min(1).max(20).default(5),
+  questionTypes: z.array(z.enum(["MCQ", "TRUE_FALSE", "SHORT"])).min(1),
+});
+
+export const chatRequestSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string(),
+  })).min(1),
 });
 
 export type LoginRequest = z.infer<typeof loginSchema>;
