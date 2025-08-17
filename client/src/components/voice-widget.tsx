@@ -66,29 +66,31 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               buttons: {
                 modalTrigger: {
                   styles: {
-                    backgroundColor: "hsl(207, 90%, 54%)",
+                    backgroundColor: "#000000",
                     color: "white",
                     borderRadius: "50%",
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+                    border: "2px solid #333333",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)"
                   }
                 },
                 mic: {
                   styles: {
-                    backgroundColor: "hsl(0, 84%, 60%)",
+                    backgroundColor: "#000000",
                     borderRadius: "50%",
-                    border: "2px solid white"
+                    border: "2px solid #333333",
+                    color: "white"
                   }
                 },
                 call: {
                   textBeforeCall: "Start Practice Call",
                   textDuringCall: "End Practice Call",
                   styles: {
-                    backgroundColor: "hsl(207, 90%, 54%)",
+                    backgroundColor: "#000000",
                     color: "white",
                     borderRadius: "8px",
                     padding: "12px 24px",
-                    fontWeight: "500"
+                    fontWeight: "500",
+                    border: "1px solid #333333"
                   }
                 }
               }
@@ -136,20 +138,45 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               }
               
               .voice-widget-button {
-                background-color: #1f2937 !important;
+                background-color: #000000 !important;
                 color: #ffffff !important;
-                border: none !important;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+                border: 2px solid #333333 !important;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
               }
               
               .voice-widget-button:hover {
-                background-color: #374151 !important;
+                background-color: #111111 !important;
                 color: #ffffff !important;
+                border-color: #444444 !important;
               }
               
               .voice-widget-button:disabled {
-                background-color: #6b7280 !important;
+                background-color: #222222 !important;
                 color: #ffffff !important;
+                border-color: #333333 !important;
+              }
+              
+              /* Force all Ringg AI modal elements to black */
+              .dv-agent-modal, .dv-agent-container, .dv-modal {
+                background-color: #000000 !important;
+                color: white !important;
+                border: 2px solid #333333 !important;
+              }
+              
+              .dv-agent-modal * {
+                background-color: #000000 !important;
+                color: white !important;
+              }
+              
+              .dv-agent-modal button {
+                background-color: #000000 !important;
+                color: white !important;
+                border: 1px solid #333333 !important;
+              }
+              
+              .dv-agent-modal button:hover {
+                background-color: #111111 !important;
+                border-color: #444444 !important;
               }
             `;
             document.head.appendChild(style);
@@ -204,9 +231,9 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
     <div className="voice-widget-container fixed bottom-6 left-6 z-50">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 bg-white dark:bg-gray-800">
+        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
           <CardHeader className="pb-2">
-            <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Ringg AI Practice</h3>
+            <h3 className="font-semibold text-sm text-white">Ringg AI Practice</h3>
           </CardHeader>
           <CardContent className="space-y-2">
             {/* Ringg AI Voice Call */}
@@ -214,12 +241,13 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               onClick={handleVoiceCall}
               disabled={isLoading}
               variant="outline"
-              className="w-full justify-start text-left bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+              className="w-full justify-start text-left border-gray-600 hover:bg-gray-900"
+              style={{ backgroundColor: '#000000', borderColor: '#333333', color: 'white' }}
             >
-              <i className="fas fa-microphone mr-2 text-green-600"></i>
+              <i className="fas fa-microphone mr-2 text-green-400"></i>
               <div>
-                <div className="font-medium text-gray-900 dark:text-white">Voice Practice</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">AI Roleplay Calls</div>
+                <div className="font-medium text-white">Voice Practice</div>
+                <div className="text-xs text-gray-400">AI Roleplay Calls</div>
               </div>
             </Button>
 
@@ -227,12 +255,13 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
             <Button
               onClick={handleTextChat}
               variant="outline"
-              className="w-full justify-start text-left bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+              className="w-full justify-start text-left border-gray-600 hover:bg-gray-900"
+              style={{ backgroundColor: '#000000', borderColor: '#333333', color: 'white' }}
             >
-              <i className="fas fa-keyboard mr-2 text-purple-600"></i>
+              <i className="fas fa-keyboard mr-2 text-purple-400"></i>
               <div>
-                <div className="font-medium text-gray-900 dark:text-white">Text Practice</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">AI Text Chat</div>
+                <div className="font-medium text-white">Text Practice</div>
+                <div className="text-xs text-gray-400">AI Text Chat</div>
               </div>
             </Button>
           </CardContent>
@@ -243,11 +272,11 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
         disabled={isLoading}
-        className="voice-widget-button w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group border-0"
+        className="voice-widget-button w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
         style={{
-          backgroundColor: isLoading ? '#6b7280' : '#1f2937',
+          backgroundColor: isLoading ? '#222222' : '#000000',
           color: '#ffffff',
-          border: 'none'
+          border: '2px solid #333333'
         }}
       >
         {isLoading ? (
@@ -262,7 +291,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       {/* Tooltip */}
       {!isExpanded && (
         <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block">
-          <div className="bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+          <div className="bg-black border border-gray-600 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
             Ringg AI Practice
           </div>
         </div>
