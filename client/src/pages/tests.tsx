@@ -76,6 +76,11 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
     enabled: user.role === "ADMIN"
   });
 
+  const { data: groupsData } = useQuery({
+    queryKey: ["/api/groups"],
+    enabled: user.role === "ADMIN"
+  });
+
   const { data: assignedTestsData } = useQuery({
     queryKey: ["/api/assigned-tests"],
     enabled: user.role !== "ADMIN"
@@ -121,6 +126,19 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
       toast({
         title: "Test Assigned",
         description: "Test has been assigned to selected students"
+      });
+    }
+  });
+
+  const assignTestToGroupMutation = useMutation({
+    mutationFn: ({ groupId, testId, dueDate }: { groupId: string; testId: string; dueDate?: string }) => 
+      apiRequest("POST", `/api/groups/${groupId}/assign-test`, { testId, dueDate }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
+      setIsAssignDialogOpen(false);
+      toast({
+        title: "Test Assigned to Group",
+        description: "Test has been assigned to the entire group"
       });
     }
   });
@@ -663,6 +681,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
           <AssignTestForm
             test={selectedTestForAssignment}
             users={(usersData as any)?.users || []}
+            groups={(groupsData as any)?.groups || []}
             onAssign={(userIds, dueDate) => {
               if (selectedTestForAssignment) {
                 assignTestMutation.mutate({
@@ -672,7 +691,16 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                 });
               }
             }}
-            isLoading={assignTestMutation.isPending}
+            onAssignToGroup={(groupId, dueDate) => {
+              if (selectedTestForAssignment) {
+                assignTestToGroupMutation.mutate({
+                  groupId,
+                  testId: selectedTestForAssignment.id,
+                  dueDate
+                });
+              }
+            }}
+            isLoading={assignTestMutation.isPending || assignTestToGroupMutation.isPending}
           />
         </DialogContent>
       </Dialog>
@@ -684,21 +712,29 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
 interface AssignTestFormProps {
   test: Test | null;
   users: any[];
+  groups: any[];
   onAssign: (userIds: string[], dueDate?: string) => void;
+  onAssignToGroup: (groupId: string, dueDate?: string) => void;
   isLoading: boolean;
 }
 
-function AssignTestForm({ test, users, onAssign, isLoading }: AssignTestFormProps) {
+function AssignTestForm({ test, users, groups, onAssign, onAssignToGroup, isLoading }: AssignTestFormProps) {
+  const [assignmentType, setAssignmentType] = useState<"students" | "groups">("students");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [dueDate, setDueDate] = useState("");
 
   const students = users.filter(user => user.role === "STUDENT");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedUsers.length > 0) {
+    if (assignmentType === "students" && selectedUsers.length > 0) {
       onAssign(selectedUsers, dueDate || undefined);
       setSelectedUsers([]);
+      setDueDate("");
+    } else if (assignmentType === "groups" && selectedGroup) {
+      onAssignToGroup(selectedGroup, dueDate || undefined);
+      setSelectedGroup("");
       setDueDate("");
     }
   };
@@ -713,46 +749,99 @@ function AssignTestForm({ test, users, onAssign, isLoading }: AssignTestFormProp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Assignment Type Selector */}
       <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <label className="text-sm font-medium">Select Students:</label>
-          {students.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleSelectAll}
-              className="text-xs"
-            >
-              {selectedUsers.length === students.length ? "Deselect All" : "Select All"}
-            </Button>
-          )}
-        </div>
-        <div className="max-h-40 overflow-y-auto space-y-2 border rounded p-2">
-          {students.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No students available</p>
-          ) : (
-            students.map((user: any) => (
-              <div key={user.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={user.id}
-                  checked={selectedUsers.includes(user.id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedUsers([...selectedUsers, user.id]);
-                    } else {
-                      setSelectedUsers(selectedUsers.filter(id => id !== user.id));
-                    }
-                  }}
-                />
-                <label htmlFor={user.id} className="text-sm font-medium cursor-pointer">
-                  {user.name} ({user.email})
-                </label>
-              </div>
-            ))
-          )}
+        <label className="text-sm font-medium">Assign to:</label>
+        <div className="flex space-x-4">
+          <Button
+            type="button"
+            variant={assignmentType === "students" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setAssignmentType("students")}
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Individual Students
+          </Button>
+          <Button
+            type="button"
+            variant={assignmentType === "groups" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setAssignmentType("groups")}
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Entire Group
+          </Button>
         </div>
       </div>
+
+      {/* Student Assignment */}
+      {assignmentType === "students" && (
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Select Students:</label>
+            {students.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAll}
+                className="text-xs"
+              >
+                {selectedUsers.length === students.length ? "Deselect All" : "Select All"}
+              </Button>
+            )}
+          </div>
+          <div className="max-h-40 overflow-y-auto space-y-2 border rounded p-2">
+            {students.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No students available</p>
+            ) : (
+              students.map((user: any) => (
+                <div key={user.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={user.id}
+                    checked={selectedUsers.includes(user.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedUsers([...selectedUsers, user.id]);
+                      } else {
+                        setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                      }
+                    }}
+                  />
+                  <label htmlFor={user.id} className="text-sm font-medium cursor-pointer">
+                    {user.name} ({user.email})
+                  </label>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Group Assignment */}
+      {assignmentType === "groups" && (
+        <div className="space-y-3">
+          <label className="text-sm font-medium">Select Group:</label>
+          <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose a group" />
+            </SelectTrigger>
+            <SelectContent>
+              {groups.length === 0 ? (
+                <SelectItem value="no-groups" disabled>No groups available</SelectItem>
+              ) : (
+                groups.map((group: any) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name} ({group.members?.length || 0} members)
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <label htmlFor="dueDate" className="text-sm font-medium">Due Date (Optional):</label>
@@ -765,14 +854,23 @@ function AssignTestForm({ test, users, onAssign, isLoading }: AssignTestFormProp
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => setSelectedUsers([])}>
+        <Button type="button" variant="outline" onClick={() => {
+          setSelectedUsers([]);
+          setSelectedGroup("");
+        }}>
           Clear Selection
         </Button>
         <Button 
           type="submit" 
-          disabled={selectedUsers.length === 0 || isLoading}
+          disabled={(assignmentType === "students" && selectedUsers.length === 0) || 
+                    (assignmentType === "groups" && !selectedGroup) || 
+                    isLoading}
         >
-          {isLoading ? "Assigning..." : `Assign to ${selectedUsers.length} Student${selectedUsers.length !== 1 ? 's' : ''}`}
+          {isLoading ? "Assigning..." : 
+            assignmentType === "students" ? 
+              `Assign to ${selectedUsers.length} Student${selectedUsers.length !== 1 ? 's' : ''}` :
+              selectedGroup ? "Assign to Group" : "Select Group"
+          }
         </Button>
       </div>
     </form>
