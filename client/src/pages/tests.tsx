@@ -181,7 +181,10 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
     );
   }
 
-  const tests = (testsData as any)?.tests || [];
+  // Get tests based on user role
+  const tests = user.role === "ADMIN" 
+    ? (testsData as any)?.tests || []
+    : (assignedTestsData as any)?.assignedTests || [];
   const attempts = (attemptsData as any)?.attempts || [];
 
   return (
@@ -197,18 +200,26 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
               ← Back to Home Page
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">Global Testing System</h1>
-              <p className="text-muted-foreground">Create and manage MCQ and True/False tests for students</p>
+              <h1 className="text-3xl font-bold">
+                {user.role === "ADMIN" ? "Global Testing System" : "Your Assigned Tests"}
+              </h1>
+              <p className="text-muted-foreground">
+                {user.role === "ADMIN" 
+                  ? "Create and manage MCQ and True/False tests for students"
+                  : "Complete your assigned tests and track your progress"
+                }
+              </p>
             </div>
           </div>
           
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <PlusCircle className="h-4 w-4" />
-              Create New Test
-            </Button>
-          </DialogTrigger>
+          {user.role === "ADMIN" && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <PlusCircle className="h-4 w-4" />
+                Create New Test
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Test</DialogTitle>
@@ -416,6 +427,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
             </Form>
           </DialogContent>
         </Dialog>
+          )}
       </div>
 
       <div className="grid gap-6">
@@ -423,14 +435,21 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
           <Card>
             <CardContent className="text-center py-12">
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Tests Created</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {user.role === "ADMIN" ? "No Tests Created" : "No Tests Available"}
+              </h3>
               <p className="text-muted-foreground mb-4">
-                Create your first test to start assessing student knowledge
+                {user.role === "ADMIN" 
+                  ? "Create your first test to start assessing student knowledge"
+                  : "No tests have been assigned to you yet. Check back later or contact your instructor."
+                }
               </p>
-              <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
-                <PlusCircle className="h-4 w-4" />
-                Create Test
-              </Button>
+              {user.role === "ADMIN" && (
+                <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+                  <PlusCircle className="h-4 w-4" />
+                  Create Test
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
