@@ -184,7 +184,19 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
   // Get tests based on user role
   const tests = user.role === "ADMIN" 
     ? (testsData as any)?.tests || []
-    : ((assignedTestsData as any)?.assignedTests || []).map((assignment: any) => assignment.test);
+    : (() => {
+        // For students, deduplicate tests that appear in multiple assignments
+        const assignments = (assignedTestsData as any)?.assignedTests || [];
+        const uniqueTests = new Map();
+        
+        assignments.forEach((assignment: any) => {
+          if (assignment.test && !uniqueTests.has(assignment.test.id)) {
+            uniqueTests.set(assignment.test.id, assignment.test);
+          }
+        });
+        
+        return Array.from(uniqueTests.values());
+      })();
   const attempts = (attemptsData as any)?.attempts || [];
 
   return (
