@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Configure for OpenRouter API gateway
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // OpenRouter uses OPENAI_API_KEY env var
+  baseURL: "https://openrouter.ai/api/v1",
+});
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -11,7 +14,7 @@ export interface ChatMessage {
 export async function getChatResponse(messages: ChatMessage[]): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "openai/gpt-4o", // OpenRouter format: provider/model
       messages: [
         {
           role: "system",
@@ -37,7 +40,7 @@ export async function analyzePracticeCall(transcript: string): Promise<{
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "openai/gpt-4o", // OpenRouter format: provider/model
       messages: [
         {
           role: "system",

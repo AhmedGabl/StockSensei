@@ -1088,7 +1088,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If material ID is provided, fetch the material content
       if (materialId) {
         try {
-          const material = await storage.getMaterial(materialId);
+          const materials = await storage.getMaterials();
+          const material = materials.find((m: any) => m.id === materialId);
           if (material) {
             materialContent = material.description || material.title || "";
             baseTitle = `${material.title} Test`;
