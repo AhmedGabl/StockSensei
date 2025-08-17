@@ -1151,7 +1151,7 @@ Format as JSON with structure:
       const aiResponse = await getChatResponse([
         {
           role: "system",
-          content: "You are an expert test creator for Class Mentor training. Generate comprehensive, practical questions that test real-world knowledge. Always respond with valid JSON only."
+          content: "You are an expert test creator for Class Mentor training. Generate comprehensive, practical questions that test real-world knowledge. IMPORTANT: Respond with valid JSON only, no markdown code blocks, no extra text. Start directly with { and end with }."
         },
         {
           role: "user",
@@ -1160,32 +1160,29 @@ Format as JSON with structure:
       ]);
 
       try {
-        // Clean the AI response to handle potential markdown code blocks and other formatting
-        let cleanResponse = aiResponse.trim();
+        console.log("Raw AI response:", aiResponse);
         
-        // Remove markdown code blocks
-        if (cleanResponse.startsWith('```json')) {
-          cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (cleanResponse.startsWith('```')) {
-          cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        // Simple JSON extraction - find the first complete JSON object
+        let jsonContent = aiResponse.trim();
+        
+        // Remove markdown code blocks if present
+        if (jsonContent.startsWith('```json')) {
+          jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (jsonContent.startsWith('```')) {
+          jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
         }
         
-        // Find JSON content between { and } (in case there's extra text)
-        const jsonStart = cleanResponse.indexOf('{');
-        const jsonEnd = cleanResponse.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-          cleanResponse = cleanResponse.substring(jsonStart, jsonEnd + 1);
+        // Find the first { and last } to extract JSON
+        const firstBrace = jsonContent.indexOf('{');
+        const lastBrace = jsonContent.lastIndexOf('}');
+        
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          jsonContent = jsonContent.substring(firstBrace, lastBrace + 1);
         }
         
-        // Fix common JSON formatting issues
-        cleanResponse = cleanResponse
-          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
-          .replace(/:\s*([^",\[\]{}]+)([,}])/g, ':"$1"$2') // Quote unquoted string values
-          .replace(/:\s*true\s*([,}])/g, ':true$1') // Fix boolean true
-          .replace(/:\s*false\s*([,}])/g, ':false$1') // Fix boolean false
-          .replace(/:\s*null\s*([,}])/g, ':null$1'); // Fix null values
+        console.log("Cleaned JSON content:", jsonContent);
         
-        const testData = JSON.parse(cleanResponse);
+        const testData = JSON.parse(jsonContent);
         
         // Create the test in draft mode
         const test = await storage.createTest({
@@ -1226,7 +1223,12 @@ Format as JSON with structure:
         res.json({ test, message: "Test generated successfully" });
       } catch (parseError) {
         console.error("Failed to parse AI response:", parseError);
-        res.status(500).json({ message: "Failed to parse AI-generated test" });
+        console.error("Raw AI response was:", aiResponse);
+        res.status(500).json({ 
+          message: "Failed to parse AI-generated test", 
+          error: parseError.message,
+          rawResponse: aiResponse.substring(0, 500) // First 500 chars for debugging
+        });
       }
     } catch (error) {
       console.error("Error generating test:", error);
