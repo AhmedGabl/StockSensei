@@ -63,7 +63,17 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
 
   const materials = materialsData?.materials || [];
 
-  // Fetch material views for analytics (admin only)
+  // Fetch all material views for analytics (admin only)
+  const { data: allMaterialViewsData } = useQuery({
+    queryKey: ["/api/materials/views"],
+    enabled: user.role === "ADMIN",
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/materials/views");
+      return await response.json();
+    }
+  });
+
+  // Fetch material views for specific material (admin only)
   const { data: materialViewsData } = useQuery({
     queryKey: ["/api/materials", selectedMaterialForAnalytics?.id, "views"],
     enabled: !!selectedMaterialForAnalytics && user.role === "ADMIN",
@@ -486,6 +496,35 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                     <p className="text-sm text-slate-600 mb-4">
                       {material.description || "Comprehensive training material for Class Mentors covering essential procedures and best practices."}
                     </p>
+
+                    {user.role === "ADMIN" && allMaterialViewsData && (
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center space-x-4">
+                            <div>
+                              <span className="font-medium text-blue-900">
+                                {allMaterialViewsData[material.id]?.totalViews || 0} views
+                              </span>
+                              <span className="text-blue-600 mx-2">•</span>
+                              <span className="text-blue-600">
+                                {allMaterialViewsData[material.id]?.uniqueViewers || 0} unique viewers
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedMaterialForAnalytics(material);
+                              setAnalyticsDialogOpen(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-6 px-2"
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex flex-wrap gap-1 mb-4">
                       {material.tags.map((tag) => (

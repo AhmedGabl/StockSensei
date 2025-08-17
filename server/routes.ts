@@ -501,6 +501,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all material views summary (admin only)
+  app.get("/api/materials/views", requireAdmin, async (req: any, res) => {
+    try {
+      const viewsSummary = await storage.getAllMaterialViewsSummary();
+      res.json(viewsSummary);
+    } catch (error) {
+      console.error("Error getting all material views:", error);
+      res.status(500).json({ message: "Failed to get material views summary" });
+    }
+  });
+
   app.get("/api/materials/:id/views", requireAuth, async (req: any, res) => {
     try {
       const { id } = req.params;

@@ -39,6 +39,7 @@ export interface IStorage {
   recordMaterialView(materialId: string, userId: string, duration?: number, progress?: number): Promise<MaterialView>;
   getMaterialViews(materialId: string): Promise<(MaterialView & { user: Pick<User, 'name' | 'email'> })[]>;
   getMaterialViewCount(materialId: string): Promise<number>;
+  getAllMaterialViewsSummary(): Promise<Record<string, { totalViews: number; uniqueViewers: number }>>;
   
   // Activity logging operations
   logActivity(log: InsertActivityLog): Promise<ActivityLog>;
@@ -760,6 +761,26 @@ export class DatabaseStorage implements IStorage {
       .from(materialViews)
       .where(eq(materialViews.materialId, materialId));
     return result[0]?.count || 0;
+  }
+
+  async getAllMaterialViewsSummary(): Promise<Record<string, { totalViews: number; uniqueViewers: number }>> {
+    const result = await db
+      .select({
+        materialId: materialViews.materialId,
+        totalViews: sql<number>`count(*)::int`,
+        uniqueViewers: sql<number>`count(distinct ${materialViews.userId})::int`
+      })
+      .from(materialViews)
+      .groupBy(materialViews.materialId);
+
+    const summary: Record<string, { totalViews: number; uniqueViewers: number }> = {};
+    for (const row of result) {
+      summary[row.materialId] = {
+        totalViews: row.totalViews,
+        uniqueViewers: row.uniqueViewers
+      };
+    }
+    return summary;
   }
 
   // Activity logging operations
