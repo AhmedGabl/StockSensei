@@ -527,11 +527,11 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
           <TabsList className="grid w-full grid-cols-3 bg-orange-50 border border-orange-200">
             <TabsTrigger 
-              value="chat" 
+              value="text" 
               className="flex items-center space-x-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
             >
-              <i className="fas fa-comments text-sm"></i>
-              <span className="font-medium">Q&A Chat</span>
+              <i className="fas fa-keyboard text-sm"></i>
+              <span className="font-medium">Text Assistant</span>
             </TabsTrigger>
             <TabsTrigger 
               value="voice" 
@@ -541,11 +541,11 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
               <span className="font-medium">Voice Practice</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="text" 
+              value="chat" 
               className="flex items-center space-x-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
             >
-              <i className="fas fa-keyboard text-sm"></i>
-              <span className="font-medium">Text Assistant</span>
+              <i className="fas fa-comments text-sm"></i>
+              <span className="font-medium">Q&A Chat</span>
             </TabsTrigger>
           </TabsList>
 

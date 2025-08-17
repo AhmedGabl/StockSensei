@@ -34,12 +34,16 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
     mutationFn: async (message: string) => {
       const response = await apiRequest('/api/ai/chat', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           message,
           context: 'You are a Q&A assistant for Class Mentor training. Help with training materials, class management, student interactions, and platform usage.'
         })
       });
-      return response.response;
+      const data = await response.json();
+      return data.response;
     },
     onSuccess: (response) => {
       const assistantMessage: ChatMessage = {
