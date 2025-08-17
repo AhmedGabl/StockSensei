@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { apiRequest } from "@/lib/queryClient";
 import { BotpressChat } from "@/components/botpress-chat";
-import { AIAssistantHub } from "@/components/ai-assistant-hub";
+
 import { VoiceWidget } from "@/components/voice-widget";
 
 interface LayoutProps {
@@ -16,7 +16,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children, user, currentPage = "home", onNavigate, onLogout }: LayoutProps) {
-  const [aiHubOpen, setAiHubOpen] = useState(false);
+
 
   const handleStartPracticeCall = async () => {
     try {
@@ -183,22 +183,11 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
               <span className="text-xs">{item.label}</span>
             </button>
           ))}
-          <button 
-            onClick={() => setAiHubOpen(true)}
-            className="flex flex-col items-center py-2 px-1 transition-colors text-slate-600"
-          >
-            <i className="fas fa-robot text-lg mb-1"></i>
-            <span className="text-xs">AI Hub</span>
-          </button>
+
         </div>
       </div>
 
-      {/* AI Assistant Hub */}
-      <AIAssistantHub
-        user={user}
-        isOpen={aiHubOpen}
-        onClose={() => setAiHubOpen(false)}
-      />
+
 
       {/* Floating Voice Widget */}
       <VoiceWidget

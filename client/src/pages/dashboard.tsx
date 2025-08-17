@@ -5,7 +5,7 @@ import { ModuleCard } from "@/components/module-card";
 
 import { PracticeCall } from "@/components/practice-call";
 import { VoiceWidget } from "@/components/voice-widget";
-import { AIChatbotContainer } from "@/components/ai-chatbot";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, Progress } from "@/lib/types";
@@ -391,8 +391,7 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
         onStartCall={() => handlePracticeCall("General Practice")}
       />
 
-      {/* AI Chatbot Assistant */}
-      <AIChatbotContainer />
+
     </Layout>
   );
 }
