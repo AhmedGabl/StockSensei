@@ -50,9 +50,13 @@ export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderP
       const response = await fetch("/api/admin/tests/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // Include session cookies for authentication
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to generate test");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to generate test");
+      }
       return response.json();
     },
     onSuccess: (data) => {
@@ -72,6 +76,7 @@ export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderP
       });
     },
     onError: (error: any) => {
+      console.error("Test generation error:", error);
       toast({
         title: "Generation Failed",
         description: error.message || "Failed to generate test",
