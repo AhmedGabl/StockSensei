@@ -178,10 +178,10 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
         {/* Main Content Tabs */}
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="users" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">User Management</TabsTrigger>
-            <TabsTrigger value="groups" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">Student Groups</TabsTrigger>
-            <TabsTrigger value="activity" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">Activity Tracking</TabsTrigger>
-            <TabsTrigger value="quizzes" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white">Quiz Management</TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white data-[state=active]:shadow-md">User Management</TabsTrigger>
+            <TabsTrigger value="groups" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white data-[state=active]:shadow-md">Student Groups</TabsTrigger>
+            <TabsTrigger value="activity" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white data-[state=active]:shadow-md">Activity Tracking</TabsTrigger>
+            <TabsTrigger value="quizzes" className="data-[state=active]:bg-brand-orange data-[state=active]:text-white data-[state=active]:shadow-md">Quiz Management</TabsTrigger>
           </TabsList>
           
           <TabsContent value="users" className="mt-6">
