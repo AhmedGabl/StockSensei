@@ -1931,6 +1931,42 @@ Format as JSON with this exact structure:
     }
   });
 
+  // General chat endpoint for compatibility with existing components
+  app.post("/api/chat", requireAuth, async (req: any, res) => {
+    try {
+      const { messages } = req.body;
+      
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ message: "Messages array is required" });
+      }
+
+      // Extract the latest message from the messages array
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage || !lastMessage.content) {
+        return res.status(400).json({ message: "Invalid message format" });
+      }
+
+      // Build context from previous messages if available
+      const context = messages.slice(0, -1).map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      
+      const response = await getChatResponse([
+        {
+          role: "system",
+          content: "You are a helpful training assistant for Class Mentors. Provide clear, helpful answers about call center operations, SOPs, and customer service best practices. Keep responses concise and actionable."
+        },
+        ...messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }))
+      ]);
+
+      res.json({ message: response, response });
+    } catch (error) {
+      console.error("Chat Error:", error);
+      res.status(500).json({ message: "Failed to generate response" });
+    }
+  });
+
   app.post("/api/ai/roleplay", requireAuth, async (req: any, res) => {
     try {
       const { message, scenario, conversationHistory = [] } = req.body;
