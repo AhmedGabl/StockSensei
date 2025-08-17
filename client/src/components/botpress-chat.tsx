@@ -59,43 +59,37 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
 
     const initializeBotpress = () => {
       try {
+        // Initialize Botpress with simplified configuration
         window.botpressWebChat.init({
           botId: botId,
           clientId: clientId,
           hostUrl: 'https://cdn.botpress.cloud/webchat/v3.2',
           messagingUrl: 'https://messaging.botpress.cloud',
-          botName: '51Talk Training Assistant',
-          avatarUrl: 'https://via.placeholder.com/40x40/FF6B35/FFFFFF?text=🤖',
-          stylesheet: 'https://webchat-styler-css.botpress.app/prod/code/3f10c2b1-6fc1-4cf1-9f25-f5db2907d205/v80766/style.css',
-          frontendVersion: 'v3.2',
-          showConversationsButton: false,
+          botName: '51Talk Q&A Assistant',
           theme: 'prism',
           themeColor: '#FF6B35',
-          allowedOrigins: ['*'],
-          hideWidget: false,
-          disableAnimations: false,
-          closeOnEscape: false,
+          hideWidget: true,
           showPoweredBy: false,
-          className: 'botpress-chat-widget',
           containerWidth: '100%',
           layoutWidth: '100%',
-          showTimestamp: true,
-          enableTranscriptDownload: false,
-          startupMessageDelay: 1000,
-          userData: {
-            name: user.email,
-            userId: user.id,
-            role: user.role
-          }
         });
 
-        // Set the container
-        if (webchatRef.current) {
-          window.botpressWebChat.renderAt(webchatRef.current);
-        }
+        // Add a delay before rendering to ensure proper initialization
+        setTimeout(() => {
+          if (webchatRef.current && window.botpressWebChat) {
+            try {
+              window.botpressWebChat.renderAt(webchatRef.current);
+              setIsLoading(false);
+              setError(null);
+            } catch (renderError) {
+              console.error('Botpress render error:', renderError);
+              setError('Failed to render chat');
+              setUseFallback(true);
+              setIsLoading(false);
+            }
+          }
+        }, 1000);
         
-        setIsLoading(false);
-        setError(null);
       } catch (err) {
         console.error('Botpress initialization error:', err);
         setError('Failed to initialize chat');

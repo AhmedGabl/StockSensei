@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 
-// Configure for OpenRouter API gateway with OpenAI models
+// Configure for OpenRouter API gateway with Claude
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
 });
 
@@ -14,7 +14,7 @@ export interface ChatMessage {
 export async function getChatResponse(messages: ChatMessage[]): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "openai/gpt-4o", // OpenRouter format for OpenAI GPT-4o
+      model: "anthropic/claude-3.5-sonnet", // OpenRouter format for Claude
       messages: [
         {
           role: "system",
@@ -40,7 +40,7 @@ export async function analyzePracticeCall(transcript: string): Promise<{
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "openai/gpt-4o", // OpenRouter format for OpenAI GPT-4o
+      model: "anthropic/claude-3.5-sonnet", // OpenRouter format for Claude
       messages: [
         {
           role: "system",
@@ -80,7 +80,7 @@ export async function scoreShortAnswer(
 ): Promise<{ isCorrect: boolean; score: number; explanation: string }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "openai/gpt-4o", // OpenRouter format for OpenAI GPT-4o
+      model: "anthropic/claude-3.5-sonnet", // OpenRouter format for Claude
       messages: [
         {
           role: "system",

@@ -565,7 +565,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                 <div className="flex items-center justify-between text-xs text-gray-600">
                   <div className="flex items-center gap-2">
                     <i className="fas fa-shield-alt text-orange-500"></i>
-                    <span>Powered by OpenAI GPT-4o • Secure & Private</span>
+                    <span>Powered by Botpress • Secure & Private</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <i className="fas fa-clock text-orange-500"></i>
