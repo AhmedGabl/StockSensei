@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MessageCircle, Loader2, Send } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { Layout } from "@/components/layout";
 
 interface QAMessage {
   question: string;
@@ -14,7 +15,13 @@ interface QAMessage {
   timestamp: Date;
 }
 
-export default function QAAssistant() {
+interface QAAssistantProps {
+  user: any;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
+}
+
+export default function QAAssistant({ user, onNavigate, onLogout }: QAAssistantProps) {
   const [question, setQuestion] = useState("");
   const [context, setContext] = useState("");
   const [history, setHistory] = useState<QAMessage[]>([]);
@@ -66,8 +73,9 @@ export default function QAAssistant() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <Layout user={user} currentPage="qa-assistant" onNavigate={onNavigate} onLogout={onLogout}>
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Question Form */}
         <Card>
           <CardHeader>
@@ -167,6 +175,7 @@ export default function QAAssistant() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </Layout>
   );
 }

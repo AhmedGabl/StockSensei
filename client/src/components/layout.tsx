@@ -29,7 +29,7 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
   };
   
   const navItems = [
-    { id: "dashboard", label: "Home", icon: "fas fa-home" },
+    { id: "dashboard", label: "Dashboard", icon: "fas fa-home" },
     { id: "materials", label: "Materials", icon: "fas fa-book" },
     { id: "tests", label: "Tests", icon: "fas fa-clipboard-list" },
     ...(user.role === "ADMIN" ? [
@@ -146,9 +146,9 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
                   <i className="fas fa-user w-4 h-4 mr-2"></i>
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onNavigate?.("home")}>
+                <DropdownMenuItem onClick={() => onNavigate?.("dashboard")}>
                   <i className="fas fa-home w-4 h-4 mr-2"></i>
-                  Home Page
+                  Dashboard
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Wand2, Plus, X, FileText } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { Layout } from "@/components/layout";
 
 interface GenerateTestForm {
   topic: string;
@@ -19,7 +20,13 @@ interface GenerateTestForm {
   questionTypes: ("MCQ" | "TRUE_FALSE" | "SHORT")[];
 }
 
-export default function TestBuilder() {
+interface TestBuilderProps {
+  user: any;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
+}
+
+export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderProps) {
   const [form, setForm] = useState<GenerateTestForm>({
     topic: "",
     materialId: "",
@@ -108,8 +115,9 @@ export default function TestBuilder() {
   const materials = (materialsData as any)?.materials || [];
 
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <Card>
+    <Layout user={user} currentPage="test-builder" onNavigate={onNavigate} onLogout={onLogout}>
+      <div className="container mx-auto p-6 max-w-2xl">
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wand2 className="h-5 w-5" />
@@ -260,7 +268,8 @@ export default function TestBuilder() {
             </Button>
           </form>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </Layout>
   );
 }

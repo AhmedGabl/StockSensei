@@ -52,9 +52,9 @@ function App() {
       case "tests":
         return <Tests user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "test-builder":
-        return <TestBuilder />;
+        return <TestBuilder user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "qa-assistant":
-        return <QAAssistant />;
+        return <QAAssistant user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "enhanced-admin":
         return <EnhancedAdmin user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "module-admin":
