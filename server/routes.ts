@@ -8,9 +8,10 @@ import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { getChatResponse, analyzePracticeCall, scoreShortAnswer } from "./openai";
 import type { ChatMessage } from "./openai";
-import * as pdfParse from "pdf-parse";
-import * as ffmpeg from "fluent-ffmpeg";
+import pdfParse from "pdf-parse";
+import ffmpeg from "fluent-ffmpeg";
 import { promises as fs } from "fs";
+import * as fsSync from "fs";
 import * as path from "path";
 import * as os from "os";
 
@@ -61,7 +62,7 @@ async function extractFileContent(fileUrl: string, fileName: string, fileType: s
         
         // Create a readable stream for the audio file
         const transcription = await openai.audio.transcriptions.create({
-          file: await fs.createReadStream(tempAudioPath),
+          file: fsSync.createReadStream(tempAudioPath),
           model: "whisper-1",
         });
         
@@ -160,11 +161,12 @@ ${docContent}
     
   } catch (error) {
     console.error(`Error extracting content from ${fileName}:`, error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return `ERROR EXTRACTING CONTENT:
 File: ${fileName}
 Type: ${fileType}
 
-Unable to extract content from this file. Error: ${error.message}
+Unable to extract content from this file. Error: ${errorMessage}
 
 === CONTENT EXTRACTION FAILED ===`;
   }
