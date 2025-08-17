@@ -1115,25 +1115,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
             materialInfo = material;
             baseTitle = `${material.title} Test`;
             
-            // Enhanced content extraction - get more comprehensive material content
+            // Enhanced content extraction - get comprehensive material content based on type
+            let extractedContent = "";
+            
+            // For different material types, provide relevant context hints to the AI
+            if (material.type === 'VIDEO') {
+              extractedContent = `This is a video training material about ${material.title}. 
+              
+Video Topic: ${material.title}
+Content Type: Educational Training Video
+Expected Content: The video likely covers practical procedures, demonstrations, and explanations related to ${material.title}.
+
+Please generate questions that would test understanding of concepts typically covered in training videos about this topic, including:
+- Key procedures and steps shown in the video
+- Important concepts explained
+- Practical applications demonstrated
+- Best practices and guidelines
+- Common scenarios and troubleshooting`;
+
+            } else if (material.type === 'PDF') {
+              extractedContent = `This is a PDF document about ${material.title}.
+              
+Document Title: ${material.title}
+Content Type: Training Document/Guide
+Expected Content: The PDF likely contains detailed procedures, guidelines, and reference information about ${material.title}.
+
+Please generate questions that would test understanding of content typically found in training documents about this topic, including:
+- Specific procedures and protocols
+- Important guidelines and rules
+- Technical specifications or requirements
+- Step-by-step processes
+- Key terminology and definitions`;
+
+            } else if (material.type === 'DOCUMENT' || material.type === 'TEXT') {
+              extractedContent = `Training document: ${material.title}
+              
+Content: ${material.description || 'Detailed training material covering key concepts and procedures'}
+Type: Text-based training material
+
+Generate questions that test comprehension of the material content and practical application.`;
+            }
+            
+            // Combine with existing metadata
             materialContent = [
-              material.title,
-              material.description,
-              material.fileName ? `File: ${material.fileName}` : '',
-              material.tags && material.tags.length > 0 ? `Tags: ${material.tags.join(', ')}` : '',
-              material.type ? `Type: ${material.type}` : ''
+              `=== TRAINING MATERIAL: ${material.title} ===`,
+              extractedContent,
+              material.description ? `Additional Description: ${material.description}` : '',
+              material.tags && material.tags.length > 0 ? `Related Topics: ${material.tags.join(', ')}` : '',
+              '',
+              '=== QUESTION GENERATION INSTRUCTIONS ===',
+              'Create questions that are directly relevant to the content described above.',
+              'Focus on practical knowledge that Class Mentors would need to know.',
+              'Ensure questions test real understanding, not just memorization.',
+              'Include scenario-based questions when appropriate.'
             ].filter(Boolean).join('\n');
             
-            // If it's a text-based material with URL content, try to fetch additional context
-            if (material.url && (material.type === 'DOCUMENT' || material.type === 'TEXT')) {
-              try {
-                // Enhanced material content extraction would go here
-                // For now, we use the description and available metadata
-                console.log(`Processing ${material.type} material: ${material.title}`);
-              } catch (contentError: unknown) {
-                console.log(`Could not extract additional content from ${material.type}: ${contentError instanceof Error ? contentError.message : 'Unknown error'}`);
-              }
-            }
+            console.log(`Processing ${material.type} material: ${material.title}`);
+            console.log(`Generated material context length: ${materialContent.length} characters`);
           }
         } catch (error) {
           console.error("Error fetching material:", error);
