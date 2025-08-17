@@ -9,6 +9,7 @@ A fully functional, comprehensive training Home Page built for Class Mentors (CM
 
 ## Recent Changes
 
+- ✅ **Botpress Q&A Chat Integration**: Successfully integrated Botpress chatbot with hardcoded credentials for seamless Q&A functionality
 - ✅ **Role-Specific Home Page Actions**: Fixed admin home page to show "Create Tests" and "Manage Groups" instead of student actions like "Take Quiz"
 - ✅ **Enhanced Navigation Visibility**: Updated selected navigation tabs to use clear 51Talk orange text on white background with orange border for excellent readability
 - ✅ **Consistent Home Page Navigation**: Fixed navigation to use "Home Page" consistently throughout system with multiple access points
@@ -111,9 +112,10 @@ The following environment variables can be configured for external service integ
 ### Optional (for external services)
 - `VITE_RINGG_AGENT_ID`: Ringg AI agent ID for practice calls
 - `VITE_RINGG_X_API_KEY`: Ringg AI API key for voice assistant
-- `VITE_BOTPRESS_BOT_ID`: Botpress bot ID for chat integration  
-- `VITE_BOTPRESS_CLIENT_ID`: Botpress client ID
-- `VITE_BOTPRESS_WEBCHAT_HOST`: Botpress webchat host URL
-- `VITE_BOTPRESS_MESSAGING_URL`: Botpress messaging service URL
 
-**Note**: The application works fully without external API keys. Practice calls and chat features have fallback interfaces for demonstration purposes.
+### Configured (Botpress Integration)
+- **Botpress Bot ID**: `3f10c2b1-6fc1-4cf1-9f25-f5db2907d205` (hardcoded in component)
+- **Botpress Client ID**: `b98de221-d1f1-43c7-bad5-f279c104c231` (hardcoded in component)
+- **Botpress CDN**: `https://cdn.botpress.cloud/webchat/v3.2/inject.js`
+
+**Note**: Botpress chat is fully configured and operational. Voice practice calls have fallback interfaces for demonstration purposes.
