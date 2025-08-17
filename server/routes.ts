@@ -1080,10 +1080,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Test Builder route
   app.post("/api/admin/tests/generate", requireAdmin, async (req: any, res) => {
     try {
-      const { topic, difficulty, questionCount, questionTypes } = req.body;
+      const { topic, materialId, difficulty, questionCount, questionTypes } = req.body;
       
-      // Use AI to generate test content
-      const prompt = `Generate a ${difficulty} difficulty test about "${topic}" with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
+      let materialContent = "";
+      let baseTitle = topic || "Generated Test";
+      
+      // If material ID is provided, fetch the material content
+      if (materialId) {
+        try {
+          const material = await storage.getMaterial(materialId);
+          if (material) {
+            materialContent = material.description || material.title || "";
+            baseTitle = `${material.title} Test`;
+          }
+        } catch (error) {
+          console.error("Error fetching material:", error);
+        }
+      }
+      
+      // Build prompt based on whether we have material content or just a topic
+      let prompt;
+      if (materialContent) {
+        prompt = `Based on the following training material content, generate a ${difficulty} difficulty test with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
+
+MATERIAL CONTENT:
+"${materialContent}"
+
+Create questions that test understanding of the concepts, procedures, and knowledge presented in this material. For each question, provide:
+1. The question text
+2. For MCQ: 4 options with one correct answer
+3. For TRUE_FALSE: the correct boolean answer  
+4. For SHORT: suggested answer guidelines
+
+Format as JSON with structure:
+{
+  "title": "Test Title",
+  "description": "Test Description", 
+  "questions": [
+    {
+      "text": "Question text",
+      "kind": "MCQ|TRUE_FALSE|SHORT",
+      "options": [{"text": "Option text", "isCorrect": boolean}] // for MCQ only
+    }
+  ]
+}`;
+      } else {
+        prompt = `Generate a ${difficulty} difficulty test about "${topic}" with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
 
 For each question, provide:
 1. The question text
@@ -1103,6 +1145,7 @@ Format as JSON with structure:
     }
   ]
 }`;
+      }
 
       const aiResponse = await getChatResponse([
         {

@@ -105,7 +105,7 @@ export default function TestBuilder() {
     generateTest.mutate(form);
   };
 
-  const materials = materialsData?.materials || [];
+  const materials = (materialsData as any)?.materials || [];
 
   return (
     <div className="container mx-auto p-6 max-w-2xl">
