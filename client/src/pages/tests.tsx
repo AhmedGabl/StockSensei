@@ -541,16 +541,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                             </Button>
                           </>
                         )}
-                        {user.role !== "ADMIN" && (
-                          <Button
-                            size="sm"
-                            onClick={() => onNavigate(`test-taking/${test.id}`)}
-                            className="gap-2"
-                          >
-                            <Play className="h-4 w-4" />
-                            Take Test
-                          </Button>
-                        )}
+
                       </div>
                     </div>
                   </CardHeader>
