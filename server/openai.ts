@@ -22,7 +22,7 @@ export async function getChatResponse(messages: ChatMessage[]): Promise<string> 
         },
         ...messages
       ],
-      max_tokens: 500,
+      max_tokens: 1000,
       temperature: 0.7,
     });
 
