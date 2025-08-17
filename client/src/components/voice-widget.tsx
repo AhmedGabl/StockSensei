@@ -175,10 +175,10 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 left-6 z-50">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <Card className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2">
+        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2">
           <CardHeader className="pb-2">
             <h3 className="font-semibold text-sm">Ringg AI Practice</h3>
           </CardHeader>
@@ -230,7 +230,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       
       {/* Tooltip */}
       {!isExpanded && (
-        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block">
           <div className="bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
             Ringg AI Practice
           </div>
