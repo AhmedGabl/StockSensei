@@ -18,11 +18,11 @@ export async function getChatResponse(messages: ChatMessage[]): Promise<string> 
       messages: [
         {
           role: "system",
-          content: "You are a helpful AI assistant for the CM Training platform. You help Class Mentors with training questions, provide guidance on best practices, and assist with roleplay scenarios. Be professional, supportive, and provide actionable advice."
+          content: "You are Claude, a helpful AI assistant created by Anthropic. You can help with a wide variety of tasks including answering questions, analysis, writing, coding, math, creative tasks, and general conversation. Be helpful, harmless, and honest in your responses."
         },
         ...messages
       ],
-      max_tokens: 1000,
+      max_tokens: 1500,
       temperature: 0.7,
     });
 

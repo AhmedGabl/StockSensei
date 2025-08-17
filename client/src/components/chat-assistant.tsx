@@ -28,7 +28,7 @@ export function DirectChatAssistant({ user }: DirectChatAssistantProps) {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your CM Training Assistant. I can help you with questions about Class Mentor training, practice calls, test preparation, and any other learning materials. How can I assist you today?',
+      content: 'Hello! I\'m Claude, your AI assistant. I can help you with a wide variety of tasks including answering questions, analysis, writing, coding, math, creative projects, and general conversation. How can I assist you today?',
       timestamp: new Date()
     }
   ]);
@@ -177,7 +177,7 @@ export function DirectChatAssistant({ user }: DirectChatAssistantProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me anything about CM training..."
+            placeholder="Ask me anything..."
             disabled={isLoading}
             className="flex-1"
           />
@@ -200,7 +200,7 @@ export function ChatAssistant({ onClose, isMinimized, onToggleMinimize }: ChatAs
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your CM Training Assistant. I can help you with questions about Class Mentor training, practice calls, test preparation, and any other learning materials. How can I assist you today?',
+      content: 'Hello! I\'m Claude, your AI assistant. I can help you with a wide variety of tasks including answering questions, analysis, writing, coding, math, creative projects, and general conversation. How can I assist you today?',
       timestamp: new Date()
     }
   ]);
@@ -380,7 +380,7 @@ export function ChatAssistant({ onClose, isMinimized, onToggleMinimize }: ChatAs
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me anything about CM training..."
+              placeholder="Ask me anything..."
               disabled={isLoading}
               className="flex-1"
             />

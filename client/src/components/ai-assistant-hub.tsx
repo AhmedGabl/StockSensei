@@ -629,30 +629,30 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                 <div className="w-24 h-24 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <i className="fas fa-keyboard text-white text-3xl"></i>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">Advanced Text Assistant</h3>
+                <h3 className="text-xl font-semibold text-slate-800 mb-2">Claude AI Assistant</h3>
                 <p className="text-slate-600 mb-6">
-                  Get detailed help with complex training scenarios, documentation, and 
-                  advanced problem-solving through our sophisticated text-based AI.
+                  Chat with Claude, a powerful AI assistant that can help with analysis, writing, 
+                  coding, math, creative projects, and general conversation.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 border rounded-lg bg-slate-50">
-                  <h4 className="font-semibold text-slate-800 mb-2">Advanced Features</h4>
+                  <h4 className="font-semibold text-slate-800 mb-2">AI Capabilities</h4>
                   <ul className="text-sm text-slate-600 space-y-1">
-                    <li>• Detailed scenario analysis</li>
-                    <li>• Step-by-step guidance</li>
-                    <li>• Policy interpretation</li>
-                    <li>• Custom training plans</li>
+                    <li>• Text analysis & writing</li>
+                    <li>• Code generation & debugging</li>
+                    <li>• Math & calculations</li>
+                    <li>• Creative projects</li>
                   </ul>
                 </div>
                 <div className="p-4 border rounded-lg bg-slate-50">
                   <h4 className="font-semibold text-slate-800 mb-2">Best For</h4>
                   <ul className="text-sm text-slate-600 space-y-1">
-                    <li>• Complex problem solving</li>
-                    <li>• Detailed explanations</li>
-                    <li>• Training documentation</li>
-                    <li>• In-depth discussions</li>
+                    <li>• Research & analysis</li>
+                    <li>• Learning & explanations</li>
+                    <li>• Brainstorming ideas</li>
+                    <li>• General conversation</li>
                   </ul>
                 </div>
               </div>
@@ -664,7 +664,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                   className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-8"
                 >
                   <i className="fas fa-external-link-alt mr-2"></i>
-                  Open Advanced Text Assistant
+                  Open Claude AI Assistant
                 </Button>
               </div>
             </div>

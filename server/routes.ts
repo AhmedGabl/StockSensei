@@ -1950,10 +1950,6 @@ Format as JSON with this exact structure:
       const context = messages.slice(0, -1).map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
       const response = await getChatResponse([
-        {
-          role: "system",
-          content: "You are a helpful training assistant for Class Mentors. Provide clear, helpful answers about call center operations, SOPs, and customer service best practices. Keep responses concise and actionable."
-        },
         ...messages.map(msg => ({
           role: msg.role,
           content: msg.content
