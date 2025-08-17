@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, CheckCircle, Clock, Play } from "lucide-react";
@@ -108,10 +110,10 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
     startAttemptMutation.mutate();
   };
 
-  const handleAnswerChange = (questionId: string, optionId: string) => {
+  const handleAnswerChange = (questionId: string, answer: string) => {
     setAnswers(prev => ({
       ...prev,
-      [questionId]: optionId
+      [questionId]: answer
     }));
   };
 
@@ -128,11 +130,31 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
   };
 
   const handleSubmit = () => {
-    const answerData = Object.entries(answers).map(([questionId, optionId]) => ({
-      questionId,
-      optionId,
-      valueBool: null
-    }));
+    const answerData = Object.entries(answers).map(([questionId, answer]) => {
+      const question = questions.find((q: any) => q.id === questionId);
+      
+      if (question?.kind === "SHORT") {
+        return {
+          questionId,
+          optionId: null,
+          valueBool: null,
+          valueText: answer
+        };
+      } else if (question?.kind === "TRUE_FALSE") {
+        return {
+          questionId,
+          optionId: null,
+          valueBool: answer === "true"
+        };
+      } else {
+        // MCQ
+        return {
+          questionId,
+          optionId: answer,
+          valueBool: null
+        };
+      }
+    });
 
     submitAttemptMutation.mutate(answerData);
   };
@@ -306,6 +328,47 @@ export default function TestTaking({ testId, user, onNavigate, onLogout }: TestT
                     </div>
                   ))}
                 </RadioGroup>
+              )}
+
+              {currentQuestion.kind === "TRUE_FALSE" && (
+                <RadioGroup
+                  value={answers[currentQuestion.id] || ""}
+                  onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="true" id="true" />
+                    <Label htmlFor="true" className="flex-1 cursor-pointer text-base p-3 rounded border hover:bg-muted">
+                      <span className="font-mono mr-3">A.</span>
+                      True
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="false" id="false" />
+                    <Label htmlFor="false" className="flex-1 cursor-pointer text-base p-3 rounded border hover:bg-muted">
+                      <span className="font-mono mr-3">B.</span>
+                      False
+                    </Label>
+                  </div>
+                </RadioGroup>
+              )}
+
+              {currentQuestion.kind === "SHORT" && (
+                <div className="space-y-2">
+                  <Label htmlFor="short-answer" className="text-sm font-medium">
+                    Your Answer:
+                  </Label>
+                  <Textarea
+                    id="short-answer"
+                    placeholder="Type your answer here..."
+                    value={answers[currentQuestion.id] || ""}
+                    onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Provide a clear and detailed answer. Your response will be evaluated for understanding and accuracy.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
