@@ -1160,6 +1160,7 @@ Format as JSON with structure:
       ]);
 
       try {
+        console.log("Raw AI response length:", aiResponse.length);
         console.log("Raw AI response:", aiResponse);
         
         // Simple JSON extraction - find the first complete JSON object
@@ -1172,15 +1173,45 @@ Format as JSON with structure:
           jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
         }
         
-        // Find the first { and last } to extract JSON
+        // Find the first { and try to find a complete JSON
         const firstBrace = jsonContent.indexOf('{');
-        const lastBrace = jsonContent.lastIndexOf('}');
+        if (firstBrace === -1) {
+          throw new Error("No JSON object found in AI response");
+        }
         
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          jsonContent = jsonContent.substring(firstBrace, lastBrace + 1);
+        // Try to find the complete JSON by counting braces
+        let braceCount = 0;
+        let jsonEnd = -1;
+        for (let i = firstBrace; i < jsonContent.length; i++) {
+          if (jsonContent[i] === '{') braceCount++;
+          if (jsonContent[i] === '}') braceCount--;
+          if (braceCount === 0) {
+            jsonEnd = i;
+            break;
+          }
+        }
+        
+        if (jsonEnd === -1) {
+          // JSON is incomplete, try to salvage it by finding the last complete question
+          console.log("Incomplete JSON detected, attempting to salvage...");
+          let lastCompleteQuestionEnd = -1;
+          const questionPattern = /\}\s*,?\s*\]/g;
+          let match;
+          while ((match = questionPattern.exec(jsonContent)) !== null) {
+            lastCompleteQuestionEnd = match.index + match[0].length;
+          }
+          
+          if (lastCompleteQuestionEnd > firstBrace) {
+            jsonContent = jsonContent.substring(firstBrace, lastCompleteQuestionEnd) + "\n}";
+          } else {
+            throw new Error("Cannot salvage incomplete JSON response");
+          }
+        } else {
+          jsonContent = jsonContent.substring(firstBrace, jsonEnd + 1);
         }
         
         console.log("Cleaned JSON content:", jsonContent);
+        console.log("JSON content length:", jsonContent.length);
         
         const testData = JSON.parse(jsonContent);
         
@@ -1221,13 +1252,24 @@ Format as JSON with structure:
         }
 
         res.json({ test, message: "Test generated successfully" });
-      } catch (parseError) {
+      } catch (parseError: any) {
         console.error("Failed to parse AI response:", parseError);
         console.error("Raw AI response was:", aiResponse);
+        
+        // Provide a more helpful error message for incomplete responses
+        let errorMessage = "Failed to generate test - AI response was incomplete or malformed";
+        if (aiResponse.length < 100) {
+          errorMessage = "AI response was too short - please try again with a different topic or simpler requirements";
+        } else if (parseError.message?.includes("Unexpected end")) {
+          errorMessage = "AI response was cut off during generation - please try again";
+        } else if (parseError.message?.includes("Expected")) {
+          errorMessage = "AI response had formatting issues - please try again or use simpler requirements";
+        }
+        
         res.status(500).json({ 
-          message: "Failed to parse AI-generated test", 
-          error: parseError.message,
-          rawResponse: aiResponse.substring(0, 500) // First 500 chars for debugging
+          message: errorMessage,
+          suggestion: "Try reducing the number of questions or simplifying the topic",
+          error: parseError.message || "Unknown parsing error"
         });
       }
     } catch (error) {
