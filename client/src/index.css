@@ -79,6 +79,12 @@
   .bg-brand-orange {
     background-color: hsl(var(--brand-orange));
   }
+  .bg-brand-orange-light {
+    background-color: hsl(14, 100%, 95%);
+  }
+  .text-brand-orange {
+    color: hsl(var(--brand-orange));
+  }
   .border-brand-orange {
     border-color: hsl(var(--brand-orange));
   }
@@ -91,6 +97,12 @@
   }
   .bg-brand-blue {
     background-color: hsl(var(--brand-blue));
+  }
+  .bg-brand-blue-light {
+    background-color: hsl(216, 87%, 95%);
+  }
+  .text-brand-blue {
+    color: hsl(var(--brand-blue));
   }
   .border-brand-blue {
     border-color: hsl(var(--brand-blue));
@@ -105,6 +117,12 @@
   .bg-brand-green {
     background-color: hsl(var(--brand-green));
   }
+  .bg-brand-green-light {
+    background-color: hsl(142, 76%, 95%);
+  }
+  .text-brand-green {
+    color: hsl(var(--brand-green));
+  }
   .border-brand-green {
     border-color: hsl(var(--brand-green));
   }
@@ -117,6 +135,12 @@
   }
   .bg-brand-purple {
     background-color: hsl(var(--brand-purple));
+  }
+  .bg-brand-purple-light {
+    background-color: hsl(262, 83%, 95%);
+  }
+  .text-brand-purple {
+    color: hsl(var(--brand-purple));
   }
   .border-brand-purple {
     border-color: hsl(var(--brand-purple));

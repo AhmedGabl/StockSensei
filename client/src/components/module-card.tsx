@@ -13,21 +13,23 @@ interface ModuleCardProps {
 export function ModuleCard({ module, progress, onAction, onPracticeCall }: ModuleCardProps) {
   const getStatusColor = (status: string) => {
     const colorMap: Record<string, { bg: string; text: string; progress: string }> = {
-      COMPLETED: { bg: "bg-emerald-100", text: "text-emerald-700", progress: "bg-emerald-500" },
-      IN_PROGRESS: { bg: "bg-blue-100", text: "text-blue-700", progress: "bg-blue-500" },
+      COMPLETED: { bg: "bg-brand-green-light", text: "text-brand-green", progress: "bg-brand-green" },
+      IN_PROGRESS: { bg: "bg-brand-orange-light", text: "text-brand-orange", progress: "bg-brand-orange" },
     };
     return colorMap[status] || { bg: "bg-slate-100", text: "text-slate-700", progress: "bg-slate-300" };
   };
 
   const getModuleColor = (color: string) => {
     const colorMap: Record<string, { bg: string; text: string }> = {
-      emerald: { bg: "bg-emerald-100", text: "text-emerald-600" },
-      blue: { bg: "bg-blue-100", text: "text-blue-600" },
-      purple: { bg: "bg-purple-100", text: "text-purple-600" },
-      amber: { bg: "bg-amber-100", text: "text-amber-600" },
+      emerald: { bg: "bg-brand-green-light", text: "text-brand-green" },
+      blue: { bg: "bg-brand-blue-light", text: "text-brand-blue" },
+      purple: { bg: "bg-brand-purple-light", text: "text-brand-purple" },
+      amber: { bg: "bg-brand-orange-light", text: "text-brand-orange" },
       red: { bg: "bg-red-100", text: "text-red-600" },
+      orange: { bg: "bg-brand-orange-light", text: "text-brand-orange" },
+      green: { bg: "bg-brand-green-light", text: "text-brand-green" },
     };
-    return colorMap[color] || { bg: "bg-slate-100", text: "text-slate-600" };
+    return colorMap[color] || { bg: "bg-brand-orange-light", text: "text-brand-orange" };
   };
 
   const getStatusText = (status: string) => {
