@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Wand2, Plus, X } from "lucide-react";
+import { Loader2, Wand2, Plus, X, FileText } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface GenerateTestForm {
   topic: string;
+  materialId?: string;
   difficulty: "EASY" | "MEDIUM" | "HARD";
   questionCount: number;
   questionTypes: ("MCQ" | "TRUE_FALSE" | "SHORT")[];
@@ -21,6 +22,7 @@ interface GenerateTestForm {
 export default function TestBuilder() {
   const [form, setForm] = useState<GenerateTestForm>({
     topic: "",
+    materialId: "",
     difficulty: "MEDIUM",
     questionCount: 5,
     questionTypes: ["MCQ"]
@@ -28,6 +30,11 @@ export default function TestBuilder() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Fetch available materials
+  const { data: materialsData } = useQuery({
+    queryKey: ["/api/materials"],
+  });
 
   const generateTest = useMutation({
     mutationFn: async (data: GenerateTestForm) => {
@@ -48,6 +55,7 @@ export default function TestBuilder() {
       // Reset form
       setForm({
         topic: "",
+        materialId: "",
         difficulty: "MEDIUM", 
         questionCount: 5,
         questionTypes: ["MCQ"]
@@ -78,10 +86,10 @@ export default function TestBuilder() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.topic.trim()) {
+    if (!form.topic.trim() && !form.materialId) {
       toast({
-        title: "Topic Required",
-        description: "Please enter a topic for the test",
+        title: "Topic or Material Required",
+        description: "Please enter a topic or select a material for the test",
         variant: "destructive",
       });
       return;
@@ -97,6 +105,8 @@ export default function TestBuilder() {
     generateTest.mutate(form);
   };
 
+  const materials = materialsData?.materials || [];
+
   return (
     <div className="container mx-auto p-6 max-w-2xl">
       <Card>
@@ -111,15 +121,52 @@ export default function TestBuilder() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="topic">Test Topic</Label>
-              <Input
-                id="topic"
-                placeholder="e.g., Customer Service SOPs, Call Center Operations"
-                value={form.topic}
-                onChange={(e) => setForm(prev => ({ ...prev, topic: e.target.value }))}
-                required
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Source Material (Optional)</Label>
+                <Select
+                  value={form.materialId}
+                  onValueChange={(value) => setForm(prev => ({ 
+                    ...prev, 
+                    materialId: value,
+                    topic: value ? "" : prev.topic 
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a material to base test on" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No material selected</SelectItem>
+                    {materials.map((material: any) => (
+                      <SelectItem key={material.id} value={material.id}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          {material.title}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Select a material to generate questions based on its content
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="topic">Custom Topic {form.materialId && "(Optional)"}</Label>
+                <Input
+                  id="topic"
+                  placeholder="e.g., Customer Service SOPs, Call Center Operations"
+                  value={form.topic}
+                  onChange={(e) => setForm(prev => ({ ...prev, topic: e.target.value }))}
+                  disabled={!!form.materialId}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {form.materialId 
+                    ? "Using selected material content for test generation" 
+                    : "Enter a topic for AI to generate relevant questions"}
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
