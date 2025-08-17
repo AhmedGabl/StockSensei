@@ -1277,17 +1277,68 @@ Format as JSON with this exact structure:
         if (jsonEnd === -1) {
           // JSON is incomplete, try to salvage it by finding the last complete question
           console.log("Incomplete JSON detected, attempting to salvage...");
-          let lastCompleteQuestionEnd = -1;
-          const questionPattern = /\}\s*,?\s*\]/g;
-          let match;
-          while ((match = questionPattern.exec(jsonContent)) !== null) {
-            lastCompleteQuestionEnd = match.index + match[0].length;
-          }
           
-          if (lastCompleteQuestionEnd > firstBrace) {
-            jsonContent = jsonContent.substring(firstBrace, lastCompleteQuestionEnd) + "\n}";
+          // First, try to find the end of the questions array
+          const questionsArrayStart = jsonContent.indexOf('"questions"');
+          if (questionsArrayStart !== -1) {
+            const arrayStart = jsonContent.indexOf('[', questionsArrayStart);
+            if (arrayStart !== -1) {
+              // Find the last complete question object
+              let questionCount = 0;
+              let currentPos = arrayStart + 1;
+              let lastValidPos = arrayStart + 1;
+              
+              while (currentPos < jsonContent.length) {
+                // Skip whitespace
+                while (currentPos < jsonContent.length && /\s/.test(jsonContent[currentPos])) {
+                  currentPos++;
+                }
+                
+                if (currentPos >= jsonContent.length) break;
+                
+                // Look for start of question object
+                if (jsonContent[currentPos] === '{') {
+                  let objBraceCount = 0;
+                  let objStart = currentPos;
+                  
+                  // Count through this object
+                  while (currentPos < jsonContent.length) {
+                    if (jsonContent[currentPos] === '{') objBraceCount++;
+                    if (jsonContent[currentPos] === '}') objBraceCount--;
+                    currentPos++;
+                    
+                    if (objBraceCount === 0) {
+                      // Found complete question object
+                      questionCount++;
+                      lastValidPos = currentPos;
+                      
+                      // Skip potential comma and whitespace
+                      while (currentPos < jsonContent.length && 
+                             (/\s/.test(jsonContent[currentPos]) || jsonContent[currentPos] === ',')) {
+                        currentPos++;
+                      }
+                      break;
+                    }
+                  }
+                } else {
+                  break;
+                }
+              }
+              
+              if (questionCount > 0) {
+                // Build valid JSON with complete questions
+                const beforeQuestions = jsonContent.substring(firstBrace, arrayStart + 1);
+                const questionsContent = jsonContent.substring(arrayStart + 1, lastValidPos);
+                jsonContent = beforeQuestions + questionsContent + "]\n}";
+                console.log(`Salvaged ${questionCount} complete questions`);
+              } else {
+                throw new Error("No complete questions found in malformed JSON");
+              }
+            } else {
+              throw new Error("Questions array not found in JSON");
+            }
           } else {
-            throw new Error("Cannot salvage incomplete JSON response");
+            throw new Error("Cannot find questions section in JSON response");
           }
         } else {
           jsonContent = jsonContent.substring(firstBrace, jsonEnd + 1);
@@ -1296,7 +1347,24 @@ Format as JSON with this exact structure:
         console.log("Cleaned JSON content:", jsonContent);
         console.log("JSON content length:", jsonContent.length);
         
-        const testData = JSON.parse(jsonContent);
+        // Validate JSON format before parsing
+        let testData;
+        try {
+          testData = JSON.parse(jsonContent);
+        } catch (parseError) {
+          console.error("JSON parse failed:", parseError);
+          console.log("Failed JSON content:", jsonContent);
+          throw new Error(`AI response contained invalid JSON: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`);
+        }
+        
+        // Validate required fields
+        if (!testData.title || !testData.description || !Array.isArray(testData.questions)) {
+          throw new Error("AI response missing required fields (title, description, or questions array)");
+        }
+        
+        if (testData.questions.length === 0) {
+          throw new Error("AI response contained no questions");
+        }
         
         // Create the test in draft mode with enhanced metadata
         const test = await storage.createTest({
