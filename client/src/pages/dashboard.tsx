@@ -151,22 +151,22 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
       <div className="max-w-7xl mx-auto p-4">
         <div className="space-y-6">
           {/* Welcome Section */}
-          <div className="bg-gradient-to-r from-primary to-primary-600 rounded-xl p-6 text-white">
+          <div className="bg-gradient-to-r from-brand-orange to-brand-red rounded-xl p-6 text-white shadow-lg border border-brand-orange/20">
             <h2 className="text-2xl font-bold mb-2">
               Welcome back, {user.name || user.email.split('@')[0]}!
             </h2>
-            <p className="text-primary-100 mb-4">
+            <p className="text-white/90 mb-4">
               Ready to continue your Class Mentor training? You're making great progress!
             </p>
             <div className="flex items-center space-x-4">
               <Button
                 onClick={() => handlePracticeCall("General Practice")}
-                className="bg-white text-primary font-medium hover:bg-primary-50"
+                className="bg-white text-brand-orange font-medium hover:bg-brand-orange/10 shadow-md border border-white/20"
               >
                 <i className="fas fa-phone mr-2"></i>
                 Start Practice Call
               </Button>
-              <div className="text-primary-100">
+              <div className="text-white/90">
                 <span className="text-2xl font-bold">{getOverallProgress()}%</span>
                 <span className="text-sm ml-1">Complete</span>
               </div>
@@ -222,11 +222,11 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
           {/* Training Modules Grid */}
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-800">
+              <h3 className="text-xl font-semibold text-gray-800">
                 Training Modules {modules.length > 0 && `(${modules.length})`}
               </h3>
               {user.role === "ADMIN" && (
-                <Button onClick={() => onNavigate('module-admin')} variant="outline" size="sm">
+                <Button onClick={() => onNavigate('module-admin')} variant="outline" size="sm" className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white">
                   <i className="fas fa-cog mr-2"></i>
                   Manage Modules
                 </Button>
