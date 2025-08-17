@@ -491,7 +491,14 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => viewTestMutation.mutate(test.id)}
+                          onClick={() => {
+                            if (user.role === "ADMIN") {
+                              viewTestMutation.mutate(test.id);
+                            } else {
+                              // For students, navigate directly to test-taking
+                              onNavigate(`test-taking/${test.id}`);
+                            }
+                          }}
                           className="gap-2"
                         >
                           <FileText className="h-4 w-4" />
