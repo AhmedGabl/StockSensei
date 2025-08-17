@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useActivityTracker } from "@/hooks/use-activity-tracker";
 import { login, register } from "@/lib/auth";
 
 const loginSchema = z.object({
@@ -27,6 +28,7 @@ interface AuthPageProps {
 export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const { toast } = useToast();
+  const { logLogin } = useActivityTracker();
 
   const isSignup = mode === "signup";
   const schema = isSignup ? registerSchema : loginSchema;
@@ -53,6 +55,11 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
         title: "Success!",
         description: isSignup ? "Account created successfully!" : "Welcome back!",
       });
+      
+      // Log login activity (only for login, not signup)
+      if (!isSignup) {
+        logLogin();
+      }
       
       // Set the user data immediately in the cache to prevent null state
       queryClient.setQueryData(["/api/me"], user);

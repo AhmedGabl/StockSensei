@@ -1296,6 +1296,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Activity Logging Routes
+  app.post("/api/activity/log", requireAuth, async (req: any, res) => {
+    try {
+      const activityData = {
+        ...req.body,
+        userId: req.user?.id
+      };
+      const activity = await storage.logActivity(activityData);
+      res.json({ activity });
+    } catch (error) {
+      console.error("Error logging activity:", error);
+      res.status(500).json({ message: "Failed to log activity" });
+    }
+  });
+
+  app.get("/api/activity/user/:userId", requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { limit = 50 } = req.query;
+      const activities = await storage.getUserActivityLogs(userId, parseInt(limit));
+      res.json({ activities });
+    } catch (error) {
+      console.error("Error fetching user activities:", error);
+      res.status(500).json({ message: "Failed to fetch user activities" });
+    }
+  });
+
+  app.get("/api/activity/stats/:userId", requireAuth, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      // Only allow users to see their own stats, or admins to see any stats
+      if (req.user?.role !== "ADMIN" && req.user?.id !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const stats = await storage.getComprehensiveUserStats(userId);
+      res.json({ stats });
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).json({ message: "Failed to fetch user stats" });
+    }
+  });
+
+  app.get("/api/activity/type/:type", requireAdmin, async (req: any, res) => {
+    try {
+      const { type } = req.params;
+      const { limit = 100 } = req.query;
+      const activities = await storage.getActivityLogsByType(type, parseInt(limit));
+      res.json({ activities });
+    } catch (error) {
+      console.error("Error fetching activities by type:", error);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  // Enhanced Material Views Routes
+  app.get("/api/materials/:id/views", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const views = await storage.getMaterialViews(id);
+      const count = await storage.getMaterialViewCount(id);
+      res.json({ views, count });
+    } catch (error) {
+      console.error("Error fetching material views:", error);
+      res.status(500).json({ message: "Failed to fetch material views" });
+    }
+  });
+
+  app.post("/api/materials/:id/view", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { duration, progress } = req.body;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const view = await storage.recordMaterialView(id, userId, duration, progress);
+      res.json({ view });
+    } catch (error) {
+      console.error("Error recording material view:", error);
+      res.status(500).json({ message: "Failed to record material view" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

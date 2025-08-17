@@ -189,6 +189,29 @@ export const materialViews = pgTable("material_views", {
   materialId: varchar("material_id").notNull().references(() => materials.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   viewedAt: timestamp("viewed_at").notNull().default(sql`now()`),
+  duration: integer("duration"), // Duration in seconds
+  progress: integer("progress").default(0), // Percentage of material consumed
+});
+
+// Comprehensive Activity Logging
+export const activityLogTypeEnum = pgEnum("activity_log_type", [
+  "MATERIAL_VIEW", 
+  "TEST_TAKEN", 
+  "MODULE_ACCESSED", 
+  "PRACTICE_CALL", 
+  "LOGIN", 
+  "LOGOUT"
+]);
+
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: activityLogTypeEnum("type").notNull(),
+  entityId: varchar("entity_id"), // ID of material, test, module, etc.
+  entityType: text("entity_type"), // "material", "test", "module", etc.
+  metadata: text("metadata"), // JSON string for additional data
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+  sessionId: varchar("session_id"), // Track user sessions
 });
 
 // Relations
@@ -208,6 +231,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   resolvedReports: many(problemReports, { relationName: "resolved_reports" }),
   groupMemberships: many(groupMembers),
   materialViews: many(materialViews),
+  activityLogs: many(activityLogs),
 }));
 
 export const progressRelations = relations(progress, ({ one }) => ({
@@ -366,6 +390,13 @@ export const materialViewsRelations = relations(materialViews, ({ one }) => ({
   }),
 }));
 
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [activityLogs.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -454,6 +485,11 @@ export const insertMaterialViewSchema = createInsertSchema(materialViews).omit({
   viewedAt: true,
 });
 
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -489,6 +525,8 @@ export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
 export type GroupMember = typeof groupMembers.$inferSelect;
 export type InsertMaterialView = z.infer<typeof insertMaterialViewSchema>;
 export type MaterialView = typeof materialViews.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({

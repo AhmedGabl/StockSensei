@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useActivityTracker } from "@/hooks/use-activity-tracker";
 import { User, Material } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -45,6 +46,7 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { logMaterialView } = useActivityTracker();
 
   const { data: materialsData, isLoading } = useQuery({
     queryKey: ["/api/materials", selectedTags],
@@ -491,6 +493,8 @@ export default function Materials({ user, onNavigate, onLogout }: MaterialsProps
                         onClick={() => {
                           setSelectedFile(material);
                           setFileViewerOpen(true);
+                          // Track material view activity
+                          logMaterialView(material.id);
                         }}
                         disabled={!material.filePath && !material.url}
                       >

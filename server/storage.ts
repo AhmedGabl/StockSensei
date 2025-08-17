@@ -1,11 +1,12 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers, materialViews,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers, materialViews, activityLogs,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
   type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport,
-  type Group, type InsertGroup, type GroupMember, type InsertGroupMember, type MaterialView, type InsertMaterialView
+  type Group, type InsertGroup, type GroupMember, type InsertGroupMember, type MaterialView, type InsertMaterialView,
+  type ActivityLog, type InsertActivityLog
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
@@ -35,9 +36,21 @@ export interface IStorage {
   restoreMaterial(id: string): Promise<Material>;
   
   // Material view operations
-  recordMaterialView(materialId: string, userId: string): Promise<MaterialView>;
-  getMaterialViews(materialId: string): Promise<MaterialView[]>;
+  recordMaterialView(materialId: string, userId: string, duration?: number, progress?: number): Promise<MaterialView>;
+  getMaterialViews(materialId: string): Promise<(MaterialView & { user: Pick<User, 'name' | 'email'> })[]>;
   getMaterialViewCount(materialId: string): Promise<number>;
+  
+  // Activity logging operations
+  logActivity(log: InsertActivityLog): Promise<ActivityLog>;
+  getUserActivityLogs(userId: string, limit?: number): Promise<ActivityLog[]>;
+  getActivityLogsByType(type: string, limit?: number): Promise<(ActivityLog & { user: Pick<User, 'name' | 'email'> })[]>;
+  getComprehensiveUserStats(userId: string): Promise<{
+    materialViews: number;
+    testsCompleted: number;
+    practiceCallsMade: number;
+    modulesAccessed: number;
+    totalLoginTime: number;
+  }>;
 
   // Test operations
   getTests(publishedOnly?: boolean): Promise<Test[]>;
@@ -683,23 +696,157 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Material view operations
-  async recordMaterialView(materialId: string, userId: string): Promise<MaterialView> {
+  async recordMaterialView(materialId: string, userId: string, duration?: number, progress?: number): Promise<MaterialView> {
     try {
-      // Try to create a new view record
+      // Try to create a new view record with updated tracking data
       const [view] = await db
         .insert(materialViews)
-        .values({ materialId, userId })
+        .values({ 
+          materialId, 
+          userId, 
+          duration: duration || 0,
+          progress: progress || 0 
+        })
         .returning();
+      
+      // Log activity for comprehensive tracking
+      await this.logActivity({
+        userId,
+        type: "MATERIAL_VIEW",
+        entityId: materialId,
+        entityType: "material",
+        metadata: JSON.stringify({ duration, progress })
+      });
+      
       return view;
     } catch (error) {
-      // If it already exists, update the viewed_at timestamp
+      // If it already exists, update with new viewing data
       const [view] = await db
         .update(materialViews)
-        .set({ viewedAt: new Date() })
+        .set({ 
+          viewedAt: new Date(),
+          duration: duration || 0,
+          progress: progress || 0
+        })
         .where(and(eq(materialViews.materialId, materialId), eq(materialViews.userId, userId)))
         .returning();
       return view;
     }
+  }
+
+  async getMaterialViews(materialId: string): Promise<(MaterialView & { user: Pick<User, 'name' | 'email'> })[]> {
+    return await db
+      .select({
+        id: materialViews.id,
+        materialId: materialViews.materialId,
+        userId: materialViews.userId,
+        viewedAt: materialViews.viewedAt,
+        duration: materialViews.duration,
+        progress: materialViews.progress,
+        user: {
+          name: users.name,
+          email: users.email
+        }
+      })
+      .from(materialViews)
+      .innerJoin(users, eq(materialViews.userId, users.id))
+      .where(eq(materialViews.materialId, materialId))
+      .orderBy(desc(materialViews.viewedAt));
+  }
+
+  async getMaterialViewCount(materialId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(materialViews)
+      .where(eq(materialViews.materialId, materialId));
+    return result[0]?.count || 0;
+  }
+
+  // Activity logging operations
+  async logActivity(log: InsertActivityLog): Promise<ActivityLog> {
+    const [activity] = await db
+      .insert(activityLogs)
+      .values(log)
+      .returning();
+    return activity;
+  }
+
+  async getUserActivityLogs(userId: string, limit: number = 50): Promise<ActivityLog[]> {
+    return await db
+      .select()
+      .from(activityLogs)
+      .where(eq(activityLogs.userId, userId))
+      .orderBy(desc(activityLogs.timestamp))
+      .limit(limit);
+  }
+
+  async getActivityLogsByType(type: string, limit: number = 100): Promise<(ActivityLog & { user: Pick<User, 'name' | 'email'> })[]> {
+    return await db
+      .select({
+        id: activityLogs.id,
+        userId: activityLogs.userId,
+        type: activityLogs.type,
+        entityId: activityLogs.entityId,
+        entityType: activityLogs.entityType,
+        metadata: activityLogs.metadata,
+        timestamp: activityLogs.timestamp,
+        sessionId: activityLogs.sessionId,
+        user: {
+          name: users.name,
+          email: users.email
+        }
+      })
+      .from(activityLogs)
+      .innerJoin(users, eq(activityLogs.userId, users.id))
+      .where(eq(activityLogs.type, type as any))
+      .orderBy(desc(activityLogs.timestamp))
+      .limit(limit);
+  }
+
+  async getComprehensiveUserStats(userId: string): Promise<{
+    materialViews: number;
+    testsCompleted: number;
+    practiceCallsMade: number;
+    modulesAccessed: number;
+    totalLoginTime: number;
+  }> {
+    // Get material views count
+    const materialViewsResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(materialViews)
+      .where(eq(materialViews.userId, userId));
+
+    // Get completed tests count
+    const testsResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(attempts)
+      .where(and(eq(attempts.userId, userId), sql`submitted_at IS NOT NULL`));
+
+    // Get practice calls count
+    const callsResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(practiceCalls)
+      .where(eq(practiceCalls.userId, userId));
+
+    // Get unique modules accessed
+    const modulesResult = await db
+      .select({ count: sql<number>`count(distinct entity_id)::int` })
+      .from(activityLogs)
+      .where(and(eq(activityLogs.userId, userId), eq(activityLogs.type, "MODULE_ACCESSED")));
+
+    // Calculate total login time (rough estimate based on login/logout activities)
+    const loginLogsResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(activityLogs)
+      .where(and(eq(activityLogs.userId, userId), eq(activityLogs.type, "LOGIN")));
+
+    return {
+      materialViews: materialViewsResult[0]?.count || 0,
+      testsCompleted: testsResult[0]?.count || 0,
+      practiceCallsMade: callsResult[0]?.count || 0,
+      modulesAccessed: modulesResult[0]?.count || 0,
+      totalLoginTime: (loginLogsResult[0]?.count || 0) * 60 // Rough estimate: 60 minutes average per session
+    };
   }
 
   async getMaterialViews(materialId: string): Promise<MaterialView[]> {
