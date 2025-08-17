@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { User } from '@/lib/types';
 
 interface BotpressChatProps {
@@ -20,31 +20,16 @@ declare global {
 
 export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps) {
   const webchatRef = useRef<HTMLDivElement>(null);
+  const [webchatId] = useState(`webchat-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
-    // Load Botpress script if not already loaded
-    if (!window.botpress) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
-      script.onload = () => {
-        initializeBotpress();
-      };
-      document.head.appendChild(script);
-    } else {
-      initializeBotpress();
-    }
+    if (!webchatRef.current) return;
 
-    return () => {
-      // Cleanup if needed
-    };
-  }, []);
-
-  const initializeBotpress = () => {
-    if (window.botpress && webchatRef.current) {
+    const initializeBotpress = () => {
       // Add custom styles for full integration
       const style = document.createElement('style');
       style.textContent = `
-        #webchat-${webchatRef.current.id} .bpWebchat {
+        #${webchatId} .bpWebchat {
           position: unset !important;
           width: 100% !important;
           height: 100% !important;
@@ -54,20 +39,20 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
           border-radius: 8px !important;
         }
 
-        #webchat-${webchatRef.current.id} .bpFab {
+        #${webchatId} .bpFab {
           display: none !important;
         }
 
-        #webchat-${webchatRef.current.id} .bpHeader {
+        #${webchatId} .bpHeader {
           background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
           color: white !important;
         }
 
-        #webchat-${webchatRef.current.id} .bpSendButton {
+        #${webchatId} .bpSendButton {
           background: #f97316 !important;
         }
 
-        #webchat-${webchatRef.current.id} .bpUserMessage {
+        #${webchatId} .bpUserMessage {
           background: #f97316 !important;
         }
       `;
@@ -96,16 +81,30 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
           "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)"
         },
         "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
-        "selector": `#webchat-${webchatRef.current.id}`
+        "selector": `#${webchatId}`
       });
+    };
+
+    // Load Botpress script if not already loaded
+    if (!window.botpress) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
+      script.onload = () => {
+        // Small delay to ensure DOM is ready
+        setTimeout(initializeBotpress, 100);
+      };
+      document.head.appendChild(script);
+    } else {
+      // Small delay to ensure DOM is ready
+      setTimeout(initializeBotpress, 100);
     }
-  };
+  }, [webchatId]);
 
   return (
     <div className="h-full w-full">
       <div 
         ref={webchatRef}
-        id={`webchat-${Math.random().toString(36).substr(2, 9)}`}
+        id={webchatId}
         className="w-full h-full"
         style={{ minHeight: '400px' }}
       />
