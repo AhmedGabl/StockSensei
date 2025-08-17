@@ -71,3 +71,69 @@ export async function analyzePracticeCall(transcript: string): Promise<{
     };
   }
 }
+
+// AI-powered short answer scoring
+export async function scoreShortAnswer(
+  studentAnswer: string, 
+  expectedAnswer: string, 
+  questionText: string
+): Promise<{ isCorrect: boolean; score: number; explanation: string }> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert Class Mentor training evaluator. Score short answer responses based on accuracy, completeness, and understanding. 
+
+SCORING CRITERIA:
+- 1.0: Perfect answer - demonstrates complete understanding
+- 0.75: Good answer - mostly correct with minor gaps
+- 0.5: Partial answer - some understanding but missing key points
+- 0.25: Poor answer - minimal understanding or largely incorrect
+- 0.0: Incorrect or no relevant content
+
+Consider:
+- Key concepts mentioned
+- Practical understanding shown
+- Relevance to Class Mentor training
+- Professional terminology usage
+
+Respond in JSON format only.`
+        },
+        {
+          role: "user",
+          content: `Question: "${questionText}"
+
+Expected Answer: "${expectedAnswer}"
+
+Student Answer: "${studentAnswer}"
+
+Please evaluate and respond with:
+{
+  "score": number (0.0 to 1.0),
+  "isCorrect": boolean (true if score >= 0.6),
+  "explanation": "Brief explanation of scoring rationale"
+}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 300,
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{}');
+    
+    return {
+      score: Math.max(0, Math.min(1, result.score || 0)),
+      isCorrect: result.isCorrect || (result.score >= 0.6),
+      explanation: result.explanation || "Answer evaluated by AI scoring system."
+    };
+  } catch (error) {
+    console.error("Short answer scoring error:", error);
+    return {
+      score: 0,
+      isCorrect: false,
+      explanation: "Unable to score answer automatically. Manual review required."
+    };
+  }
+}

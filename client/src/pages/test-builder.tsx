@@ -18,6 +18,7 @@ interface GenerateTestForm {
   difficulty: "EASY" | "MEDIUM" | "HARD";
   questionCount: number;
   questionTypes: ("MCQ" | "TRUE_FALSE" | "SHORT")[];
+  customPrompt?: string;
 }
 
 interface TestBuilderProps {
@@ -32,7 +33,8 @@ export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderP
     materialId: "",
     difficulty: "MEDIUM",
     questionCount: 5,
-    questionTypes: ["MCQ"]
+    questionTypes: ["MCQ"],
+    customPrompt: ""
   });
   
   const { toast } = useToast();
@@ -65,7 +67,8 @@ export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderP
         materialId: "",
         difficulty: "MEDIUM", 
         questionCount: 5,
-        questionTypes: ["MCQ"]
+        questionTypes: ["MCQ"],
+        customPrompt: ""
       });
     },
     onError: (error: any) => {
@@ -246,6 +249,21 @@ export default function TestBuilder({ user, onNavigate, onLogout }: TestBuilderP
                   />
                   <Label htmlFor="short">Short Answer Questions</Label>
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="customPrompt">Custom Generation Instructions (Optional)</Label>
+                <Textarea
+                  id="customPrompt"
+                  placeholder="Add specific instructions for how questions should be generated. For example: 'Focus on practical scenarios', 'Include real-world examples', 'Emphasize safety procedures', etc."
+                  value={form.customPrompt}
+                  onChange={(e) => setForm(prev => ({ ...prev, customPrompt: e.target.value }))}
+                  rows={3}
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  These instructions will guide the AI in creating questions tailored to your specific needs.
+                </p>
               </div>
             </div>
 

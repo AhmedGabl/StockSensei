@@ -68,8 +68,11 @@ export const tests = pgTable("tests", {
   isPublished: boolean("is_published").notNull().default(false),
   isDraft: boolean("is_draft").notNull().default(true),
   llmScoringEnabled: boolean("llm_scoring_enabled").notNull().default(false),
+  generationPrompt: text("generation_prompt"), // Custom admin prompt for test generation
+  baseMaterialId: varchar("base_material_id").references(() => materials.id), // Reference to source material
   createdById: varchar("created_by_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
 export const questions = pgTable("questions", {

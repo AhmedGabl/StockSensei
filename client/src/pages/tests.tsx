@@ -325,6 +325,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                                 <SelectContent>
                                   <SelectItem value="MCQ">Multiple Choice</SelectItem>
                                   <SelectItem value="TRUE_FALSE">True/False</SelectItem>
+                                  <SelectItem value="SHORT">Short Answer</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -416,6 +417,20 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
                                 </Button>
                               </div>
                             ))}
+                          </div>
+                        )}
+
+                        {form.watch(`questions.${questionIndex}.kind`) === "SHORT" && (
+                          <div className="space-y-2">
+                            <FormLabel>Expected Answer (for automatic scoring)</FormLabel>
+                            <Textarea 
+                              placeholder="Provide the expected answer for automatic scoring. This will be used to evaluate student responses."
+                              value={form.watch(`questions.${questionIndex}.explanation`) || ''}
+                              onChange={(e) => form.setValue(`questions.${questionIndex}.explanation`, e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              This answer will be used for AI-powered automatic scoring of student responses.
+                            </p>
                           </div>
                         )}
                       </div>

@@ -6,7 +6,7 @@ import { loginSchema, registerSchema, insertProblemReportSchema, insertGroupSche
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { getChatResponse, analyzePracticeCall } from "./openai";
+import { getChatResponse, analyzePracticeCall, scoreShortAnswer } from "./openai";
 import type { ChatMessage } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -897,8 +897,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correct = answerData.valueBool === correctAnswer;
         } else if (question.kind === "SHORT" && answerData.valueText) {
           answerPayload = { valueText: answerData.valueText };
-          // For SHORT answers, we'll use LLM scoring if enabled
-          correct = false; // Will be determined by LLM or manual review later
+          
+          // For SHORT answers, use AI-powered automatic scoring
+          if (test.llmScoringEnabled) {
+            try {
+              const expectedAnswer = question.options?.[0]?.text || ""; // Expected answer stored in first option
+              
+              if (expectedAnswer) {
+                const score = await scoreShortAnswer(answerData.valueText, expectedAnswer, question.text);
+                correct = score.isCorrect;
+                awardedPoints = score.score;
+                answerPayload.aiScore = score.score;
+                answerPayload.aiExplanation = score.explanation;
+              }
+            } catch (error) {
+              console.error("AI scoring failed:", error);
+              // Fall back to manual review
+              correct = false;
+            }
+          } else {
+            // Manual review required
+            correct = false;
+          }
         }
 
         if (correct) {
@@ -1080,69 +1100,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Test Builder route
   app.post("/api/admin/tests/generate", requireAdmin, async (req: any, res) => {
     try {
-      const { topic, materialId, difficulty, questionCount, questionTypes } = req.body;
+      const { topic, materialId, difficulty, questionCount, questionTypes, customPrompt } = req.body;
       
       let materialContent = "";
       let baseTitle = topic || "Generated Test";
+      let materialInfo = null;
       
-      // If material ID is provided, fetch the material content
+      // If material ID is provided, fetch the material content and extract actual content
       if (materialId) {
         try {
           const materials = await storage.getMaterials();
           const material = materials.find((m: any) => m.id === materialId);
           if (material) {
-            materialContent = material.description || material.title || "";
+            materialInfo = material;
             baseTitle = `${material.title} Test`;
+            
+            // Enhanced content extraction - get more comprehensive material content
+            materialContent = [
+              material.title,
+              material.description,
+              material.fileName ? `File: ${material.fileName}` : '',
+              material.tags && material.tags.length > 0 ? `Tags: ${material.tags.join(', ')}` : '',
+              material.type ? `Type: ${material.type}` : ''
+            ].filter(Boolean).join('\n');
+            
+            // If it's a text-based material with URL content, try to fetch additional context
+            if (material.url && (material.type === 'DOCUMENT' || material.type === 'TEXT')) {
+              try {
+                // Enhanced material content extraction would go here
+                // For now, we use the description and available metadata
+                console.log(`Processing ${material.type} material: ${material.title}`);
+              } catch (contentError) {
+                console.log(`Could not extract additional content from ${material.type}: ${contentError.message}`);
+              }
+            }
           }
         } catch (error) {
           console.error("Error fetching material:", error);
         }
       }
       
-      // Build prompt based on whether we have material content or just a topic
+      // Build prompt with custom admin prompt support and enhanced material processing
       let prompt;
-      if (materialContent) {
-        prompt = `Based on the following training material content, generate a ${difficulty} difficulty test with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
+      
+      // System prompt with enhanced instructions for different question types
+      const systemInstructions = `You are an expert test creator for Class Mentor training. Generate comprehensive, practical questions that test real-world knowledge and application.
+
+QUESTION TYPE GUIDELINES:
+- MCQ: Create realistic scenarios with 4 plausible options, only one correct
+- TRUE_FALSE: Create clear statements that test specific facts or concepts
+- SHORT: Create open-ended questions that require 2-3 sentence explanations
+
+For SHORT answer questions, also provide a "correctAnswer" field with the expected answer for automated scoring.
+
+IMPORTANT: Respond with valid JSON only, no markdown code blocks, no extra text. Start directly with { and end with }.`;
+
+      if (materialContent && materialInfo) {
+        const basePrompt = `Based on the following training material, generate a ${difficulty} difficulty test with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
+
+TRAINING MATERIAL DETAILS:
+Title: ${materialInfo.title}
+Type: ${materialInfo.type}
+Description: ${materialInfo.description || 'No description available'}
+${materialInfo.fileName ? `Original File: ${materialInfo.fileName}` : ''}
+${materialInfo.tags && materialInfo.tags.length > 0 ? `Tags: ${materialInfo.tags.join(', ')}` : ''}
 
 MATERIAL CONTENT:
-"${materialContent}"
+${materialContent}
 
-Create questions that test understanding of the concepts, procedures, and knowledge presented in this material. For each question, provide:
-1. The question text
-2. For MCQ: 4 options with one correct answer
-3. For TRUE_FALSE: the correct boolean answer  
-4. For SHORT: suggested answer guidelines
+Create questions that directly test understanding of the concepts, procedures, and specific knowledge presented in this material. Questions should be practical and applicable to real Class Mentor scenarios.`;
 
-Format as JSON with structure:
+        // Apply custom prompt if provided by admin
+        if (customPrompt && customPrompt.trim()) {
+          prompt = `${basePrompt}
+
+ADDITIONAL ADMIN INSTRUCTIONS:
+${customPrompt}
+
+Please incorporate these specific instructions while maintaining the JSON format below.`;
+        } else {
+          prompt = basePrompt;
+        }
+
+        prompt += `
+
+Format as JSON with this exact structure:
 {
-  "title": "Test Title",
-  "description": "Test Description", 
+  "title": "Descriptive test title based on material",
+  "description": "Test description explaining what will be assessed", 
   "questions": [
     {
       "text": "Question text",
       "kind": "MCQ|TRUE_FALSE|SHORT",
-      "options": [{"text": "Option text", "isCorrect": boolean}] // for MCQ only
+      "options": [{"text": "Option text", "isCorrect": boolean}], // for MCQ only
+      "correctAnswer": "Expected answer text" // for SHORT and TRUE_FALSE questions
     }
   ]
 }`;
       } else {
-        prompt = `Generate a ${difficulty} difficulty test about "${topic}" with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
+        const basePrompt = `Generate a ${difficulty} difficulty test about "${topic}" with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
 
-For each question, provide:
-1. The question text
-2. For MCQ: 4 options with one correct answer
-3. For TRUE_FALSE: the correct boolean answer
-4. For SHORT: suggested answer guidelines
+Create practical, real-world questions relevant to Class Mentor training and call center operations.`;
 
-Format as JSON with structure:
+        // Apply custom prompt if provided by admin
+        if (customPrompt && customPrompt.trim()) {
+          prompt = `${basePrompt}
+
+ADDITIONAL ADMIN INSTRUCTIONS:
+${customPrompt}
+
+Please incorporate these specific instructions while maintaining the JSON format below.`;
+        } else {
+          prompt = basePrompt;
+        }
+
+        prompt += `
+
+Format as JSON with this exact structure:
 {
-  "title": "Test Title",
-  "description": "Test Description", 
+  "title": "Descriptive test title",
+  "description": "Test description explaining what will be assessed", 
   "questions": [
     {
       "text": "Question text",
       "kind": "MCQ|TRUE_FALSE|SHORT",
-      "options": [{"text": "Option text", "isCorrect": boolean}] // for MCQ only
+      "options": [{"text": "Option text", "isCorrect": boolean}], // for MCQ only
+      "correctAnswer": "Expected answer text" // for SHORT and TRUE_FALSE questions
     }
   ]
 }`;
@@ -1151,7 +1234,7 @@ Format as JSON with structure:
       const aiResponse = await getChatResponse([
         {
           role: "system",
-          content: "You are an expert test creator for Class Mentor training. Generate comprehensive, practical questions that test real-world knowledge. IMPORTANT: Respond with valid JSON only, no markdown code blocks, no extra text. Start directly with { and end with }."
+          content: systemInstructions
         },
         {
           role: "user",
@@ -1215,22 +1298,25 @@ Format as JSON with structure:
         
         const testData = JSON.parse(jsonContent);
         
-        // Create the test in draft mode
+        // Create the test in draft mode with enhanced metadata
         const test = await storage.createTest({
           title: testData.title,
           description: testData.description,
           isPublished: false,
           isDraft: true,
           llmScoringEnabled: questionTypes.includes('SHORT'),
+          generationPrompt: customPrompt || null,
+          baseMaterialId: materialId || null,
           createdById: req.user.id,
         });
 
-        // Create questions and options
+        // Create questions and options with enhanced SHORT answer support
         for (const questionData of testData.questions) {
           const question = await storage.createQuestion({
             testId: test.id,
             text: questionData.text,
             kind: questionData.kind,
+            explanation: questionData.explanation || null,
           });
 
           if (questionData.options && questionData.kind === "MCQ") {
@@ -1243,11 +1329,23 @@ Format as JSON with structure:
             }
           } else if (questionData.kind === "TRUE_FALSE") {
             // For TRUE_FALSE, create a single option to store the correct answer
+            const correctAnswer = questionData.correctAnswer === true || 
+                                 questionData.correctAnswer === "true" || 
+                                 questionData.correctAnswer === "True";
             await storage.createOption({
               questionId: question.id,
               text: "True/False Answer",
-              isCorrect: questionData.correctAnswer || true,
+              isCorrect: correctAnswer,
             });
+          } else if (questionData.kind === "SHORT") {
+            // For SHORT answers, create an option to store the expected answer for scoring
+            if (questionData.correctAnswer) {
+              await storage.createOption({
+                questionId: question.id,
+                text: questionData.correctAnswer,
+                isCorrect: true, // This marks it as the reference answer
+              });
+            }
           }
         }
 
