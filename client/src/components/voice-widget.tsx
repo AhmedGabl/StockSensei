@@ -157,26 +157,93 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               }
               
               /* Force all Ringg AI modal elements to black */
-              .dv-agent-modal, .dv-agent-container, .dv-modal {
+              .dv-agent-modal, .dv-agent-container, .dv-modal, .dv-widget, .dv-call-widget {
                 background-color: #000000 !important;
                 color: white !important;
                 border: 2px solid #333333 !important;
+                border-radius: 8px !important;
               }
               
-              .dv-agent-modal * {
+              /* All text elements */
+              .dv-agent-modal *, .dv-agent-container *, .dv-modal *, .dv-widget *, .dv-call-widget * {
+                background-color: transparent !important;
+                color: white !important;
+              }
+              
+              /* Buttons and interactive elements */
+              .dv-agent-modal button, .dv-widget button, .dv-call-widget button {
+                background-color: #000000 !important;
+                color: white !important;
+                border: 1px solid #333333 !important;
+                border-radius: 4px !important;
+              }
+              
+              .dv-agent-modal button:hover, .dv-widget button:hover, .dv-call-widget button:hover {
+                background-color: #111111 !important;
+                border-color: #444444 !important;
+              }
+              
+              /* Input fields */
+              .dv-agent-modal input, .dv-widget input, .dv-call-widget input {
+                background-color: #111111 !important;
+                color: white !important;
+                border: 1px solid #333333 !important;
+                border-radius: 4px !important;
+              }
+              
+              /* Headers and titles */
+              .dv-agent-modal h1, .dv-agent-modal h2, .dv-agent-modal h3, .dv-agent-modal h4,
+              .dv-widget h1, .dv-widget h2, .dv-widget h3, .dv-widget h4 {
+                color: white !important;
+                background-color: transparent !important;
+              }
+              
+              /* Call status indicators */
+              .dv-call-status, .dv-timer, .dv-status {
+                background-color: #111111 !important;
+                color: white !important;
+                border: 1px solid #333333 !important;
+              }
+              
+              /* Voice indicators and waveforms */
+              .dv-voice-indicator, .dv-waveform, .dv-audio-visual {
+                background-color: #000000 !important;
+                color: #ffffff !important;
+              }
+              
+              /* Modal backdrop */
+              .dv-modal-backdrop, .dv-overlay {
+                background-color: rgba(0, 0, 0, 0.8) !important;
+              }
+              
+              /* Additional Ringg AI classes - catch all patterns */
+              [class*="dv-"], [class*="ringg-"], [class*="agent-"], [class*="call-"] {
                 background-color: #000000 !important;
                 color: white !important;
               }
               
-              .dv-agent-modal button {
+              [class*="dv-"] button, [class*="ringg-"] button, [class*="agent-"] button, [class*="call-"] button {
                 background-color: #000000 !important;
                 color: white !important;
                 border: 1px solid #333333 !important;
               }
               
-              .dv-agent-modal button:hover {
+              [class*="dv-"] input, [class*="ringg-"] input, [class*="agent-"] input, [class*="call-"] input {
                 background-color: #111111 !important;
-                border-color: #444444 !important;
+                color: white !important;
+                border: 1px solid #333333 !important;
+              }
+              
+              /* Force any modal or popup to black theme */
+              div[role="dialog"], div[role="modal"], .modal, .popup, .widget-container {
+                background-color: #000000 !important;
+                color: white !important;
+                border: 2px solid #333333 !important;
+              }
+              
+              /* Iframe content styling (if applicable) */
+              iframe[src*="ringg"], iframe[src*="agent"], iframe[src*="voice"] {
+                filter: invert(1) hue-rotate(180deg) !important;
               }
             `;
             document.head.appendChild(style);
@@ -205,6 +272,14 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
                   callee_name: "CALLEE_NAME",
                   mode: "MODE", 
                   scenario_id: "practice_call"
+                },
+                theme: {
+                  backgroundColor: "#000000",
+                  textColor: "#ffffff",
+                  borderColor: "#333333",
+                  buttonColor: "#000000",
+                  buttonTextColor: "#ffffff",
+                  accentColor: "#333333"
                 }
               });
               resolve();
