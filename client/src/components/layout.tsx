@@ -61,8 +61,8 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
                   onClick={() => onNavigate?.(item.id)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     currentPage === item.id
-                      ? "text-brand-orange bg-brand-orange/10 border border-brand-orange/30"
-                      : "text-slate-600 hover:text-brand-orange hover:bg-brand-orange/5"
+                      ? "text-orange-600 bg-orange-50 border border-orange-200 font-semibold"
+                      : "text-slate-600 hover:text-orange-600 hover:bg-orange-50"
                   }`}
                 >
                   {item.label}
