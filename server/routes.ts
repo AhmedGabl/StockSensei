@@ -132,7 +132,7 @@ This file contains presentation slides that should be processed for content extr
 === POWERPOINT PROCESSING NEEDED ===`;
       
     } else {
-      // For other document types, try to read as text
+      // For other document types, try to read as text with size limits
       console.log("Processing document as text file");
       
       try {
@@ -140,16 +140,47 @@ This file contains presentation slides that should be processed for content extr
         const docStream = docFile.createReadStream();
         
         const docBuffer = [];
+        let totalSize = 0;
+        const MAX_FILE_SIZE = 1024 * 1024; // 1MB limit for text processing
+        
         for await (const chunk of docStream) {
+          totalSize += chunk.length;
+          
+          // Stop reading if file is too large
+          if (totalSize > MAX_FILE_SIZE) {
+            console.log(`File ${fileName} is too large (${totalSize} bytes), truncating for processing`);
+            break;
+          }
+          
           docBuffer.push(chunk);
         }
+        
         const docContent = Buffer.concat(docBuffer).toString('utf-8');
+        
+        // Additional check - if content is mostly binary/non-text, don't use it
+        const printableChars = docContent.replace(/[\x00-\x1F\x7F-\x9F]/g, '').length;
+        const printableRatio = printableChars / docContent.length;
+        
+        if (printableRatio < 0.7) {
+          console.log(`File ${fileName} appears to be binary (${printableRatio.toFixed(2)} printable ratio), skipping text extraction`);
+          return `DOCUMENT CONTENT:
+File: ${fileName}
+Note: This file appears to be a binary file (${fileType}) and cannot be processed as text content. Please use appropriate file types for text-based material extraction.
+
+=== CONTENT EXTRACTION SKIPPED ===`;
+        }
+        
+        // Limit content length to prevent token overflow (roughly 100k chars = ~25k tokens)
+        const MAX_CONTENT_LENGTH = 100000;
+        const truncatedContent = docContent.length > MAX_CONTENT_LENGTH 
+          ? docContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Content truncated due to length...]'
+          : docContent;
         
         return `DOCUMENT CONTENT:
 File: ${fileName}
-Extracted Content:
+Extracted Content (${docContent.length} chars${docContent.length > MAX_CONTENT_LENGTH ? ', truncated' : ''}):
 
-${docContent}
+${truncatedContent}
 
 === END OF DOCUMENT CONTENT ===`;
         
@@ -1469,6 +1500,35 @@ For SHORT answer questions, also provide a "correctAnswer" field with the expect
 IMPORTANT: Respond with valid JSON only, no markdown code blocks, no extra text. Start directly with { and end with }.`;
 
       if (materialContent && materialInfo) {
+        // Safety check: Estimate token count and truncate if necessary
+        // Rough estimation: 1 token ≈ 4 characters for English text
+        const MAX_TOKENS = 120000; // Leave some buffer for OpenAI's 128k limit
+        const CHARS_PER_TOKEN = 4;
+        const MAX_CONTENT_CHARS = MAX_TOKENS * CHARS_PER_TOKEN;
+        
+        // Calculate current content size
+        let contentToUse = materialContent;
+        const materialDetailsSize = `TRAINING MATERIAL DETAILS:
+Title: ${materialInfo.title}
+Type: ${materialInfo.type}
+Description: ${materialInfo.description || 'No description available'}
+${materialInfo.fileName ? `Original File: ${materialInfo.fileName}` : ''}
+${materialInfo.tags && materialInfo.tags.length > 0 ? `Tags: ${materialInfo.tags.join(', ')}` : ''}
+
+MATERIAL CONTENT:
+`.length;
+        
+        const baseInstructionsSize = `Based on the following training material, generate a ${difficulty} difficulty test with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
+
+Create questions that directly test understanding of the concepts, procedures, and specific knowledge presented in this material. Questions should be practical and applicable to real Class Mentor scenarios.`.length;
+        
+        const availableContentSpace = MAX_CONTENT_CHARS - materialDetailsSize - baseInstructionsSize - 2000; // Buffer for JSON format instructions
+        
+        if (materialContent.length > availableContentSpace) {
+          console.log(`Material content is too large (${materialContent.length} chars). Truncating to ${availableContentSpace} chars to fit within token limits.`);
+          contentToUse = materialContent.substring(0, availableContentSpace) + '\n\n[Content truncated to fit within AI processing limits...]';
+        }
+        
         const basePrompt = `Based on the following training material, generate a ${difficulty} difficulty test with ${questionCount} questions. Include these question types: ${questionTypes.join(', ')}.
 
 TRAINING MATERIAL DETAILS:
@@ -1479,7 +1539,7 @@ ${materialInfo.fileName ? `Original File: ${materialInfo.fileName}` : ''}
 ${materialInfo.tags && materialInfo.tags.length > 0 ? `Tags: ${materialInfo.tags.join(', ')}` : ''}
 
 MATERIAL CONTENT:
-${materialContent}
+${contentToUse}
 
 Create questions that directly test understanding of the concepts, procedures, and specific knowledge presented in this material. Questions should be practical and applicable to real Class Mentor scenarios.`;
 
@@ -1544,6 +1604,11 @@ Format as JSON with this exact structure:
 }`;
       }
 
+      // Log final prompt details for debugging
+      console.log(`Final prompt length: ${prompt.length} characters`);
+      console.log(`Estimated tokens: ${Math.ceil(prompt.length / 4)} (assuming 4 chars per token)`);
+      console.log(`Prompt preview: ${prompt.substring(0, 500)}...`);
+      
       const aiResponse = await getChatResponse([
         {
           role: "system",
