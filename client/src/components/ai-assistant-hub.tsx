@@ -551,71 +551,8 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
 
           <TabsContent value="chat" className="h-[500px] mt-4">
             <div className="h-full bg-gradient-to-br from-orange-50 to-white rounded-lg border border-orange-200 shadow-lg overflow-hidden">
-              {/* Enhanced Header */}
-              <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
-                    <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
-                      <i className="fas fa-robot text-white text-lg"></i>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold">51Talk Training Assistant</h3>
-                    <p className="text-orange-100 text-sm">AI-powered Q&A for Class Mentors • Online & Ready</p>
-                  </div>
-                  <div className="ml-auto">
-                    <Badge className="bg-green-500 text-white text-xs animate-pulse">
-                      <i className="fas fa-circle text-xs mr-1"></i>
-                      Live
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Action Buttons */}
-              <div className="bg-white border-b border-orange-100 p-3">
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="text-xs border-orange-200 text-orange-600 hover:bg-orange-50"
-                    onClick={() => {/* Add predefined query */}}
-                  >
-                    <i className="fas fa-graduation-cap text-xs mr-1"></i>
-                    Curriculum Questions
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="text-xs border-orange-200 text-orange-600 hover:bg-orange-50"
-                    onClick={() => {/* Add predefined query */}}
-                  >
-                    <i className="fas fa-users text-xs mr-1"></i>
-                    Student Management
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="text-xs border-orange-200 text-orange-600 hover:bg-orange-50"
-                    onClick={() => {/* Add predefined query */}}
-                  >
-                    <i className="fas fa-book text-xs mr-1"></i>
-                    Policies & SOPs
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="text-xs border-orange-200 text-orange-600 hover:bg-orange-50"
-                    onClick={() => {/* Add predefined query */}}
-                  >
-                    <i className="fas fa-phone text-xs mr-1"></i>
-                    Parent Communication
-                  </Button>
-                </div>
-              </div>
-
               {/* Chat Interface */}
-              <div className="flex-1 h-[380px]">
+              <div className="flex-1 h-[450px]">
                 <BotpressChat
                   user={user}
                   isCollapsed={false}

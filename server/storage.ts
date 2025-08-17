@@ -1,12 +1,14 @@
 import { 
-  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers, materialViews, activityLogs, testAttempts, testAnswers,
+  users, progress, practiceCalls, materials, tests, questions, options, attempts, answers, notes, tasks, testAssignments, trainingModules, problemReports, groups, groupMembers, materialViews, activityLogs, testAttempts, testAnswers, groupNotes, groupNoteResponses, groupTestAssignments,
   type User, type InsertUser, type Progress, type InsertProgress, type PracticeCall, type InsertPracticeCall, 
   type Material, type InsertMaterial, type Test, type InsertTest, type Question, type InsertQuestion,
   type Option, type InsertOption, type Attempt, type InsertAttempt, type Answer, type InsertAnswer,
   type Note, type InsertNote, type Task, type InsertTask, type TestAssignment, type InsertTestAssignment,
   type TrainingModule, type InsertTrainingModule, type ProblemReport, type InsertProblemReport,
   type Group, type InsertGroup, type GroupMember, type InsertGroupMember, type MaterialView, type InsertMaterialView,
-  type ActivityLog, type InsertActivityLog, type TestAttempt, type InsertTestAttempt, type TestAnswer, type InsertTestAnswer
+  type ActivityLog, type InsertActivityLog, type TestAttempt, type InsertTestAttempt, type TestAnswer, type InsertTestAnswer,
+  type GroupNote, type InsertGroupNote, type GroupNoteResponse, type InsertGroupNoteResponse,
+  type GroupTestAssignment, type InsertGroupTestAssignment
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
@@ -124,13 +126,19 @@ export interface IStorage {
   deleteProblemReport(id: string): Promise<void>;
 
   // Group operations
-  getGroups(): Promise<(Group & { memberCount: number })[]>;
-  getGroup(id: string): Promise<(Group & { members: (GroupMember & { user: User })[] }) | undefined>;
+  getAllGroups(): Promise<(Group & { memberCount: number })[]>;
+  getGroupById(id: string): Promise<(Group & { members: (GroupMember & { user: User })[] }) | undefined>;
   createGroup(group: InsertGroup): Promise<Group>;
   updateGroup(id: string, updates: Partial<Group>): Promise<Group>;
   deleteGroup(id: string): Promise<void>;
-  addGroupMember(member: InsertGroupMember): Promise<GroupMember>;
-  removeGroupMember(groupId: string, userId: string): Promise<void>;
+  addMemberToGroup(groupId: string, userId: string, role?: string): Promise<GroupMember>;
+  removeMemberFromGroup(groupId: string, userId: string): Promise<void>;
+  getGroupNotes(groupId: string): Promise<(GroupNote & { author: User, responses: (GroupNoteResponse & { author: User })[] })[]>;
+  createGroupNote(note: InsertGroupNote): Promise<GroupNote>;
+  createGroupNoteResponse(response: InsertGroupNoteResponse): Promise<GroupNoteResponse>;
+  assignTestToGroup(groupId: string, testId: string, assignedBy: string, dueDate?: Date): Promise<GroupTestAssignment>;
+  getGroupTestAssignments(groupId: string): Promise<(GroupTestAssignment & { test: Test, assignedByUser: User })[]>;
+  getGroupPerformance(groupId: string): Promise<{ member: User, progress: Progress[], testResults: any[] }[]>;
   getUserGroups(userId: string): Promise<(GroupMember & { group: Group })[]>;
 }
 
@@ -736,7 +744,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Group operations
-  async getGroups(): Promise<(Group & { memberCount: number })[]> {
+  async getAllGroups(): Promise<(Group & { memberCount: number })[]> {
     return await db
       .select({
         id: groups.id,
@@ -751,7 +759,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(groups.name);
   }
 
-  async getGroup(id: string): Promise<(Group & { members: (GroupMember & { user: User })[] }) | undefined> {
+  async getGroupById(id: string): Promise<(Group & { members: (GroupMember & { user: User })[] }) | undefined> {
     const [group] = await db.select().from(groups).where(eq(groups.id, id));
     if (!group) return undefined;
 
@@ -794,18 +802,147 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteGroup(id: string): Promise<void> {
+    // Delete related data first
+    await db.delete(groupTestAssignments).where(eq(groupTestAssignments.groupId, id));
+    await db.delete(groupNoteResponses).where(
+      sql`${groupNoteResponses.groupNoteId} IN (
+        SELECT ${groupNotes.id} FROM ${groupNotes} WHERE ${groupNotes.groupId} = ${id}
+      )`
+    );
+    await db.delete(groupNotes).where(eq(groupNotes.groupId, id));
+    await db.delete(groupMembers).where(eq(groupMembers.groupId, id));
     await db.delete(groups).where(eq(groups.id, id));
   }
 
-  async addGroupMember(member: InsertGroupMember): Promise<GroupMember> {
-    const [created] = await db.insert(groupMembers).values(member).returning();
+  async addMemberToGroup(groupId: string, userId: string, role: string = "MEMBER"): Promise<GroupMember> {
+    const [created] = await db.insert(groupMembers).values({
+      groupId,
+      userId,
+      role: role as "MEMBER" | "LEADER"
+    }).returning();
     return created;
   }
 
-  async removeGroupMember(groupId: string, userId: string): Promise<void> {
+  async removeMemberFromGroup(groupId: string, userId: string): Promise<void> {
     await db
       .delete(groupMembers)
       .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+  }
+
+  async getGroupNotes(groupId: string): Promise<(GroupNote & { author: User, responses: (GroupNoteResponse & { author: User })[] })[]> {
+    const notes = await db
+      .select({
+        note: groupNotes,
+        author: users
+      })
+      .from(groupNotes)
+      .innerJoin(users, eq(groupNotes.authorId, users.id))
+      .where(eq(groupNotes.groupId, groupId))
+      .orderBy(desc(groupNotes.createdAt));
+
+    const notesWithResponses = [];
+    for (const noteRow of notes) {
+      const responses = await db
+        .select({
+          response: groupNoteResponses,
+          author: users
+        })
+        .from(groupNoteResponses)
+        .innerJoin(users, eq(groupNoteResponses.authorId, users.id))
+        .where(eq(groupNoteResponses.groupNoteId, noteRow.note.id))
+        .orderBy(groupNoteResponses.createdAt);
+
+      notesWithResponses.push({
+        ...noteRow.note,
+        author: noteRow.author,
+        responses: responses.map(r => ({
+          ...r.response,
+          author: r.author
+        }))
+      });
+    }
+
+    return notesWithResponses;
+  }
+
+  async createGroupNote(note: InsertGroupNote): Promise<GroupNote> {
+    const [created] = await db.insert(groupNotes).values(note).returning();
+    return created;
+  }
+
+  async createGroupNoteResponse(response: InsertGroupNoteResponse): Promise<GroupNoteResponse> {
+    const [created] = await db.insert(groupNoteResponses).values(response).returning();
+    return created;
+  }
+
+  async assignTestToGroup(groupId: string, testId: string, assignedBy: string, dueDate?: Date): Promise<GroupTestAssignment> {
+    const [assignment] = await db.insert(groupTestAssignments).values({
+      groupId,
+      testId,
+      assignedBy,
+      dueDate
+    }).returning();
+
+    // Also create individual test assignments for all group members
+    const groupData = await this.getGroupById(groupId);
+    if (groupData) {
+      for (const member of groupData.members) {
+        await this.createTestAssignment({
+          testId,
+          userId: member.userId,
+          assignedBy,
+          dueDate
+        });
+      }
+    }
+
+    return assignment;
+  }
+
+  async getGroupTestAssignments(groupId: string): Promise<(GroupTestAssignment & { test: Test, assignedByUser: User })[]> {
+    return await db
+      .select({
+        id: groupTestAssignments.id,
+        groupId: groupTestAssignments.groupId,
+        testId: groupTestAssignments.testId,
+        assignedBy: groupTestAssignments.assignedBy,
+        dueDate: groupTestAssignments.dueDate,
+        createdAt: groupTestAssignments.createdAt,
+        test: tests,
+        assignedByUser: users
+      })
+      .from(groupTestAssignments)
+      .innerJoin(tests, eq(groupTestAssignments.testId, tests.id))
+      .innerJoin(users, eq(groupTestAssignments.assignedBy, users.id))
+      .where(eq(groupTestAssignments.groupId, groupId))
+      .orderBy(desc(groupTestAssignments.createdAt));
+  }
+
+  async getGroupPerformance(groupId: string): Promise<{ member: User, progress: Progress[], testResults: any[] }[]> {
+    const groupData = await this.getGroupById(groupId);
+    if (!groupData) return [];
+
+    const performanceData = [];
+    for (const member of groupData.members) {
+      const memberProgress = await this.getUserProgress(member.userId);
+      const testResults = await db
+        .select({
+          test: tests,
+          attempt: attempts
+        })
+        .from(attempts)
+        .innerJoin(tests, eq(attempts.testId, tests.id))
+        .where(and(eq(attempts.userId, member.userId), sql`${attempts.submittedAt} IS NOT NULL`))
+        .orderBy(desc(attempts.submittedAt));
+
+      performanceData.push({
+        member: member.user,
+        progress: memberProgress,
+        testResults
+      });
+    }
+
+    return performanceData;
   }
 
   async getUserGroups(userId: string): Promise<(GroupMember & { group: Group })[]> {

@@ -136,10 +136,10 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
         },
         {
           icon: "fas fa-users",
-          title: "Manage Groups",
+          title: "Group Management",
           description: "Create and manage student groups",
           color: "emerald",
-          action: () => onNavigate("admin"),
+          action: () => onNavigate("group-management"),
         },
         {
           icon: "fas fa-shield-alt",
@@ -150,7 +150,7 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
         },
         {
           icon: "fas fa-users-cog",
-          title: "Student Management",
+          title: "Individual Students",
           description: "Notes & task tracking",
           color: "indigo",
           action: () => onNavigate("enhanced-admin"),

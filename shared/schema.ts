@@ -214,6 +214,36 @@ export const groupMembers = pgTable("group_members", {
   joinedAt: timestamp("joined_at").notNull().default(sql`now()`),
 });
 
+// Group Notes system for communication with groups
+export const groupNotes = pgTable("group_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  authorId: varchar("author_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  isAnnouncement: boolean("is_announcement").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Group Note Responses for student replies
+export const groupNoteResponses = pgTable("group_note_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupNoteId: varchar("group_note_id").notNull().references(() => groupNotes.id, { onDelete: "cascade" }),
+  authorId: varchar("author_id").notNull().references(() => users.id),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Group Test Assignments
+export const groupTestAssignments = pgTable("group_test_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  testId: varchar("test_id").notNull().references(() => tests.id, { onDelete: "cascade" }),
+  assignedBy: varchar("assigned_by").notNull().references(() => users.id),
+  dueDate: timestamp("due_date"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 export const materialViews = pgTable("material_views", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   materialId: varchar("material_id").notNull().references(() => materials.id, { onDelete: "cascade" }),
@@ -260,6 +290,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   problemReports: many(problemReports, { relationName: "user_reports" }),
   resolvedReports: many(problemReports, { relationName: "resolved_reports" }),
   groupMemberships: many(groupMembers),
+  authoredGroupNotes: many(groupNotes),
+  groupNoteResponses: many(groupNoteResponses),
+  groupTestAssignments: many(groupTestAssignments),
   materialViews: many(materialViews),
   activityLogs: many(activityLogs),
 }));
@@ -394,8 +427,11 @@ export const problemReportsRelations = relations(problemReports, ({ one }) => ({
   }),
 }));
 
+// Group Relations
 export const groupsRelations = relations(groups, ({ many }) => ({
   members: many(groupMembers),
+  notes: many(groupNotes),
+  testAssignments: many(groupTestAssignments),
 }));
 
 export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
@@ -405,6 +441,44 @@ export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
   }),
   user: one(users, {
     fields: [groupMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const groupNotesRelations = relations(groupNotes, ({ one, many }) => ({
+  group: one(groups, {
+    fields: [groupNotes.groupId],
+    references: [groups.id],
+  }),
+  author: one(users, {
+    fields: [groupNotes.authorId],
+    references: [users.id],
+  }),
+  responses: many(groupNoteResponses),
+}));
+
+export const groupNoteResponsesRelations = relations(groupNoteResponses, ({ one }) => ({
+  groupNote: one(groupNotes, {
+    fields: [groupNoteResponses.groupNoteId],
+    references: [groupNotes.id],
+  }),
+  author: one(users, {
+    fields: [groupNoteResponses.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const groupTestAssignmentsRelations = relations(groupTestAssignments, ({ one }) => ({
+  group: one(groups, {
+    fields: [groupTestAssignments.groupId],
+    references: [groups.id],
+  }),
+  test: one(tests, {
+    fields: [groupTestAssignments.testId],
+    references: [tests.id],
+  }),
+  assignedByUser: one(users, {
+    fields: [groupTestAssignments.assignedBy],
     references: [users.id],
   }),
 }));
@@ -529,6 +603,21 @@ export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
   timestamp: true,
 });
 
+export const insertGroupNoteSchema = createInsertSchema(groupNotes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGroupNoteResponseSchema = createInsertSchema(groupNoteResponses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGroupTestAssignmentSchema = createInsertSchema(groupTestAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -570,6 +659,12 @@ export type InsertMaterialView = z.infer<typeof insertMaterialViewSchema>;
 export type MaterialView = typeof materialViews.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertGroupNote = z.infer<typeof insertGroupNoteSchema>;
+export type GroupNote = typeof groupNotes.$inferSelect;
+export type InsertGroupNoteResponse = z.infer<typeof insertGroupNoteResponseSchema>;
+export type GroupNoteResponse = typeof groupNoteResponses.$inferSelect;
+export type InsertGroupTestAssignment = z.infer<typeof insertGroupTestAssignmentSchema>;
+export type GroupTestAssignment = typeof groupTestAssignments.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({

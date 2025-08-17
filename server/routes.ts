@@ -2167,27 +2167,11 @@ Format as JSON with this exact structure:
   // Group Management API routes
   app.get("/api/groups", requireAdmin, async (req: any, res) => {
     try {
-      const groups = await storage.getGroups();
+      const groups = await storage.getAllGroups();
       res.json({ groups });
     } catch (error) {
       console.error("Error fetching groups:", error);
       res.status(500).json({ message: "Failed to fetch groups" });
-    }
-  });
-
-  app.get("/api/groups/:id", requireAdmin, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const group = await storage.getGroup(id);
-      
-      if (!group) {
-        return res.status(404).json({ message: "Group not found" });
-      }
-      
-      res.json({ group });
-    } catch (error) {
-      console.error("Error fetching group:", error);
-      res.status(500).json({ message: "Failed to fetch group" });
     }
   });
 
@@ -2205,7 +2189,23 @@ Format as JSON with this exact structure:
     }
   });
 
-  app.patch("/api/groups/:id", requireAdmin, async (req: any, res) => {
+  app.get("/api/groups/:id", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const group = await storage.getGroupById(id);
+      
+      if (!group) {
+        return res.status(404).json({ message: "Group not found" });
+      }
+      
+      res.json({ group });
+    } catch (error) {
+      console.error("Error fetching group:", error);
+      res.status(500).json({ message: "Failed to fetch group" });
+    }
+  });
+
+  app.put("/api/groups/:id", requireAdmin, async (req: any, res) => {
     try {
       const { id } = req.params;
       const updates = req.body;
@@ -2232,37 +2232,130 @@ Format as JSON with this exact structure:
   app.post("/api/groups/:id/members", requireAdmin, async (req: any, res) => {
     try {
       const { id: groupId } = req.params;
-      const { userIds, role = "MEMBER" } = req.body;
+      const { userId, role = "MEMBER" } = req.body;
       
-      if (!Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({ message: "userIds array is required" });
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
       }
       
-      const members = [];
-      for (const userId of userIds) {
-        const member = await storage.addGroupMember({
-          groupId,
-          userId,
-          role
-        });
-        members.push(member);
-      }
-      
-      res.json({ members });
+      const member = await storage.addMemberToGroup(groupId, userId, role);
+      res.json({ member });
     } catch (error) {
-      console.error("Error adding group members:", error);
-      res.status(500).json({ message: "Failed to add group members" });
+      console.error("Error adding group member:", error);
+      res.status(500).json({ message: "Failed to add group member" });
     }
   });
 
-  app.delete("/api/groups/:groupId/members/:userId", requireAdmin, async (req: any, res) => {
+  app.delete("/api/groups/:id/members/:userId", requireAdmin, async (req: any, res) => {
     try {
-      const { groupId, userId } = req.params;
-      await storage.removeGroupMember(groupId, userId);
+      const { id: groupId, userId } = req.params;
+      await storage.removeMemberFromGroup(groupId, userId);
       res.json({ message: "Member removed successfully" });
     } catch (error) {
       console.error("Error removing group member:", error);
       res.status(500).json({ message: "Failed to remove group member" });
+    }
+  });
+
+  app.get("/api/groups/:id/notes", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if user has access to this group (admin or group member)
+      if (req.user.role !== "ADMIN") {
+        const userGroups = await storage.getUserGroups(req.user.id);
+        const hasAccess = userGroups.some(membership => membership.groupId === id);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+      
+      const notes = await storage.getGroupNotes(id);
+      res.json({ notes });
+    } catch (error) {
+      console.error("Error fetching group notes:", error);
+      res.status(500).json({ message: "Failed to fetch group notes" });
+    }
+  });
+
+  app.post("/api/groups/:id/notes", requireAuth, async (req: any, res) => {
+    try {
+      const { id: groupId } = req.params;
+      const { title, body, isAnnouncement = false } = req.body;
+      
+      // Check if user has access to this group (admin or group member)
+      if (req.user.role !== "ADMIN") {
+        const userGroups = await storage.getUserGroups(req.user.id);
+        const hasAccess = userGroups.some(membership => membership.groupId === groupId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+      
+      const note = await storage.createGroupNote({
+        groupId,
+        authorId: req.user.id,
+        title,
+        body,
+        isAnnouncement: req.user.role === "ADMIN" ? isAnnouncement : false
+      });
+      
+      res.json({ note });
+    } catch (error) {
+      console.error("Error creating group note:", error);
+      res.status(500).json({ message: "Failed to create group note" });
+    }
+  });
+
+  app.post("/api/group-notes/:id/responses", requireAuth, async (req: any, res) => {
+    try {
+      const { id: groupNoteId } = req.params;
+      const { body } = req.body;
+      
+      const response = await storage.createGroupNoteResponse({
+        groupNoteId,
+        authorId: req.user.id,
+        body
+      });
+      
+      res.json({ response });
+    } catch (error) {
+      console.error("Error responding to group note:", error);
+      res.status(500).json({ message: "Failed to respond to group note" });
+    }
+  });
+
+  app.post("/api/groups/:id/assign-test", requireAdmin, async (req: any, res) => {
+    try {
+      const { id: groupId } = req.params;
+      const { testId, dueDate } = req.body;
+      
+      if (!testId) {
+        return res.status(400).json({ message: "testId is required" });
+      }
+      
+      const assignment = await storage.assignTestToGroup(
+        groupId, 
+        testId, 
+        req.user.id,
+        dueDate ? new Date(dueDate) : undefined
+      );
+      
+      res.json({ assignment });
+    } catch (error) {
+      console.error("Error assigning test to group:", error);
+      res.status(500).json({ message: "Failed to assign test to group" });
+    }
+  });
+
+  app.get("/api/groups/:id/performance", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const performance = await storage.getGroupPerformance(id);
+      res.json({ performance });
+    } catch (error) {
+      console.error("Error fetching group performance:", error);
+      res.status(500).json({ message: "Failed to fetch group performance" });
     }
   });
 
