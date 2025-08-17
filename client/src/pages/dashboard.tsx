@@ -99,52 +99,78 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
     return colorMap[color] || { bg: "bg-slate-100", text: "text-slate-600" };
   };
 
-  const quickActions = [
-    {
-      icon: "fas fa-phone-alt",
-      title: "Practice Call",
-      description: "Start a roleplay session",
-      color: "emerald",
-      action: () => handlePracticeCall("General Practice"),
-    },
-    {
-      icon: "fas fa-file-alt",
-      title: "Take Quiz",
-      description: "Test your knowledge",
-      color: "blue",
-      action: () => onNavigate("tests"),
-    },
-    {
-      icon: "fas fa-book",
-      title: "Materials",
-      description: "Access resources",
-      color: "purple",
-      action: () => onNavigate("materials"),
-    },
-    {
-      icon: "fas fa-chart-line",
-      title: "View Progress",
-      description: "Check your stats",
-      color: "amber",
-      action: () => onNavigate("profile"),
-    },
-    ...(user.role === "ADMIN" ? [
+  const getQuickActions = () => {
+    const baseActions = [
       {
-        icon: "fas fa-shield-alt",
-        title: "Admin Panel",
-        description: "User management",
-        color: "red",
-        action: () => onNavigate("admin"),
-      },
-      {
-        icon: "fas fa-users-cog",
-        title: "Student Management",
-        description: "Notes & task tracking",
-        color: "indigo",
-        action: () => onNavigate("enhanced-admin"),
+        icon: "fas fa-book",
+        title: "Materials",
+        description: "Access resources",
+        color: "purple",
+        action: () => onNavigate("materials"),
       }
-    ] : [])
-  ];
+    ];
+
+    if (user.role === "ADMIN") {
+      return [
+        ...baseActions,
+        {
+          icon: "fas fa-file-plus",
+          title: "Create Tests",
+          description: "Build quizzes for students",
+          color: "blue",
+          action: () => onNavigate("tests"),
+        },
+        {
+          icon: "fas fa-users",
+          title: "Manage Groups",
+          description: "Create and manage student groups",
+          color: "emerald",
+          action: () => onNavigate("admin"),
+        },
+        {
+          icon: "fas fa-shield-alt",
+          title: "Admin Panel",
+          description: "User management",
+          color: "red",
+          action: () => onNavigate("admin"),
+        },
+        {
+          icon: "fas fa-users-cog",
+          title: "Student Management",
+          description: "Notes & task tracking",
+          color: "indigo",
+          action: () => onNavigate("enhanced-admin"),
+        }
+      ];
+    } else {
+      return [
+        {
+          icon: "fas fa-phone-alt",
+          title: "Practice Call",
+          description: "Start a roleplay session",
+          color: "emerald",
+          action: () => handlePracticeCall("General Practice"),
+        },
+        ...baseActions,
+        {
+          icon: "fas fa-file-alt",
+          title: "Take Quiz",
+          description: "Test your knowledge",
+          color: "blue",
+          action: () => onNavigate("tests"),
+        },
+        {
+          icon: "fas fa-chart-line",
+          title: "View Progress",
+          description: "Check your stats",
+          color: "amber",
+          action: () => onNavigate("profile"),
+        }
+      ];
+    }
+  };
+
+  const quickActions = getQuickActions();
 
   return (
     <Layout user={user} currentPage="home" onNavigate={onNavigate} onLogout={onLogout}>

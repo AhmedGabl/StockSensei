@@ -9,6 +9,7 @@ A fully functional, comprehensive training Home Page built for Class Mentors (CM
 
 ## Recent Changes
 
+- ✅ **Role-Specific Dashboard Actions**: Fixed admin dashboard to show "Create Tests" and "Manage Groups" instead of student actions like "Take Quiz"
 - ✅ **Enhanced Navigation Visibility**: Updated selected navigation tabs to use clear 51Talk orange branding instead of hard-to-see white text
 - ✅ **Full AI-Native Implementation**: Complete AI chatbot and voice roleplay system deployed
 - ✅ **OpenAI Integration**: AI-powered chat assistant and practice call analysis functionality
