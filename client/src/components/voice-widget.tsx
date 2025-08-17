@@ -132,7 +132,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               .voice-widget-container {
                 isolation: isolate !important;
                 position: fixed !important;
-                bottom: 1.5rem !important;
+                bottom: 6.5rem !important;
                 right: 1.5rem !important;
                 z-index: 8888 !important;
               }
@@ -316,7 +316,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   };
 
   return (
-    <div className="voice-widget-container fixed bottom-6 right-6 z-40">
+    <div className="voice-widget-container fixed bottom-28 right-6 z-40">
       {/* Expanded Options Menu */}
       {isExpanded && (
         <Card className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
