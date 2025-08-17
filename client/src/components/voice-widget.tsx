@@ -133,27 +133,40 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
                 isolation: isolate !important;
                 position: fixed !important;
                 bottom: 1.5rem !important;
-                left: 1.5rem !important;
-                z-index: 9999 !important;
+                right: 1.5rem !important;
+                z-index: 8888 !important;
               }
               
               .voice-widget-button {
                 background-color: #000000 !important;
                 color: #ffffff !important;
-                border: 2px solid #333333 !important;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+                border: 2px solid #ffffff !important;
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.3) !important;
+                animation: pulse-glow 2s ease-in-out infinite !important;
               }
               
               .voice-widget-button:hover {
                 background-color: #111111 !important;
                 color: #ffffff !important;
-                border-color: #444444 !important;
+                border-color: #ffffff !important;
+                box-shadow: 0 0 30px rgba(255, 255, 255, 0.5) !important;
+                transform: scale(1.05) !important;
               }
               
               .voice-widget-button:disabled {
                 background-color: #222222 !important;
                 color: #ffffff !important;
-                border-color: #333333 !important;
+                border-color: #888888 !important;
+                animation: none !important;
+              }
+              
+              @keyframes pulse-glow {
+                0%, 100% {
+                  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+                }
+                50% {
+                  box-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+                }
               }
               
               /* Force all Ringg AI modal elements to black */
@@ -303,10 +316,10 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   };
 
   return (
-    <div className="voice-widget-container fixed bottom-6 left-6 z-50">
+    <div className="voice-widget-container fixed bottom-6 right-6 z-40">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
+        <Card className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
           <CardHeader className="pb-2">
             <h3 className="font-semibold text-sm text-white">Ringg AI Practice</h3>
           </CardHeader>
@@ -347,11 +360,12 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
         disabled={isLoading}
-        className="voice-widget-button w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+        className="voice-widget-button w-16 h-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group pulse-ring"
         style={{
           backgroundColor: isLoading ? '#222222' : '#000000',
           color: '#ffffff',
-          border: '2px solid #333333'
+          border: '2px solid #ffffff',
+          boxShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
         }}
       >
         {isLoading ? (
@@ -365,9 +379,10 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       
       {/* Tooltip */}
       {!isExpanded && (
-        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block">
-          <div className="bg-black border border-gray-600 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-            Ringg AI Practice
+        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+          <div className="bg-black border border-white text-white text-xs rounded py-2 px-3 whitespace-nowrap shadow-lg">
+            🎤 Ringg AI Practice
+            <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
           </div>
         </div>
       )}
