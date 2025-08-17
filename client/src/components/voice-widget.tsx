@@ -111,7 +111,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
             link.type = "text/css";
             link.href = `https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@${version}/dist/style.css`;
             
-            // Add CSS to isolate Ringg styles
+            // Add CSS to isolate Ringg styles and protect voice widget
             const style = document.createElement("style");
             style.textContent = `
               /* Isolate Ringg AI styles and prevent conflicts */
@@ -124,6 +124,32 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               /* Prevent Ringg AI from overriding our app styles */
               .cm-training-app {
                 isolation: isolate;
+              }
+              
+              /* Protect voice widget from color distortion */
+              .voice-widget-container {
+                isolation: isolate !important;
+                position: fixed !important;
+                bottom: 1.5rem !important;
+                left: 1.5rem !important;
+                z-index: 9999 !important;
+              }
+              
+              .voice-widget-button {
+                background-color: #1f2937 !important;
+                color: #ffffff !important;
+                border: none !important;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+              }
+              
+              .voice-widget-button:hover {
+                background-color: #374151 !important;
+                color: #ffffff !important;
+              }
+              
+              .voice-widget-button:disabled {
+                background-color: #6b7280 !important;
+                color: #ffffff !important;
               }
             `;
             document.head.appendChild(style);
@@ -175,12 +201,12 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   };
 
   return (
-    <div className="fixed bottom-6 left-6 z-50">
+    <div className="voice-widget-container fixed bottom-6 left-6 z-50">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2">
+        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 bg-white dark:bg-gray-800">
           <CardHeader className="pb-2">
-            <h3 className="font-semibold text-sm">Ringg AI Practice</h3>
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Ringg AI Practice</h3>
           </CardHeader>
           <CardContent className="space-y-2">
             {/* Ringg AI Voice Call */}
@@ -188,12 +214,12 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               onClick={handleVoiceCall}
               disabled={isLoading}
               variant="outline"
-              className="w-full justify-start text-left"
+              className="w-full justify-start text-left bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               <i className="fas fa-microphone mr-2 text-green-600"></i>
               <div>
-                <div className="font-medium">Voice Practice</div>
-                <div className="text-xs text-gray-500">AI Roleplay Calls</div>
+                <div className="font-medium text-gray-900 dark:text-white">Voice Practice</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">AI Roleplay Calls</div>
               </div>
             </Button>
 
@@ -201,23 +227,28 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
             <Button
               onClick={handleTextChat}
               variant="outline"
-              className="w-full justify-start text-left"
+              className="w-full justify-start text-left bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               <i className="fas fa-keyboard mr-2 text-purple-600"></i>
               <div>
-                <div className="font-medium">Text Practice</div>
-                <div className="text-xs text-gray-500">AI Text Chat</div>
+                <div className="font-medium text-gray-900 dark:text-white">Text Practice</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">AI Text Chat</div>
               </div>
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Main Floating Button */}
+      {/* Main Floating Button - Force black styling */}
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
         disabled={isLoading}
-        className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+        className="voice-widget-button w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group border-0"
+        style={{
+          backgroundColor: isLoading ? '#6b7280' : '#1f2937',
+          color: '#ffffff',
+          border: 'none'
+        }}
       >
         {isLoading ? (
           <i className="fas fa-spinner fa-spin text-white text-xl"></i>
