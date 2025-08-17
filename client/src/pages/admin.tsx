@@ -123,7 +123,7 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold text-slate-800">Admin Home Page</h1>
             <p className="text-slate-600">Manage users and monitor training progress</p>
           </div>
           <Badge variant="secondary" className="bg-red-100 text-red-700">

@@ -245,10 +245,10 @@ export default function EnhancedAdminPage({ user, onNavigate, onLogout }: Enhanc
             onClick={() => onNavigate("dashboard")}
             className="gap-2"
           >
-            ← Back to Dashboard
+            ← Back to Home Page
           </Button>
         </div>
-        <h1 className="text-3xl font-bold">Enhanced Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold">Enhanced Admin Home Page</h1>
         <p className="text-muted-foreground">Comprehensive student management with notes, tasks, and analytics</p>
       </div>
 
