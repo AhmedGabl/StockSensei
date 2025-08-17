@@ -8,6 +8,167 @@ import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { getChatResponse, analyzePracticeCall, scoreShortAnswer } from "./openai";
 import type { ChatMessage } from "./openai";
+import * as pdfParse from "pdf-parse";
+import * as ffmpeg from "fluent-ffmpeg";
+import { promises as fs } from "fs";
+import * as path from "path";
+import * as os from "os";
+
+// Function to extract content from uploaded files
+async function extractFileContent(fileUrl: string, fileName: string, fileType: string): Promise<string> {
+  console.log(`Starting content extraction for ${fileName} (${fileType})`);
+  
+  try {
+    const objectStorageService = new ObjectStorageService();
+    
+    if (fileType === 'VIDEO') {
+      // For video files, use OpenAI Whisper to extract audio transcript
+      console.log("Processing video file for transcript extraction");
+      
+      // Create a temporary file for the video
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'video-'));
+      const tempVideoPath = path.join(tempDir, fileName);
+      const tempAudioPath = path.join(tempDir, 'audio.mp3');
+      
+      try {
+        // Get the video file from object storage
+        const videoFile = await objectStorageService.getObjectEntityFile(fileUrl);
+        const videoStream = videoFile.createReadStream();
+        
+        // Save video to temporary file
+        const videoBuffer = [];
+        for await (const chunk of videoStream) {
+          videoBuffer.push(chunk);
+        }
+        await fs.writeFile(tempVideoPath, Buffer.concat(videoBuffer));
+        
+        // Extract audio using ffmpeg
+        await new Promise((resolve, reject) => {
+          ffmpeg(tempVideoPath)
+            .output(tempAudioPath)
+            .audioCodec('mp3')
+            .on('end', resolve)
+            .on('error', reject)
+            .run();
+        });
+        
+        // Use OpenAI Whisper to transcribe the audio
+        const audioBuffer = await fs.readFile(tempAudioPath);
+        
+        // Create OpenAI instance for transcription
+        const OpenAI = require('openai');
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        
+        // Create a readable stream for the audio file
+        const transcription = await openai.audio.transcriptions.create({
+          file: await fs.createReadStream(tempAudioPath),
+          model: "whisper-1",
+        });
+        
+        // Clean up temporary files
+        await fs.rm(tempDir, { recursive: true });
+        
+        return `VIDEO TRANSCRIPT:
+File: ${fileName}
+Transcribed Content:
+
+${transcription.text}
+
+=== END OF VIDEO TRANSCRIPT ===`;
+        
+      } catch (error) {
+        console.error("Error processing video:", error);
+        // Clean up on error
+        try {
+          await fs.rm(tempDir, { recursive: true });
+        } catch {}
+        throw error;
+      }
+      
+    } else if (fileType === 'PDF') {
+      // For PDF files, extract text content
+      console.log("Processing PDF file for text extraction");
+      
+      try {
+        // Get the PDF file from object storage
+        const pdfFile = await objectStorageService.getObjectEntityFile(fileUrl);
+        const pdfStream = pdfFile.createReadStream();
+        
+        // Read PDF content into buffer
+        const pdfBuffer = [];
+        for await (const chunk of pdfStream) {
+          pdfBuffer.push(chunk);
+        }
+        const pdfData = Buffer.concat(pdfBuffer);
+        
+        // Parse PDF content
+        const pdfContent = await pdfParse(pdfData);
+        
+        return `PDF DOCUMENT CONTENT:
+File: ${fileName}
+Extracted Text:
+
+${pdfContent.text}
+
+=== END OF PDF CONTENT ===`;
+        
+      } catch (error) {
+        console.error("Error processing PDF:", error);
+        throw error;
+      }
+      
+    } else if (fileType === 'POWERPOINT') {
+      // For PowerPoint files, we need a different approach since there's no direct parser
+      console.log("Processing PowerPoint file - content extraction not fully implemented");
+      
+      return `POWERPOINT CONTENT:
+File: ${fileName}
+Type: PowerPoint Presentation
+
+Note: PowerPoint content extraction requires additional implementation.
+This file contains presentation slides that should be processed for content extraction.
+
+=== POWERPOINT PROCESSING NEEDED ===`;
+      
+    } else {
+      // For other document types, try to read as text
+      console.log("Processing document as text file");
+      
+      try {
+        const docFile = await objectStorageService.getObjectEntityFile(fileUrl);
+        const docStream = docFile.createReadStream();
+        
+        const docBuffer = [];
+        for await (const chunk of docStream) {
+          docBuffer.push(chunk);
+        }
+        const docContent = Buffer.concat(docBuffer).toString('utf-8');
+        
+        return `DOCUMENT CONTENT:
+File: ${fileName}
+Extracted Content:
+
+${docContent}
+
+=== END OF DOCUMENT CONTENT ===`;
+        
+      } catch (error) {
+        console.error("Error processing document:", error);
+        throw error;
+      }
+    }
+    
+  } catch (error) {
+    console.error(`Error extracting content from ${fileName}:`, error);
+    return `ERROR EXTRACTING CONTENT:
+File: ${fileName}
+Type: ${fileType}
+
+Unable to extract content from this file. Error: ${error.message}
+
+=== CONTENT EXTRACTION FAILED ===`;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -1130,32 +1291,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log(`Attempting to extract content from file: ${material.url}`);
                 console.log(`File type: ${material.type}, Original filename: ${material.fileName}`);
                 
-                // For now, we'll use OpenAI to analyze what content should be in this specific file
-                // based on the filename and type, then generate contextual content
-                const fileAnalysisPrompt = `Based on this training file information:
-- Filename: ${material.fileName || 'Unknown'}
-- Type: ${material.type}
-- Title: ${material.title}
-- Tags: ${tags.join(', ')}
-
-This appears to be a training material file. Generate detailed, specific content that would typically be found in this type of training material. Include practical procedures, key concepts, and specific knowledge that would be covered in this training content.
-
-Focus on creating realistic, detailed content that test questions could be based on. Be specific and practical.`;
-
-                // Use OpenAI to generate realistic content based on the file information
-                const contentResponse = await getChatResponse([
-                  {
-                    role: "system",
-                    content: "You are a training content analyst. Generate realistic, detailed training content based on file information provided. Focus on practical procedures, key concepts, and specific knowledge that would realistically be in this type of training material."
-                  },
-                  {
-                    role: "user", 
-                    content: fileAnalysisPrompt
-                  }
-                ]);
+                // Extract actual file content using our extraction function
+                actualFileContent = await extractFileContent(material.url, material.fileName || material.title, material.type);
                 
-                actualFileContent = contentResponse;
-                console.log(`Generated content based on file analysis, length: ${actualFileContent.length} characters`);
+                console.log(`Extracted file content length: ${actualFileContent.length} characters`);
                 
               } catch (fileError) {
                 console.error("Error extracting file content:", fileError);
