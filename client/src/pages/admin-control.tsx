@@ -136,7 +136,7 @@ export default function AdminControl({ user, onNavigate, onLogout }: AdminContro
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-            <TabsTrigger value="dashboard">Dashboard Layout</TabsTrigger>
+            <TabsTrigger value="dashboard">Home Page Layout</TabsTrigger>
             <TabsTrigger value="modules">Training Modules</TabsTrigger>
             <TabsTrigger value="tests">Test Management</TabsTrigger>
             <TabsTrigger value="content">Content Control</TabsTrigger>
@@ -148,7 +148,7 @@ export default function AdminControl({ user, onNavigate, onLogout }: AdminContro
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <i className="fas fa-layout-dashboard text-blue-600"></i>
-                  Dashboard Sections Control
+                  Home Page Sections Control
                 </CardTitle>
               </CardHeader>
               <CardContent>

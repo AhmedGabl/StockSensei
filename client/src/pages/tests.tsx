@@ -194,7 +194,7 @@ export default function TestsPage({ user, onNavigate, onLogout }: TestsProps) {
               onClick={() => onNavigate("dashboard")}
               className="gap-2"
             >
-              ← Back to Dashboard
+              ← Back to Home Page
             </Button>
             <div>
               <h1 className="text-3xl font-bold">Global Testing System</h1>

@@ -257,7 +257,7 @@ export default function Profile({ user, onNavigate, onLogout }: ProfileProps) {
                 <i className="fas fa-phone text-2xl mb-2"></i>
                 <p>No practice calls completed yet. Start your first session!</p>
                 <Button className="mt-4" onClick={() => onNavigate("dashboard")}>
-                  Go to Dashboard
+                  Go to Home Page
                 </Button>
               </div>
             )}
