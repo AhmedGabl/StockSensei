@@ -14,9 +14,7 @@ interface FileViewerProps {
 export function FileViewer({ material, isOpen, onClose }: FileViewerProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  if (!material) return null;
-
-  // Record material view when dialog opens
+  // Record material view when dialog opens - hooks must be called before any early returns
   useEffect(() => {
     if (isOpen && material) {
       const recordView = async () => {
@@ -29,6 +27,8 @@ export function FileViewer({ material, isOpen, onClose }: FileViewerProps) {
       recordView();
     }
   }, [isOpen, material]);
+
+  if (!material) return null;
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
