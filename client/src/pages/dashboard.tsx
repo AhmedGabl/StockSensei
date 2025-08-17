@@ -114,7 +114,7 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
       return [
         ...baseActions,
         {
-          icon: "fas fa-file-plus",
+          icon: "fas fa-clipboard-check",
           title: "Create Tests",
           description: "Build quizzes for students",
           color: "blue",
