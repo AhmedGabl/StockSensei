@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,6 +66,9 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
             </div>
             AI Training Hub
           </DialogTitle>
+          <DialogDescription className="text-white/80">
+            Your comprehensive training assistant with Q&A chat and practice scenarios
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden">

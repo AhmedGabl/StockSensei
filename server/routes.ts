@@ -1946,6 +1946,8 @@ Format as JSON with this exact structure:
     }
   });
 
+
+
   // General chat endpoint for compatibility with existing components
   app.post("/api/chat", requireAuth, async (req: any, res) => {
     try {
