@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { BotpressChat } from "@/components/botpress-chat";
 import { AIAssistantHub } from "@/components/ai-assistant-hub";
 import { VoiceWidget } from "@/components/voice-widget";
-import { FloatingChatBubble } from "@/components/floating-chat-bubble";
+import { EmbeddedBotpressChat } from "@/components/embedded-botpress-chat";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -208,6 +208,8 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
         onStartCall={() => handleStartPracticeCall()}
       />
 
+      {/* Embedded Botpress Chat Bubble */}
+      <EmbeddedBotpressChat user={user} />
 
     </div>
   );
