@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MessageCircle } from "lucide-react";
 import { User } from "@shared/schema";
 
 interface EmbeddedBotpressChatProps {
@@ -20,23 +19,38 @@ declare global {
 }
 
 export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isWebchatOpen, setIsWebchatOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const webchatRef = useRef<HTMLDivElement>(null);
 
+  // Load Botpress script when component mounts
   useEffect(() => {
-    if (isOpen && webchatRef.current && !isInitialized && window.botpress) {
-      // Initialize Botpress when dialog opens
-      setTimeout(() => {
+    const loadBotpressScript = () => {
+      if (document.getElementById('botpress-inject')) return;
+      
+      const script = document.createElement('script');
+      script.id = 'botpress-inject';
+      script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    };
+
+    loadBotpressScript();
+  }, []);
+
+  // Initialize Botpress when webchat opens
+  useEffect(() => {
+    if (isWebchatOpen && webchatRef.current && !isInitialized) {
+      const initBotpress = () => {
         if (window.botpress && document.getElementById('embedded-webchat')) {
           console.log('Initializing embedded Botpress webchat...');
           
-          window.botpress.on("webchat:ready", () => {
+          window.botpress?.on("webchat:ready", () => {
             console.log('Embedded Botpress webchat ready, opening...');
-            window.botpress.open();
+            window.botpress?.open();
           });
 
-          window.botpress.init({
+          window.botpress?.init({
             "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
             "configuration": {
               "version": "v1",
@@ -47,7 +61,7 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
               "phone": {},
               "termsOfService": {},
               "privacyPolicy": {},
-              "color": "#3276EA",
+              "color": "#000000", // All black theme as requested
               "variant": "solid",
               "headerVariant": "glass",
               "themeMode": "dark",
@@ -63,55 +77,52 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
           });
 
           setIsInitialized(true);
+        } else {
+          // Retry after a short delay
+          setTimeout(initBotpress, 500);
         }
-      }, 300);
+      };
+
+      // Start initialization after a brief delay
+      setTimeout(initBotpress, 300);
     }
-  }, [isOpen, isInitialized]);
+  }, [isWebchatOpen, isInitialized]);
+
+  const toggleWebchat = () => {
+    setIsWebchatOpen((prevState) => !prevState);
+  };
 
   return (
-    <>
-      {/* Floating Chat Bubble */}
-      <div className="fixed bottom-4 right-20 z-50">
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
-          size="icon"
-        >
-          <MessageCircle className="w-6 h-6" />
-        </Button>
-      </div>
-
-      {/* Chat Dialog with Embedded Botpress */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md max-h-[600px] p-0">
-          <DialogHeader className="px-4 py-3 bg-blue-500 text-white">
-            <DialogTitle className="flex items-center justify-between">
-              <span>51talk CM Assistant</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:bg-blue-600"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="h-[500px] relative">
-            <div 
-              ref={webchatRef}
-              id="embedded-webchat" 
-              style={{ width: '100%', height: '100%' }}
-            />
-            {!isInitialized && isOpen && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <div className="text-gray-500">Loading 51talk CM Assistant...</div>
-              </div>
-            )}
+    <div className="fixed bottom-4 right-20 z-50">
+      {/* Custom Floating Chat Bubble - same style as before */}
+      <Button
+        onClick={toggleWebchat}
+        className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+        size="icon"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </Button>
+      
+      {/* Embedded Webchat - positioned absolutely */}
+      <div
+        className="fixed bottom-20 right-4 z-50"
+        style={{
+          display: isWebchatOpen ? 'block' : 'none',
+          width: '380px',
+          height: '500px',
+        }}
+      >
+        <div 
+          ref={webchatRef}
+          id="embedded-webchat" 
+          className="w-full h-full bg-white rounded-lg shadow-lg"
+        />
+        {!isInitialized && isWebchatOpen && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-lg">
+            <div className="text-gray-500">Loading 51talk CM Assistant...</div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+      </div>
+    </div>
   );
 }
