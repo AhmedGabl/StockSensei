@@ -208,8 +208,7 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
         onStartCall={() => handleStartPracticeCall()}
       />
 
-      {/* Floating Chat Bubble */}
-      <FloatingChatBubble user={user} />
+
     </div>
   );
 }
