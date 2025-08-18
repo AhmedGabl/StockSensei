@@ -24,20 +24,6 @@ export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
   const [botpressLoaded, setBotpressLoaded] = useState(false);
 
   useEffect(() => {
-    // Load Botpress script if not already loaded
-    if (!document.querySelector('script[src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"]')) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
-      script.onload = () => {
-        setBotpressLoaded(true);
-        initializeBotpress();
-      };
-      document.head.appendChild(script);
-    } else if (window.botpress) {
-      setBotpressLoaded(true);
-      initializeBotpress();
-    }
-
     // Add custom styles
     if (!document.querySelector('#botpress-webchat-styles')) {
       const style = document.createElement('style');
@@ -57,14 +43,34 @@ export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
       `;
       document.head.appendChild(style);
     }
+
+    // Load Botpress script if not already loaded
+    if (!document.querySelector('script[src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
+      script.onload = () => {
+        setBotpressLoaded(true);
+      };
+      document.head.appendChild(script);
+    } else if (window.botpress) {
+      setBotpressLoaded(true);
+    }
   }, []);
 
-  const initializeBotpress = () => {
-    if (window.botpress) {
-      window.botpress.on("webchat:ready", () => {
-        window.botpress.open();
-      });
+  useEffect(() => {
+    // Initialize Botpress when dialog is open and script is loaded
+    if (isOpen && botpressLoaded && document.getElementById('webchat')) {
+      // Add a small delay to ensure DOM is ready
+      setTimeout(() => {
+        initializeBotpress();
+      }, 100);
+    }
+  }, [isOpen, botpressLoaded]);
 
+  const initializeBotpress = () => {
+    if (window.botpress && document.getElementById('webchat')) {
+      console.log('Initializing Botpress webchat...');
+      
       window.botpress.init({
         "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
         "configuration": {
@@ -89,6 +95,11 @@ export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
         },
         "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
         "selector": "#webchat"
+      });
+
+      window.botpress.on("webchat:ready", () => {
+        console.log('Botpress webchat ready, opening...');
+        window.botpress.open();
       });
     }
   };
