@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { apiRequest } from "@/lib/queryClient";
 import { BotpressChat } from "@/components/botpress-chat";
-
+import { AIAssistantHub } from "@/components/ai-assistant-hub";
 import { VoiceWidget } from "@/components/voice-widget";
 
 interface LayoutProps {
@@ -16,6 +16,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children, user, currentPage = "home", onNavigate, onLogout }: LayoutProps) {
+  const [aiHubOpen, setAiHubOpen] = useState(false);
 
 
   const handleStartPracticeCall = async () => {
@@ -102,6 +103,18 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            {/* AI Assistant Hub Button */}
+            <Button
+              onClick={() => setAiHubOpen(true)}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 border-blue-200"
+            >
+              <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <i className="fas fa-robot text-white text-xs"></i>
+              </div>
+              <span className="text-sm font-medium">AI Training Hub</span>
+            </Button>
             <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600">
               <span>{user.name || user.email}</span>
               <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
@@ -170,11 +183,24 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
               <span className="text-xs">{item.label}</span>
             </button>
           ))}
-
+          <button 
+            onClick={() => setAiHubOpen(true)}
+            className="flex flex-col items-center py-2 px-1 transition-colors text-slate-600"
+          >
+            <i className="fas fa-robot text-lg mb-1"></i>
+            <span className="text-xs">AI Hub</span>
+          </button>
         </div>
       </div>
 
 
+
+      {/* AI Assistant Hub */}
+      <AIAssistantHub
+        user={user}
+        isOpen={aiHubOpen}
+        onClose={() => setAiHubOpen(false)}
+      />
 
       {/* Floating Voice Widget */}
       <VoiceWidget
