@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Test - Botpress</title>
+    <style>
+      * {
+        direction: ltr;
+      }
+      body {
+        direction: ltr;
+        text-align: left;
+      }
+    </style>
+</head>
+<body>
+    <h1>Language Detection Test</h1>
+    <p>Test both English and Arabic to see language detection behavior:</p>
+    <ul>
+        <li>English: "Hello, how are you today?"</li>
+        <li>Arabic: "مرحبا، كيف حالك اليوم؟"</li>
+    </ul>
+    
+    <!-- Botpress Webchat -->
+    <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js" defer></script>
+    <script defer>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          if (window.botpress) {
+            window.botpress.init({
+              "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+              "configuration": {
+                "version": "v1",
+                "botName": "51talk CM",
+                "color": "#000000",
+                "themeMode": "dark",
+                "locale": "en",
+                "language": "en"
+              },
+              "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
+              "locale": "en"
+            });
+          }
+        }, 1000);
+      });
+    </script>
+</body>
+</html>

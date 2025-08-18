@@ -61,7 +61,7 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
               "phone": {},
               "termsOfService": {},
               "privacyPolicy": {},
-              "color": "#000000", // All black theme as requested
+              "color": "#000000",
               "variant": "solid",
               "headerVariant": "glass",
               "themeMode": "dark",
@@ -70,10 +70,13 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
               "feedbackEnabled": false,
               "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
               "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
-              "allowFileUpload": false
+              "allowFileUpload": false,
+              "locale": "en",
+              "language": "en"
             },
             "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
-            "selector": "#embedded-webchat"
+            "selector": "#embedded-webchat",
+            "locale": "en"
           });
 
           setIsInitialized(true);

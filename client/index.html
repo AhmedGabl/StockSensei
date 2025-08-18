@@ -1,11 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
+      /* Force English language direction */
+      * {
+        direction: ltr;
+      }
+      
       /* Embedded Botpress Webchat Styles */
       #embedded-webchat .bpWebchat {
         position: unset !important;
@@ -13,10 +18,17 @@
         height: 100% !important;
         max-height: 100% !important;
         max-width: 100% !important;
+        direction: ltr !important;
       }
 
       #embedded-webchat .bpFab {
         display: none !important;
+      }
+
+      /* Force LTR on all Botpress elements */
+      #embedded-webchat * {
+        direction: ltr !important;
+        text-align: left !important;
       }
     </style>
   </head>
