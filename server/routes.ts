@@ -2245,17 +2245,30 @@ Format as JSON with this exact structure:
   app.post("/api/groups/:id/members", requireAdmin, async (req: any, res) => {
     try {
       const { id: groupId } = req.params;
-      const { userId, role = "MEMBER" } = req.body;
+      const { userIds, role = "MEMBER" } = req.body;
       
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+      // Handle both single user and multiple users
+      const userIdList = Array.isArray(userIds) ? userIds : (req.body.userId ? [req.body.userId] : []);
+      
+      if (!userIdList || userIdList.length === 0) {
+        return res.status(400).json({ message: "userIds or userId is required" });
       }
       
-      const member = await storage.addMemberToGroup(groupId, userId, role);
-      res.json({ member });
+      const members = [];
+      for (const userId of userIdList) {
+        try {
+          const member = await storage.addMemberToGroup(groupId, userId, role);
+          members.push(member);
+        } catch (error) {
+          console.error(`Error adding user ${userId} to group ${groupId}:`, error);
+          // Continue with other users even if one fails
+        }
+      }
+      
+      res.json({ members, addedCount: members.length, totalRequested: userIdList.length });
     } catch (error) {
-      console.error("Error adding group member:", error);
-      res.status(500).json({ message: "Failed to add group member" });
+      console.error("Error adding group members:", error);
+      res.status(500).json({ message: "Failed to add group members" });
     }
   });
 

@@ -36,7 +36,7 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
       try {
-        const response = await apiRequest('/api/ai/chat', {
+        const response = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -46,6 +46,11 @@ export function BotpressChat({ user, isCollapsed, onToggle }: BotpressChatProps)
             context: 'You are a Q&A assistant for Class Mentor training. Help with training materials, class management, student interactions, and platform usage.'
           })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         return data.response;
       } catch (error) {
