@@ -1,84 +1,96 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useMutation } from "@tanstack/react-query";
 import { User } from "@shared/schema";
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
 
 interface FloatingChatBubbleProps {
   user: User;
 }
 
+declare global {
+  interface Window {
+    botpress: {
+      init: (config: any) => void;
+      open: () => void;
+      close: () => void;
+      on: (event: string, callback: () => void) => void;
+    };
+  }
+}
+
 export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: 'Hello! I\'m your CM Training assistant. Ask me about training materials, class management, student interactions, or platform usage.',
-      timestamp: new Date()
-    }
-  ]);
-  const [inputValue, setInputValue] = useState('');
+  const [botpressLoaded, setBotpressLoaded] = useState(false);
 
-  const chatMutation = useMutation({
-    mutationFn: async (message: string) => {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          context: 'You are a Q&A assistant for Class Mentor training. Help with training materials, class management, student interactions, and platform usage.'
-        })
+  useEffect(() => {
+    // Load Botpress script if not already loaded
+    if (!document.querySelector('script[src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
+      script.onload = () => {
+        setBotpressLoaded(true);
+        initializeBotpress();
+      };
+      document.head.appendChild(script);
+    } else if (window.botpress) {
+      setBotpressLoaded(true);
+      initializeBotpress();
+    }
+
+    // Add custom styles
+    if (!document.querySelector('#botpress-webchat-styles')) {
+      const style = document.createElement('style');
+      style.id = 'botpress-webchat-styles';
+      style.textContent = `
+        #webchat .bpWebchat {
+          position: unset;
+          width: 100%;
+          height: 100%;
+          max-height: 100%;
+          max-width: 100%;
+        }
+
+        #webchat .bpFab {
+          display: none;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  const initializeBotpress = () => {
+    if (window.botpress) {
+      window.botpress.on("webchat:ready", () => {
+        window.botpress.open();
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      return data.response;
-    },
-    onSuccess: (response) => {
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: response,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-    },
-    onError: (error) => {
-      console.error('Chat error:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+
+      window.botpress.init({
+        "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+        "configuration": {
+          "version": "v1",
+          "botName": "51talk CM",
+          "fabImage": "https://files.bpcontent.cloud/2025/08/17/14/20250817143903-J6S55SD1.jpeg",
+          "website": {},
+          "email": {},
+          "phone": {},
+          "termsOfService": {},
+          "privacyPolicy": {},
+          "color": "#3276EA",
+          "variant": "solid",
+          "headerVariant": "glass",
+          "themeMode": "dark",
+          "fontFamily": "inter",
+          "radius": 4,
+          "feedbackEnabled": false,
+          "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
+          "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
+          "allowFileUpload": false
+        },
+        "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
+        "selector": "#webchat"
+      });
     }
-  });
-
-  const handleSendMessage = () => {
-    if (!inputValue.trim() || chatMutation.isPending) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: inputValue.trim(),
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    chatMutation.mutate(inputValue.trim());
-    setInputValue('');
   };
 
   return (
@@ -94,12 +106,12 @@ export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
         </Button>
       </div>
 
-      {/* Chat Dialog */}
+      {/* Chat Dialog with Botpress */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-md max-h-[600px] p-0">
           <DialogHeader className="px-4 py-3 bg-blue-500 text-white">
             <DialogTitle className="flex items-center justify-between">
-              <span>Q&A Assistant</span>
+              <span>51talk CM Assistant</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -111,47 +123,14 @@ export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
             </DialogTitle>
           </DialogHeader>
           
-          <div className="flex flex-col h-[500px]">
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages.map((message, index) => (
-                  <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] p-3 rounded-lg ${
-                      message.role === 'user' 
-                        ? 'bg-blue-500 text-white ml-auto' 
-                        : 'bg-gray-100 dark:bg-gray-800'
-                    }`}>
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <div className={`text-xs mt-1 opacity-70 ${
-                        message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <div className="h-[500px]">
+            {botpressLoaded ? (
+              <div id="webchat" style={{ width: '100%', height: '100%' }}></div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-gray-500">Loading chat...</div>
               </div>
-            </ScrollArea>
-            
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Ask me about CM training..."
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  disabled={chatMutation.isPending}
-                />
-                <Button 
-                  onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || chatMutation.isPending}
-                  size="icon"
-                  className="bg-blue-500 hover:bg-blue-600"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
