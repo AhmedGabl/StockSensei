@@ -8,6 +8,18 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Fix for missing setAiHubOpen function -->
+    <script>
+      // Global function to handle AI Hub state
+      window.setAiHubOpen = function(isOpen) {
+        console.log('AI Hub state changed:', isOpen);
+        // This function can be used by external scripts or widgets
+        // to control AI Hub visibility
+      };
+      
+      // Initialize AI Hub as closed by default
+      window.aiHubOpen = false;
+    </script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>
