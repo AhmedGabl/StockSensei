@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, Play, MessageCircle } from "lucide-react";
 import { User } from "@shared/schema";
-import { EmbeddedBotpressChat } from "./embedded-botpress-chat";
 
 interface AIAssistantHubProps {
   user: User;
@@ -16,6 +15,59 @@ interface AIAssistantHubProps {
 }
 
 export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
+  const [activeTab, setActiveTab] = useState("scenarios");
+  
+  // Initialize Botpress when chatbot tab is opened
+  useEffect(() => {
+    if (activeTab === "chatbot" && isOpen) {
+      const initHubBotpress = () => {
+        if (window.botpress && document.getElementById('ai-hub-webchat')) {
+          console.log('Initializing Botpress for AI Hub...');
+          
+          window.botpress?.init({
+            "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+            "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
+            "selector": "#ai-hub-webchat",
+            "configuration": {
+              "version": "v1",
+              "botName": "51talk CM",
+              "fabImage": "https://files.bpcontent.cloud/2025/08/17/14/20250817143903-J6S55SD1.jpeg",
+              "website": {},
+              "email": {},
+              "phone": {},
+              "termsOfService": {},
+              "privacyPolicy": {},
+              "color": "#000000",
+              "variant": "solid",
+              "headerVariant": "glass",
+              "themeMode": "dark",
+              "fontFamily": "inter",
+              "radius": 4,
+              "feedbackEnabled": false,
+              "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
+              "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
+              "allowFileUpload": false
+            }
+          });
+
+          window.botpress?.on("webchat:ready", () => {
+            console.log('AI Hub Botpress ready, opening...');
+            window.botpress?.open();
+          });
+        }
+      };
+
+      if (window.botpress) {
+        initHubBotpress();
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
+        script.onload = initHubBotpress;
+        document.head.appendChild(script);
+      }
+    }
+  }, [activeTab, isOpen]);
+
   const scenarios = [
     {
       id: 1,
@@ -70,7 +122,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden p-6">
-          <Tabs defaultValue="scenarios" className="h-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="scenarios" className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
@@ -145,18 +197,13 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
             
             <TabsContent value="chatbot" className="h-[calc(100%-3rem)]">
               <div className="h-full">
-                <div className="text-center mb-6">
+                <div className="text-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">51talk CM Assistant</h3>
                   <p className="text-sm text-gray-600">Chat with the AI assistant for training support and Q&A</p>
                 </div>
                 
-                <div className="flex justify-center">
-                  <div className="relative">
-                    <EmbeddedBotpressChat user={user} />
-                    <div className="absolute top-4 left-4 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
-                      Click the chat bubble to start a conversation
-                    </div>
-                  </div>
+                <div className="h-[500px] w-full border rounded-lg overflow-hidden bg-white shadow-sm">
+                  <div id="ai-hub-webchat" className="h-full w-full"></div>
                 </div>
               </div>
             </TabsContent>
