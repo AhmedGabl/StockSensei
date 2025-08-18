@@ -5,13 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BotpressChat } from "./botpress-chat";
 import { User } from "@/lib/types";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Bot, User as UserIcon, Minimize2, Maximize2, Zap } from "lucide-react";
+import { MessageCircle, Bot } from "lucide-react";
 
 interface AIAssistantHubProps {
   user: User;
@@ -19,77 +15,8 @@ interface AIAssistantHubProps {
   onClose: () => void;
 }
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
-
 export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
   const [activeTab, setActiveTab] = useState("chat");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: 'Hello! I\'m Claude, your general-purpose AI assistant. I can help you with writing, coding, analysis, creative projects, and much more. What would you like to work on today?',
-      timestamp: new Date()
-    }
-  ]);
-  const [inputValue, setInputValue] = useState('');
-
-  const chatMutation = useMutation({
-    mutationFn: async (message: string) => {
-      const response = await apiRequest('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          context: 'You are Claude, a helpful general-purpose AI assistant. Help with any questions about writing, coding, analysis, creative work, or general inquiries.'
-        })
-      });
-      const data = await response.json();
-      return data.response;
-    },
-    onSuccess: (response) => {
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: response,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-    },
-    onError: (error) => {
-      console.error('Chat error:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    }
-  });
-
-  const handleSendMessage = () => {
-    if (!inputValue.trim() || chatMutation.isPending) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: inputValue.trim(),
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    chatMutation.mutate(inputValue.trim());
-    setInputValue('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   const scenarios = [
     {
@@ -144,14 +71,10 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
         <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
             <div className="px-6 pt-4 border-b">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="chat" className="flex items-center gap-2">
                   <MessageCircle className="w-4 h-4" />
                   Q&A Chat
-                </TabsTrigger>
-                <TabsTrigger value="assistant" className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  Text Assistant
                 </TabsTrigger>
                 <TabsTrigger value="scenarios" className="flex items-center gap-2">
                   <Bot className="w-4 h-4" />
@@ -171,92 +94,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                 </div>
               </TabsContent>
               
-              <TabsContent value="assistant" className="h-full p-6 m-0">
-                <div className="h-full flex flex-col bg-white rounded-lg border">
-                  <div className="border-b border-gray-200 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                        <Bot className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800">Claude AI Assistant</h3>
-                        <p className="text-sm text-gray-600">General-purpose AI for writing, coding, analysis, and creative work</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <ScrollArea className="flex-1 p-4">
-                    <div className="space-y-4">
-                      {messages.map((message, index) => (
-                        <div
-                          key={index}
-                          className={`flex items-start gap-3 ${
-                            message.role === 'user' ? 'flex-row-reverse' : ''
-                          }`}
-                        >
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            message.role === 'user' 
-                              ? 'bg-blue-500 text-white' 
-                              : 'bg-gradient-to-r from-green-400 to-blue-500 text-white'
-                          }`}>
-                            {message.role === 'user' ? (
-                              <UserIcon className="w-4 h-4" />
-                            ) : (
-                              <Bot className="w-4 h-4" />
-                            )}
-                          </div>
-                          <div className={`max-w-[80%] p-3 rounded-lg ${
-                            message.role === 'user'
-                              ? 'bg-blue-50 text-gray-800'
-                              : 'bg-gray-50 text-gray-800'
-                          }`}>
-                            <p className="whitespace-pre-wrap">{message.content}</p>
-                            <span className="text-xs text-gray-500 mt-2 block">
-                              {message.timestamp.toLocaleTimeString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {chatMutation.isPending && (
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Bot className="w-4 h-4 text-white" />
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                  
-                  <div className="border-t border-gray-200 p-4">
-                    <div className="flex gap-2">
-                      <Input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Ask me anything - writing, coding, analysis, creative projects..."
-                        className="flex-1"
-                        disabled={chatMutation.isPending}
-                      />
-                      <Button 
-                        onClick={handleSendMessage}
-                        disabled={!inputValue.trim() || chatMutation.isPending}
-                        className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white"
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
+
               
               <TabsContent value="scenarios" className="h-full p-6 m-0">
                 <ScrollArea className="h-full">
@@ -303,8 +141,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                               size="sm" 
                               className="w-full"
                               onClick={() => {
-                                setActiveTab("assistant");
-                                setInputValue(`Help me practice this scenario: ${scenario.title}. ${scenario.situation} The challenge is: ${scenario.challenge}`);
+                                setActiveTab("chat");
                               }}
                             >
                               Practice This Scenario
