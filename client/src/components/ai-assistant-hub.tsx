@@ -2,12 +2,10 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BotpressChat } from "./botpress-chat";
-import { User } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Bot } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bot, Play } from "lucide-react";
+import { User } from "@shared/schema";
 
 interface AIAssistantHubProps {
   user: User;
@@ -16,8 +14,6 @@ interface AIAssistantHubProps {
 }
 
 export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
-  const [activeTab, setActiveTab] = useState("chat");
-
   const scenarios = [
     {
       id: 1,
@@ -67,97 +63,70 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
             AI Training Hub
           </DialogTitle>
           <DialogDescription className="text-white/80">
-            Your comprehensive training assistant with Q&A chat and practice scenarios
+            Practice scenarios for CM training development
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex-1 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <div className="px-6 pt-4 border-b">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="chat" className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" />
-                  Q&A Chat
-                </TabsTrigger>
-                <TabsTrigger value="scenarios" className="flex items-center gap-2">
-                  <Bot className="w-4 h-4" />
-                  Practice Scenarios
-                </TabsTrigger>
-              </TabsList>
+        <div className="flex-1 overflow-hidden p-6">
+          <div className="h-full">
+            <div className="text-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Practice Scenarios</h3>
+              <p className="text-sm text-gray-600">Use these scenarios to practice your customer management skills</p>
             </div>
             
-            <div className="flex-1 overflow-hidden">
-              <TabsContent value="chat" className="h-full p-6 m-0">
-                <div className="h-full bg-gray-50 rounded-lg p-4">
-                  <BotpressChat 
-                    user={user} 
-                    isCollapsed={false} 
-                    onToggle={() => {}} 
-                  />
-                </div>
-              </TabsContent>
-              
-
-              
-              <TabsContent value="scenarios" className="h-full p-6 m-0">
-                <ScrollArea className="h-full">
-                  <div className="space-y-4">
-                    <div className="text-center mb-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">Practice Scenarios</h3>
-                      <p className="text-sm text-gray-600">Use these scenarios to practice your customer management skills</p>
-                    </div>
-                    
-                    {scenarios.map((scenario) => (
-                      <Card key={scenario.id} className="hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <CardTitle className="text-base font-semibold text-gray-800">
-                              {scenario.title}
-                            </CardTitle>
-                            <Badge variant="outline" className="text-xs">
-                              Scenario {scenario.id}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-1">Situation:</h4>
-                            <p className="text-sm text-gray-600">{scenario.situation}</p>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-1">Challenge:</h4>
-                            <p className="text-sm text-gray-600">{scenario.challenge}</p>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-1">Key Objectives:</h4>
-                            <ul className="text-sm text-gray-600 space-y-1">
-                              {scenario.objectives.map((objective, index) => (
-                                <li key={index} className="flex items-start gap-2">
-                                  <span className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
-                                  {objective}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="pt-2">
-                            <Button 
-                              size="sm" 
-                              className="w-full"
-                              onClick={() => {
-                                setActiveTab("chat");
-                              }}
-                            >
-                              Practice This Scenario
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-            </div>
-          </Tabs>
+            <ScrollArea className="h-[500px]">
+              <div className="space-y-4">
+                {scenarios.map((scenario) => (
+                  <Card key={scenario.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-base font-semibold text-gray-800">
+                          {scenario.title}
+                        </CardTitle>
+                        <Badge variant="outline" className="text-xs">
+                          Scenario {scenario.id}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">Situation:</h4>
+                        <p className="text-sm text-gray-600">{scenario.situation}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">Challenge:</h4>
+                        <p className="text-sm text-gray-600">{scenario.challenge}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">Key Objectives:</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          {scenario.objectives.map((objective, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
+                              {objective}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="pt-2">
+                        <Button 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => {
+                            // Practice scenario functionality would go here
+                            console.log(`Starting practice scenario: ${scenario.title}`);
+                          }}
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Start Practice
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

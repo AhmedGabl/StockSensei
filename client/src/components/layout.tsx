@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { BotpressChat } from "@/components/botpress-chat";
 import { AIAssistantHub } from "@/components/ai-assistant-hub";
 import { VoiceWidget } from "@/components/voice-widget";
+import { FloatingChatBubble } from "@/components/floating-chat-bubble";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -206,6 +207,9 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
       <VoiceWidget
         onStartCall={() => handleStartPracticeCall()}
       />
+
+      {/* Floating Chat Bubble */}
+      <FloatingChatBubble user={user} />
     </div>
   );
 }
