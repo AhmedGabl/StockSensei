@@ -132,8 +132,8 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               .voice-widget-container {
                 isolation: isolate !important;
                 position: fixed !important;
-                bottom: 1.5rem !important;
-                left: 1.5rem !important;
+                bottom: 6.5rem !important;
+                right: 1.5rem !important;
                 z-index: 8888 !important;
               }
               
@@ -316,10 +316,10 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   };
 
   return (
-    <div className="voice-widget-container fixed bottom-6 left-6 z-40">
+    <div className="voice-widget-container fixed bottom-28 right-6 z-40">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
+        <Card className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
           <CardHeader className="pb-2">
             <h3 className="font-semibold text-sm text-white">Ringg AI Practice</h3>
           </CardHeader>
@@ -356,9 +356,9 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
         </Card>
       )}
 
-      {/* Main Floating Button - Always visible - Force black styling */}
+      {/* Main Floating Button - Force black styling */}
       <Button
-        onClick={handleVoiceCall}
+        onClick={() => setIsExpanded(!isExpanded)}
         disabled={isLoading}
         className="voice-widget-button w-16 h-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group pulse-ring"
         style={{
@@ -370,18 +370,22 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       >
         {isLoading ? (
           <i className="fas fa-spinner fa-spin text-white text-xl"></i>
+        ) : isExpanded ? (
+          <i className="fas fa-times text-white text-xl"></i>
         ) : (
           <i className="fas fa-microphone text-white text-xl"></i>
         )}
       </Button>
       
       {/* Tooltip */}
-      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block">
-        <div className="bg-black border border-white text-white text-xs rounded py-2 px-3 whitespace-nowrap shadow-lg">
-          🎤 Click to Start Practice Call
-          <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+      {!isExpanded && (
+        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+          <div className="bg-black border border-white text-white text-xs rounded py-2 px-3 whitespace-nowrap shadow-lg">
+            🎤 Ringg AI Practice
+            <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

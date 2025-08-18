@@ -102,7 +102,18 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
             </div>
           </div>
           <div className="flex items-center space-x-3">
-
+            {/* AI Assistant Hub Button */}
+            <Button
+              onClick={() => setAiHubOpen(true)}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 border-blue-200"
+            >
+              <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <i className="fas fa-robot text-white text-xs"></i>
+              </div>
+              <span className="text-sm font-medium">AI Training Hub</span>
+            </Button>
             
             <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600">
               <span>{user.name || user.email}</span>
