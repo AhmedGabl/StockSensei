@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,88 +21,84 @@ declare global {
 
 export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [botpressLoaded, setBotpressLoaded] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const webchatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Add custom styles
-    if (!document.querySelector('#botpress-webchat-styles')) {
+    // Add Botpress styles
+    if (!document.querySelector('#botpress-styles')) {
       const style = document.createElement('style');
-      style.id = 'botpress-webchat-styles';
+      style.id = 'botpress-styles';
       style.textContent = `
-        #webchat .bpWebchat {
-          position: unset;
-          width: 100%;
-          height: 100%;
-          max-height: 100%;
-          max-width: 100%;
+        .bp-webchat-container .bpWebchat {
+          position: unset !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-height: 100% !important;
+          max-width: 100% !important;
         }
-
-        #webchat .bpFab {
-          display: none;
+        .bp-webchat-container .bpFab {
+          display: none !important;
         }
       `;
       document.head.appendChild(style);
     }
 
-    // Load Botpress script if not already loaded
+    // Load Botpress script
     if (!document.querySelector('script[src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"]')) {
       const script = document.createElement('script');
       script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
-      script.onload = () => {
-        setBotpressLoaded(true);
-      };
       document.head.appendChild(script);
-    } else if (window.botpress) {
-      setBotpressLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    // Initialize Botpress when dialog is open and script is loaded
-    if (isOpen && botpressLoaded && document.getElementById('webchat')) {
-      // Add a small delay to ensure DOM is ready
-      setTimeout(() => {
-        initializeBotpress();
-      }, 100);
-    }
-  }, [isOpen, botpressLoaded]);
+    if (isOpen && webchatRef.current && !isInitialized) {
+      // Wait for DOM and script to be ready
+      const timer = setTimeout(() => {
+        if (window.botpress) {
+          console.log('Initializing Botpress...');
+          
+          window.botpress.init({
+            "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+            "configuration": {
+              "version": "v1",
+              "botName": "51talk CM",
+              "fabImage": "https://files.bpcontent.cloud/2025/08/17/14/20250817143903-J6S55SD1.jpeg",
+              "website": {},
+              "email": {},
+              "phone": {},
+              "termsOfService": {},
+              "privacyPolicy": {},
+              "color": "#3276EA",
+              "variant": "solid",
+              "headerVariant": "glass",
+              "themeMode": "dark",
+              "fontFamily": "inter",
+              "radius": 4,
+              "feedbackEnabled": false,
+              "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
+              "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
+              "allowFileUpload": false
+            },
+            "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
+            "selector": "#bp-webchat"
+          });
 
-  const initializeBotpress = () => {
-    if (window.botpress && document.getElementById('webchat')) {
-      console.log('Initializing Botpress webchat...');
-      
-      window.botpress.init({
-        "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
-        "configuration": {
-          "version": "v1",
-          "botName": "51talk CM",
-          "fabImage": "https://files.bpcontent.cloud/2025/08/17/14/20250817143903-J6S55SD1.jpeg",
-          "website": {},
-          "email": {},
-          "phone": {},
-          "termsOfService": {},
-          "privacyPolicy": {},
-          "color": "#3276EA",
-          "variant": "solid",
-          "headerVariant": "glass",
-          "themeMode": "dark",
-          "fontFamily": "inter",
-          "radius": 4,
-          "feedbackEnabled": false,
-          "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
-          "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
-          "allowFileUpload": false
-        },
-        "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
-        "selector": "#webchat"
-      });
+          window.botpress.on("webchat:ready", () => {
+            console.log('Botpress ready, opening...');
+            window.botpress.open();
+          });
 
-      window.botpress.on("webchat:ready", () => {
-        console.log('Botpress webchat ready, opening...');
-        window.botpress.open();
-      });
+          setIsInitialized(true);
+        } else {
+          console.log('Botpress not loaded yet');
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
     }
-  };
+  }, [isOpen, isInitialized]);
 
   return (
     <>
@@ -134,11 +130,14 @@ export function FloatingChatBubble({ user }: FloatingChatBubbleProps) {
             </DialogTitle>
           </DialogHeader>
           
-          <div className="h-[500px]">
-            {botpressLoaded ? (
-              <div id="webchat" style={{ width: '100%', height: '100%' }}></div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
+          <div className="h-[500px] bp-webchat-container">
+            <div 
+              ref={webchatRef}
+              id="bp-webchat" 
+              style={{ width: '100%', height: '100%' }}
+            />
+            {!isInitialized && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-gray-500">Loading chat...</div>
               </div>
             )}
