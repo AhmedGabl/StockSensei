@@ -48,10 +48,38 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
           window.botpress?.on("webchat:ready", () => {
             console.log('Embedded Botpress webchat ready, opening...');
             window.botpress?.open();
+            
+            // Try to force conversation language
+            setTimeout(() => {
+              try {
+                // Send a system message to set language context
+                const event = new CustomEvent('bp-web-chat', {
+                  detail: {
+                    type: 'set-locale',
+                    locale: 'en'
+                  }
+                });
+                window.dispatchEvent(event);
+                console.log('Attempted to set locale to English');
+              } catch (e) {
+                console.log('Could not set locale:', e);
+              }
+            }, 1000);
           });
 
           window.botpress?.init({
             "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+            "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
+            "selector": "#embedded-webchat",
+            "config": {
+              "locale": "en",
+              "session": {
+                "lang": "en"
+              },
+              "extra": {
+                "lang": "en"
+              }
+            },
             "configuration": {
               "version": "v1",
               "botName": "51talk CM",
@@ -71,12 +99,8 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
               "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
               "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
               "allowFileUpload": false,
-              "locale": "en",
-              "language": "en"
-            },
-            "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
-            "selector": "#embedded-webchat",
-            "locale": "en"
+              "locale": "en"
+            }
           });
 
           setIsInitialized(true);
