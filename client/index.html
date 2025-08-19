@@ -19,15 +19,26 @@
         display: none !important;
       }
 
-      /* AI Hub Botpress Iframe Styles */
-      .ai-hub-iframe {
+      /* AI Hub Botpress Webchat Styles */
+      #ai-hub-webchat-container .bpWebchat {
+        position: unset !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        max-width: 100% !important;
         border: none !important;
-        outline: none !important;
+        border-radius: 0 !important;
         box-shadow: none !important;
       }
-      
-      .ai-hub-iframe:focus {
-        outline: none !important;
+
+      #ai-hub-webchat-container .bpFab {
+        display: none !important;
+      }
+
+      /* Ensure the chat interface fills the container */
+      #ai-hub-webchat-container [id^="ai-hub-botpress-"] {
+        width: 100% !important;
+        height: 100% !important;
       }
     </style>
   </head>
