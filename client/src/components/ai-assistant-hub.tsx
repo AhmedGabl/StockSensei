@@ -17,56 +17,34 @@ interface AIAssistantHubProps {
 export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
   const [activeTab, setActiveTab] = useState("scenarios");
   
-  // Initialize Botpress when chatbot tab is opened
-  useEffect(() => {
-    if (activeTab === "chatbot" && isOpen) {
-      const initHubBotpress = () => {
-        if (window.botpress && document.getElementById('ai-hub-webchat')) {
-          console.log('Initializing Botpress for AI Hub...');
-          
-          window.botpress?.init({
-            "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
-            "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
-            "selector": "#ai-hub-webchat",
-            "configuration": {
-              "version": "v1",
-              "botName": "51talk CM",
-              "fabImage": "https://files.bpcontent.cloud/2025/08/17/14/20250817143903-J6S55SD1.jpeg",
-              "website": {},
-              "email": {},
-              "phone": {},
-              "termsOfService": {},
-              "privacyPolicy": {},
-              "color": "#000000",
-              "variant": "solid",
-              "headerVariant": "glass",
-              "themeMode": "dark",
-              "fontFamily": "inter",
-              "radius": 4,
-              "feedbackEnabled": false,
-              "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
-              "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
-              "allowFileUpload": false
-            }
-          });
-
-          window.botpress?.on("webchat:ready", () => {
-            console.log('AI Hub Botpress ready, opening...');
-            window.botpress?.open();
-          });
-        }
-      };
-
-      if (window.botpress) {
-        initHubBotpress();
-      } else {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.botpress.cloud/webchat/v3.2/inject.js';
-        script.onload = initHubBotpress;
-        document.head.appendChild(script);
-      }
-    }
-  }, [activeTab, isOpen]);
+  // Create shareable webchat URL with bot configuration
+  const getShareableWebchatUrl = () => {
+    const config = {
+      "version": "v1",
+      "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
+      "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
+      "botName": "51talk CM Assistant",
+      "fabImage": "https://files.bpcontent.cloud/2025/08/17/14/20250817143903-J6S55SD1.jpeg",
+      "website": {},
+      "email": {},
+      "phone": {},
+      "termsOfService": {},
+      "privacyPolicy": {},
+      "color": "#000000",
+      "variant": "solid",
+      "headerVariant": "glass",
+      "themeMode": "dark",
+      "fontFamily": "inter",
+      "radius": 4,
+      "feedbackEnabled": false,
+      "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
+      "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
+      "allowFileUpload": false
+    };
+    
+    const configString = encodeURIComponent(JSON.stringify(config));
+    return `https://cdn.botpress.cloud/webchat/v3.2/shareable.html?config=${configString}`;
+  };
 
   const scenarios = [
     {
@@ -203,7 +181,17 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                 </div>
                 
                 <div className="h-[500px] w-full border rounded-lg overflow-hidden bg-white shadow-sm">
-                  <div id="ai-hub-webchat" className="h-full w-full"></div>
+                  <iframe
+                    src={getShareableWebchatUrl()}
+                    className="w-full h-full border-0 ai-hub-iframe"
+                    title="51talk CM Assistant"
+                    allow="microphone; camera; clipboard-write"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                    style={{
+                      background: 'transparent',
+                      borderRadius: '8px'
+                    }}
+                  />
                 </div>
               </div>
             </TabsContent>

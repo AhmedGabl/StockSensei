@@ -9,7 +9,7 @@ A fully functional, comprehensive training Home Page built for Class Mentors (CM
 
 ## Recent Changes
 
-- ✅ **Clean Botpress Integration**: Embedded Botpress webchat with floating bubble design, allowing natural language detection without interference
+- ✅ **Shareable Botpress Webchat Integration**: Implemented iframe-based shareable webchat in AI Hub with natural language detection, using CDN shareable URL approach for seamless integration
 - ✅ **Claude AI General Assistant Integration**: Updated text assistant from 51Talk-specific training helper to general-purpose Claude AI assistant with broader capabilities (writing, coding, math, analysis, creative projects)
 - ✅ **Enhanced Material-Based Test Generation**: Fixed AI test generation to properly use material content context based on file types (VIDEO, PDF, DOCUMENT), ensuring questions are directly relevant to the training materials
 - ✅ **Improved Test Generation Error Handling**: Enhanced frontend error handling to distinguish between session expiry and actual generation failures, providing more accurate user feedback
