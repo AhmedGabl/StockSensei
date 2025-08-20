@@ -1,0 +1,222 @@
+Great—let’s make **Step 1 = auto-evaluation** (no scenarios yet). Here’s a tight, do-first plan you can paste into Replit. We’ll wire Ringg’s transcript → your evaluator → a 5×20% score.
+
+# Step 1: What we’ll build
+
+1. **DB fields (or in-memory for now)**
+   `practice_calls`: `{ id, studentId, startedAt, endedAt, transcript, recordingUrl, scores, total, coachNotes }`
+
+2. **Webhook** to receive Ringg’s post-call payload → store `transcript`, `recordingUrl`, `endedAt` → call Evaluator.
+
+3. **Evaluator** service → returns five sub-scores (0–100) + `total = sum(sub * 0.20)` + `coachNotes` + brief `evidence`.
+
+4. **Minimal UI**: on the call detail page show the 5 bars + total + notes (we can add later).
+
+---
+
+## 1) Locked rubric (share between FE + BE)
+
+```ts
+// src/shared/rubric.ts
+export const WEIGHTS = { tone:0.20, rapport:0.20, empathy:0.20, handling:0.20, knowledge:0.20 } as const;
+export type Subscores = { tone:number; rapport:number; empathy:number; handling:number; knowledge:number };
+
+export function weightedTotal(s: Subscores) {
+  return Math.round(
+    s.tone*WEIGHTS.tone + s.rapport*WEIGHTS.rapport + s.empathy*WEIGHTS.empathy +
+    s.handling*WEIGHTS.handling + s.knowledge*WEIGHTS.knowledge
+  );
+}
+
+export const DEFINITIONS = {
+  tone: "Calm, respectful, professional, appropriate pace.",
+  rapport: "Warm opening, names, small acknowledgements, polite closing.",
+  empathy: "Mirrors concern, validates feelings, apologizes when apt.",
+  handling: "Structures call, probes, options, confirms next steps.",
+  knowledge: "Explains policies correctly, no false promises."
+};
+```
+
+---
+
+## 2) Webhook (Node/Express, TS)
+
+```ts
+// src/server/webhooks/ringg.ts
+import { Router } from "express";
+import { evaluateTranscript } from "../services/evaluator";
+import { saveCallArtifacts, updateScores } from "../store/calls"; // implement to your DB
+
+export const ringgWebhook = Router();
+
+ringgWebhook.post("/webhooks/ringg", async (req, res) => {
+  try {
+    const payload = req.body; // ensure app.use(express.json({ limit: '2mb' }))
+    // Typical fields (names may differ based on your Ringg config)
+    const callId = payload.call_id || payload.data?.call_id;
+    const sessionId = payload.custom_args_values?.session_id || payload.data?.session_id; // you pass this when launching call
+    const transcript = payload.transcript?.full || payload.data?.transcript;
+    const recordingUrl = payload.recording_url || payload.data?.recording_url;
+    const endedAt = payload.ended_at || new Date().toISOString();
+
+    // 1) Persist artifacts
+    await saveCallArtifacts({ sessionId, callId, transcript, recordingUrl, endedAt });
+
+    // 2) Evaluate (language can be "ar"|"en" or auto-detected)
+    const language = payload.custom_args_values?.language || "en";
+    const { scores, total, coachNotes, evidence } =
+      await evaluateTranscript({ transcript, language });
+
+    // 3) Store scores
+    await updateScores({ sessionId, scores, total, coachNotes, evidence });
+
+    res.status(200).json({ ok: true });
+  } catch (e:any) {
+    console.error("Webhook error:", e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+```
+
+---
+
+## 3) Evaluator service (LLM prompt)
+
+Use your preferred model (OpenAI is fine). Keep temp low (e.g., 0.2).
+
+```ts
+// src/server/services/evaluator.ts
+import OpenAI from "openai";
+import { weightedTotal, Subscores } from "../../shared/rubric";
+
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+export async function evaluateTranscript({ transcript, language }:{
+  transcript: string; language: "ar"|"en";
+}) {
+  const system = `You are a strict call evaluator. Score ONLY what is in the transcript. Return valid JSON.`;
+  const user = `
+Evaluate the trainee on these 5 categories (0–100 each). Language: ${language}
+
+Rubric:
+1) Tone of voice: calm, respectful, professional, appropriate pace.
+2) Building rapport: warm opening, uses names, acknowledges, polite sign-off.
+3) Showing empathy: mirrors concerns, validates feelings, apologizes when relevant.
+4) Handling skills: problem diagnosis, clear structure, gives options, sets next steps.
+5) Knowledge: accurate policy explanation, correct options, no false promises.
+
+Transcript:
+"""${transcript}"""
+
+Return ONLY JSON with this shape:
+{
+  "scores": { "tone":0-100, "rapport":0-100, "empathy":0-100, "handling":0-100, "knowledge":0-100 },
+  "evidence": { "tone":[], "rapport":[], "empathy":[], "handling":[], "knowledge":[] },
+  "coachNotes": "2-4 short bullets"
+}`;
+  const resp = await client.chat.completions.create({
+    model: "gpt-4o-mini", temperature: 0.2,
+    messages: [{ role:"system", content:system }, { role:"user", content:user }]
+  });
+
+  const text = resp.choices[0].message?.content ?? "{}";
+  const parsed = JSON.parse(text);
+  const scores: Subscores = parsed.scores;
+  const total = weightedTotal(scores);
+  const coachNotes: string = parsed.coachNotes;
+  const evidence = parsed.evidence ?? {};
+  return { scores, total, coachNotes, evidence };
+}
+```
+
+---
+
+## 4) Start-call endpoint (so UI can launch & track)
+
+This creates a row and returns a **session\_id** you also send in Ringg `variables`. (Even without scenarios, send session/student.)
+
+```ts
+// src/server/routes/startCall.ts
+import { Router } from "express";
+import { v4 as uuid } from "uuid";
+import { createCall } from "../store/calls";
+
+export const startCall = Router();
+
+startCall.post("/api/practice-calls/start", async (req, res) => {
+  const { studentId, language = "en", trainee_name } = req.body;
+  const session_id = uuid();
+  await createCall({ sessionId: session_id, studentId, startedAt: new Date().toISOString() });
+
+  // TODO: issue short-lived Ringg token server-side
+  const agentId = process.env.VITE_RINGG_AGENT_ID!;
+  const token = "SHORT_LIVED_TOKEN_FROM_SERVER"; // replace later
+
+  const variables = { session_id, student_id: studentId, language, trainee_name };
+  res.json({ agentId, token, variables });
+});
+```
+
+---
+
+## 5) Frontend launcher (fullscreen call room, no tiny bubble)
+
+```tsx
+// src/components/CallRoom.tsx
+import { useEffect } from "react";
+
+declare global {
+  interface Window { loadAgent:any; }
+}
+
+export default function CallRoom({ agentId, token, variables }:{
+  agentId:string; token:string; variables:any;
+}) {
+  useEffect(() => {
+    const loadCdn = () => new Promise<void>((resolve, reject) => {
+      if ((window as any).__ringgLoaded) return resolve();
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@latest/dist/style.css";
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/@desivocal/agents-cdn@latest/dist/dv-agent.es.js";
+      script.onload = () => { (window as any).__ringgLoaded = true; resolve(); };
+      script.onerror = () => reject(new Error("CDN load failed"));
+      document.head.appendChild(link); document.head.appendChild(script);
+    });
+
+    loadCdn().then(() => {
+      window.loadAgent({
+        agentId,
+        xApiKey: token,
+        variables,
+        container: "#ringg-call",
+        buttons: { call: { textBeforeCall:"Start", textDuringCall:"End" } }
+      });
+    });
+  }, [agentId, token, variables]);
+
+  return <div id="ringg-call" style={{position:"fixed", inset:0}} />;
+}
+```
+
+---
+
+## 6) Minimal “Call finished” view
+
+After the webhook stores scores, your UI can poll `/api/practice-calls/:sessionId` and render:
+
+* **Total** (0–100)
+* 5 bars: tone/rapport/empathy/handling/knowledge
+* **Coach notes** bullets
+* **Audio** player using `recordingUrl`
+* **Transcript** text
+
+---
+
+### What I need from you (tiny choices)
+
+1. **LLM provider**: stick with OpenAI for now?
+2. **Default evaluation language**: `"ar"` or `"en"` (we can auto-detect later).
+3. Do you want me to wire this to your current DB tables, or keep it in-memory for the first test?
+
+Answer with those 3 and I’ll tailor the code to your exact setup next.
