@@ -319,41 +319,44 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
     <div className="voice-widget-container fixed bottom-28 left-6 z-40 font-medium text-left">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <Card className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
-          <CardHeader className="pb-2">
-            <h3 className="font-semibold text-sm text-white">Ringg AI Practice</h3>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <div className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 rounded-lg p-4 space-y-3" style={{ backgroundColor: '#000000', borderColor: '#ffffff', boxShadow: '0 0 20px rgba(255, 255, 255, 0.2)' }}>
+          <div className="pb-2">
+            <h3 className="font-semibold text-sm text-white">🎤 Ringg AI Practice</h3>
+          </div>
+          <div className="space-y-2">
             {/* Ringg AI Voice Call */}
-            <Button
+            <button
               onClick={handleVoiceCall}
               disabled={isLoading}
-              variant="outline"
-              className="w-full justify-start text-left border-gray-600 hover:bg-gray-900"
-              style={{ backgroundColor: '#000000', borderColor: '#333333', color: 'white' }}
+              className="w-full p-3 rounded-lg text-left border-2 hover:bg-gray-900 transition-colors disabled:opacity-50 cursor-pointer"
+              style={{ backgroundColor: '#000000', borderColor: '#ffffff', color: 'white' }}
             >
-              <i className="fas fa-microphone mr-2 text-green-400"></i>
-              <div>
-                <div className="font-medium text-white">Voice Practice</div>
-                <div className="text-xs text-gray-400">AI Roleplay Calls</div>
+              <div className="flex items-center">
+                <i className="fas fa-microphone mr-3 text-green-400 text-lg"></i>
+                <div>
+                  <div className="font-medium text-white">Voice Practice</div>
+                  <div className="text-xs text-gray-400">AI Roleplay Calls</div>
+                </div>
               </div>
-            </Button>
+            </button>
 
             {/* Ringg AI Text Chat */}
-            <Button
+            <button
               onClick={handleTextChat}
-              variant="outline"
-              className="w-full justify-start text-left border-gray-600 hover:bg-gray-900"
-              style={{ backgroundColor: '#000000', borderColor: '#333333', color: 'white' }}
+              disabled={isLoading}
+              className="w-full p-3 rounded-lg text-left border-2 hover:bg-gray-900 transition-colors disabled:opacity-50 cursor-pointer"
+              style={{ backgroundColor: '#000000', borderColor: '#ffffff', color: 'white' }}
             >
-              <i className="fas fa-keyboard mr-2 text-purple-400"></i>
-              <div>
-                <div className="font-medium text-white">Text Practice</div>
-                <div className="text-xs text-gray-400">AI Text Chat</div>
+              <div className="flex items-center">
+                <i className="fas fa-keyboard mr-3 text-purple-400 text-lg"></i>
+                <div>
+                  <div className="font-medium text-white">Text Practice</div>
+                  <div className="text-xs text-gray-400">AI Text Chat</div>
+                </div>
               </div>
-            </Button>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </div>
       )}
       {/* Main Floating Button - Force black styling */}
       <button
