@@ -83,15 +83,15 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
             <TabsList className="grid w-full grid-cols-1 mb-4">
               <TabsTrigger value="scenarios" className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
-                Practice Scenarios
+                Practice Scenarios (Coming Soon)
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="scenarios" className="h-[calc(100%-3rem)]">
               <div className="h-full">
                 <div className="text-center mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Practice Scenarios</h3>
-                  <p className="text-sm text-gray-600">Use these scenarios to practice your customer management skills</p>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Practice Scenarios - Coming Soon</h3>
+                  <p className="text-sm text-gray-600">Interactive practice scenarios will be available soon to help you develop your customer management skills</p>
                 </div>
                 
                 <ScrollArea className="h-[500px]">
@@ -132,12 +132,11 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                             <Button 
                               size="sm" 
                               className="w-full"
-                              onClick={() => {
-                                console.log(`Starting practice scenario: ${scenario.title}`);
-                              }}
+                              disabled
+                              variant="outline"
                             >
                               <Play className="w-4 h-4 mr-2" />
-                              Start Practice
+                              Coming Soon
                             </Button>
                           </div>
                         </CardContent>
