@@ -61,9 +61,24 @@ export async function fetchRinggCallDetails(callId: string): Promise<RinggCallDe
       throw new Error(`Ringg AI API error: ${response.status} ${response.statusText}`);
     }
 
-    const callDetails = await response.json();
+    const apiResponse = await response.json();
     console.log(`Successfully fetched call details for ${callId}`);
-    return callDetails;
+    
+    // Transform the API response to our internal format
+    const callData = apiResponse.data || apiResponse;
+    return {
+      id: callData.id,
+      status: callData.call_status || callData.status,
+      participant: { name: callData.callee_name || "Student" },
+      transcript: callData.transcription_url || callData.transcript,
+      recordingUrl: callData.recording_url, // Correct field from call details API
+      duration: callData.call_duration,
+      cost: callData.call_cost,
+      startTime: callData.initiation_time || callData.created_at,
+      endTime: callData.end_time,
+      callType: callData.call_direction || callData.call_type,
+      agent: callData.agent || { id: callData.agent_id }
+    };
   } catch (error) {
     console.error(`Error fetching call details for ${callId}:`, error);
     throw error;

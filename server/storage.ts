@@ -295,18 +295,18 @@ export class DatabaseStorage implements IStorage {
 
     const callData = {
       userId,
-      scenario: callDetails.scenario || 'Practice Call',
+      scenario: callDetails.scenario || 'Ringg AI Practice Call',
       ringgCallId,
       ringgAgentId: agentId || callDetails.agent?.id,
       transcript: callDetails.transcript,
-      audioRecordingUrl: callDetails.recordingUrl,
-      callType: callDetails.callType || 'practice',
-      callCost: callDetails.cost?.toString(),
-      participantName: callDetails.participant?.name,
-      callDuration: callDetails.duration,
+      audioRecordingUrl: callDetails.audio_recording, // Use correct field name from Ringg API
+      callType: callDetails.call_type || 'webcall',
+      callCost: callDetails.call_cost?.toString(),
+      participantName: callDetails.name || callDetails.participant?.name,
+      callDuration: callDetails.call_duration,
       callStatus: callDetails.status,
-      startedAt: callDetails.startTime ? new Date(callDetails.startTime) : new Date(),
-      endedAt: callDetails.endTime ? new Date(callDetails.endTime) : null,
+      startedAt: callDetails.created_at ? new Date(callDetails.created_at) : new Date(),
+      endedAt: callDetails.call_attempt_time ? new Date(callDetails.call_attempt_time) : null,
       notes: callDetails.notes,
       outcome: callDetails.outcome,
     };

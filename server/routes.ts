@@ -541,9 +541,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let syncedCount = 0;
       for (const call of callHistory.calls || []) {
         try {
-          // Try to match with existing users or create admin record
+          // Use the requesting admin's ID as the user for synced calls
           await storage.createOrUpdatePracticeCallFromRingg({
-            userId: 'admin-sync', // Special admin sync user
+            userId: req.user.id, // Use the actual admin user ID
             ringgCallId: call.id,
             agentId: call.agent?.id,
             callDetails: call
