@@ -3,30 +3,34 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
 interface VoiceWidgetProps {
+  user?: any;
   onStartCall?: () => void;
 }
 
-export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
+export function VoiceWidget({ user: passedUser, onStartCall }: VoiceWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  // Fetch current user data
-  const { data: user } = useQuery({
+  // Use passed user data or fetch if not provided
+  const { data: fetchedUser } = useQuery({
     queryKey: ['/api/me'],
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !passedUser, // Only fetch if user data not passed as prop
   });
+
+  const userData = passedUser || fetchedUser;
 
   const handleVoiceCall = async () => {
     setIsLoading(true);
     
     try {
       // Try to initialize Ringg AI voice agent with user context
-      await initializeRinggVoiceAgent(user);
+      await initializeRinggVoiceAgent(userData);
       
       toast({
         title: "Voice Agent Ready",
-        description: `Starting your practice call${(user as any)?.user?.email ? ` for ${(user as any).user.email}` : ''}!`,
+        description: `Starting your practice call${userData?.name ? ` for ${userData.name}` : ''}!`,
       });
       
       onStartCall?.();
@@ -64,9 +68,13 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
               agentId: "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
               xApiKey: "be40b1db-451c-4ede-9acd-2c4403f51ef0",
               variables: {
-                callee_name: "CALLEE_NAME",
-                mode: "MODE",
-                scenario_id: "practice_call"
+                callee_name: userData?.name || "Student",
+                user_email: userData?.email || "",
+                user_role: userData?.role || "STUDENT",
+                platform: "CM Training Platform",
+                mode: "practice_training",
+                scenario_id: "practice_call",
+                session_type: "roleplay_practice"
               },
               buttons: {
                 modalTrigger: {
