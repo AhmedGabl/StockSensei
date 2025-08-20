@@ -1,0 +1,126 @@
+Awesome—since you’re building on **Replit** and using the **Ringg Web Call embed**, here’s a copy-paste **build prompt** you can drop into Replit’s AI (or hand to a dev) to scaffold exactly what you described, wired to your 14 scenarios and your evaluation rubric (5×20%).
+
+---
+
+# 📘 “Build This” Prompt for Replit
+
+You are a full-stack TypeScript dev building a **CM Training AI Hub** with a Ringg AI **Web Call**. Implement the following:
+
+## 0) Tech + env
+
+* Frontend: React + Vite + TypeScript, Tailwind, shadcn/ui components.
+* Backend: Express + TypeScript.
+* DB: Postgres (can be stubbed with an in-memory store for now).
+* Required env: `DATABASE_URL`, `SESSION_SECRET`, `OPENAI_API_KEY`. Optional: `VITE_RINGG_AGENT_ID`, `VITE_RINGG_X_API_KEY` (dev only—production uses a short-lived token). Use CORS for Replit `*.replit.app` and `*.replit.dev`.  &#x20;
+
+## 1) Data: 14 scenarios
+
+Create a scenarios module with IDs **S01–S14** from “Exam’s situations for New Boot Camp” (names/issues exactly as listed). Each item keeps:
+`{ id, title, persona, student_name?, age?, school_type?, level?, fixed_per_week?, consumption_note?, issue, difficulty }`.
+(Examples: Ahmed 10yo intl no fixed (S01); Omar 8yo public 3/w cons=8 (S02); Yara 6yo fixed 5/w low cons (S03); … angry about consumption rule refund (S11); working mom wants open schedule (S14).)&#x20;
+
+Export a second mapping for **Ringg variables** (JSON-compatible, small):
+`{ scenario_id, persona, voice_profile: "male_default", student_name?, age?, school_type?, level?, fixed_per_week?, consumption_note?, issue }`.
+
+## 2) Frontend: AI Hub → Voice Roleplay
+
+* Add a **tab “Voice Roleplay”**.
+* Top controls:
+
+  * Student selector (use `studentId` already in the app).
+  * Mode: “Free talk” or “Select scenario”.
+  * Scenario dropdown (S01–S14).
+  * Persona (parent | student | adult).
+  * Language (ar | en).
+  * Launch button.
+* On click “Launch”, open a **fullscreen call room** (Dialog/Sheet or a dedicated route) with container `<div id="ringg-call" />` that fills the viewport (not a tiny floating bubble).
+
+### Ringg embed (full-window)
+
+* Dynamically load Ringg CDN, then call:
+
+```ts
+loadAgent({
+  agentId,
+  xApiKey: shortLivedToken,   // from backend
+  variables: { ...scenarioVars, language, trainee_name, session_id, student_id },
+  container: "#ringg-call",   // FORCE mount to this container (not the bubble)
+  buttons: { call: { textBeforeCall:"Start", textDuringCall:"End" } }
+});
+```
+
+Use the “VoiceWidget / PracticeCall” pattern from the existing docs as reference for where to integrate. &#x20;
+
+## 3) Backend endpoints
+
+Create these routes (align with the platform’s “practice calls” API shape):
+
+* `POST /api/practice-calls/start` → body `{ studentId, scenario_id | "free", persona, language, trainee_name? }`
+
+  * Generate `session_id` (uuid), create `practiceCalls` row `{ id, userId:studentId, scenario:scenario_id, startedAt }`.
+  * Return `{ agentId, token: shortLivedToken, variables, session_id }`.
+* `POST /api/webhooks/ringg` (public)
+
+  * Accept Ringg callback. Read `custom_args_values.session_id` (or call id), then update the matching `practiceCalls` row with `{ completedAt, transcript_text, recording_url, duration }`.
+  * Trigger evaluator (below) → save `scores_json`, `coach_notes`, `total`.
+
+Follow the structure in the platform docs for practice call routes. &#x20;
+
+## 4) Evaluation (5×20%)
+
+Implement `POST /api/analyze-call` (or internal function) that takes `{ transcript, language, scenario_id }` and returns:
+
+```json
+{
+  "scores": { "tone":0-100, "rapport":0-100, "empathy":0-100, "handling":0-100, "knowledge":0-100 },
+  "total": 0-100,
+  "coach_notes": "2-4 bullets",
+  "evidence": { "tone":[...], "rapport":[...], "empathy":[...], "handling":[...], "knowledge":[...] }
+}
+```
+
+Weights: each **0.20**; `total = Σ(score_i * 0.20)`. Wire this into the webhook completion flow. (You already plan an analyze endpoint in docs.)&#x20;
+
+## 5) Student file UI
+
+On the **Student profile**, add a “Voice Practice” section that lists calls (scenario, date, duration, total, quick bars for 5 categories) with:
+
+* “View” → transcript + audio player (recording\_url) + rubric breakdown + coach notes.
+  Backed by `/api/practice-calls` list.&#x20;
+
+## 6) Security & prod notes
+
+* **Do not** ship the real Ringg key to the browser. Backend should mint a **short-lived token/string** you pass to `xApiKey` at runtime.
+* Whitelist your Replit domain(s) for the Web Call to initialize.
+* Keep optional `VITE_RINGG_*` only for local testing. Use proper sessions/CORS. &#x20;
+
+## 7) Ringg assistant prompt (use variables + KB)
+
+Configure the Ringg assistant to read variables and your Knowledge Base:
+
+```
+You are role-playing as a {{persona}} in {{language}}.
+If {{scenario_id}} == "free", pick a realistic CM scenario (policy-compliant).
+Else, use:
+- Student: {{student_name}} ({{age}}), school={{school_type}}, level={{level}}
+- Fixed/week={{fixed_per_week}}, Consumption={{consumption_note}}
+- Issue: {{issue}}
+Follow CM SOP: empathy, policy correctness, options, and next steps. Never promise refunds outside policy; escalate when needed.
+```
+
+(Keep policy docs in Ringg KB; prompt stays concise.)
+
+---
+
+### Deliverables checklist
+
+* [ ] `data/scenarios.replit.ts` (14 items) + `data/scenarios.ringg.ts` (lean vars map) from the file.&#x20;
+* [ ] AI Hub “Voice Roleplay” tab + fullscreen **Call Room** mounting Ringg in `#ringg-call`.&#x20;
+* [ ] `POST /api/practice-calls/start`, `POST /api/webhooks/ringg`, `GET /api/practice-calls`.&#x20;
+* [ ] Evaluator (5×20) + storage on the call record.&#x20;
+* [ ] Student profile “Voice Practice” list/detail views.&#x20;
+* [ ] Replit-safe CORS + env wiring.&#x20;
+
+---
+
+Want me to turn your 14 scenarios into those two exact code modules (`scenarios.replit.ts` + `scenarios.ringg.ts`) now so you can paste them in?
