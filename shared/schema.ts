@@ -50,7 +50,7 @@ export const practiceCalls = pgTable("practice_calls", {
   callType: varchar("call_type").default("practice"), // Call type
   callCost: text("call_cost"), // Call cost as text to handle decimals
   participantName: varchar("participant_name"), // User name during call
-  callDuration: integer("call_duration"), // Duration in seconds
+  callDuration: text("call_duration"), // Duration as text to handle decimals
   callStatus: varchar("call_status"), // Ringg AI call status
 });
 

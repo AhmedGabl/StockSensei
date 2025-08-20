@@ -302,8 +302,8 @@ export class DatabaseStorage implements IStorage {
       audioRecordingUrl: callDetails.audio_recording, // Use correct field name from Ringg API
       callType: callDetails.call_type || 'webcall',
       callCost: callDetails.call_cost?.toString(),
-      participantName: callDetails.name || callDetails.participant?.name,
-      callDuration: callDetails.call_duration,
+      participantName: callDetails.name || callDetails.callee_name || callDetails.participant?.name || "Unknown",
+      callDuration: callDetails.call_duration?.toString() || "0",
       callStatus: callDetails.status,
       startedAt: callDetails.created_at ? new Date(callDetails.created_at) : new Date(),
       endedAt: callDetails.call_attempt_time ? new Date(callDetails.call_attempt_time) : null,
