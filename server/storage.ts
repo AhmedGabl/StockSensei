@@ -230,7 +230,7 @@ export class DatabaseStorage implements IStorage {
   async updatePracticeCallRinggData(id: string, ringgData: {
     transcript?: string;
     audioRecordingUrl?: string;
-    callDuration?: number;
+    callDuration?: string;
     callCost?: string;
     callStatus?: string;
   }): Promise<PracticeCall> {

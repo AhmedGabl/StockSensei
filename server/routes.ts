@@ -541,9 +541,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let syncedCount = 0;
       for (const call of callHistory.calls || []) {
         try {
-          // Use the requesting admin's ID as the user for synced calls
+          // Try to find the actual user who made the call by participant name, or use admin as fallback
+          const participantName = (call as any).callee_name || (call as any).name || call.participant?.name;
+          let actualUserId = req.user.id; // Default to admin
+          
+          if (participantName && participantName !== "Student") {
+            // Try to find user by email prefix (if they used their email in call)
+            const users = await storage.getAllUsers();
+            const foundUser = users.find(u => 
+              u.email?.split('@')[0] === participantName || 
+              u.name?.toLowerCase().includes(participantName.toLowerCase())
+            );
+            if (foundUser) {
+              actualUserId = foundUser.id;
+            }
+          }
+          
           await storage.createOrUpdatePracticeCallFromRingg({
-            userId: req.user.id, // Use the actual admin user ID
+            userId: actualUserId,
             ringgCallId: call.id,
             agentId: call.agent?.id,
             callDetails: call
