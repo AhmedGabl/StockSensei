@@ -89,18 +89,11 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mb-4 flex justify-center">
-            <img 
-              src="/attached_assets/51talkhq_logo_1755413296070.jpeg" 
-              alt="51Talk HQ Logo" 
-              className="h-12 w-auto"
-            />
-          </div>
           <CardTitle className="text-2xl font-semibold text-slate-800">
             {isSignup ? "Create Account" : "Sign In"}
           </CardTitle>
           <p className="text-slate-500">
-            {isSignup ? "Join the 51Talk Training Platform" : "Welcome back to 51Talk Training"}
+            {isSignup ? "Join the CM Training Platform" : "Welcome back to CM Training"}
           </p>
         </CardHeader>
 

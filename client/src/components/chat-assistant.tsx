@@ -293,12 +293,8 @@ export function ChatAssistant({ onClose, isMinimized, onToggleMinimize }: ChatAs
       <CardHeader className="p-4 bg-orange-500 text-white rounded-t-lg">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <img 
-              src="/attached_assets/51talkhq_logo_1755413296070.jpeg" 
-              alt="51Talk Logo" 
-              className="h-5 w-auto"
-            />
-            51Talk AI Assistant
+            <Bot className="h-5 w-5" />
+            CM Training Assistant
           </CardTitle>
           <div className="flex gap-1">
             {onToggleMinimize && (

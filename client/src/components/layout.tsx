@@ -62,13 +62,9 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
           <div className="flex items-center space-x-4">
             <button 
               onClick={() => onNavigate?.("dashboard")}
-              className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
+              className="text-2xl font-bold brand-orange hover:text-orange-600 transition-colors cursor-pointer"
             >
-              <img 
-                src="/attached_assets/51talkhq_logo_1755413296070.jpeg" 
-                alt="51Talk HQ Logo" 
-                className="h-8 w-auto"
-              />
+              CM Training
             </button>
             <div className="flex items-center space-x-1 bg-slate-100 rounded-lg p-1">
               {navItems.slice(0, 4).map((item) => (

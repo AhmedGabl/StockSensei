@@ -50,24 +50,14 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
             window.botpress?.open();
           });
 
-          // Clear any cached language data to prevent language switching issues
-          if (window.localStorage) {
-            // Clear Botpress-related localStorage entries
-            Object.keys(localStorage).forEach(key => {
-              if (key.startsWith('bp-') || key.includes('botpress') || key.includes('webchat')) {
-                localStorage.removeItem(key);
-              }
-            });
-          }
-
           window.botpress?.init({
             "botId": "3f10c2b1-6fc1-4cf1-9f25-f5db2907d205",
             "clientId": "b98de221-d1f1-43c7-bad5-f279c104c231",
             "selector": "#embedded-webchat",
             "configuration": {
               "version": "v1",
-              "botName": "51Talk Training Assistant",
-              "fabImage": "/attached_assets/51talkhq_logo_1755413296070.jpeg",
+              "botName": "51talk CM",
+              "fabImage": "https://files.bpcontent.cloud/2025/08/17/14/20250817143903-J6S55SD1.jpeg",
               "website": {},
               "email": {},
               "phone": {},
@@ -82,8 +72,7 @@ export function EmbeddedBotpressChat({ user }: EmbeddedBotpressChatProps) {
               "feedbackEnabled": false,
               "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)",
               "additionalStylesheetUrl": "https://files.bpcontent.cloud/2025/08/17/14/20250817144447-K1GSV0DH.css",
-              "allowFileUpload": false,
-              "clearCache": true
+              "allowFileUpload": false
             }
           });
 

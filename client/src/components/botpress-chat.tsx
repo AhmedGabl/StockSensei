@@ -64,7 +64,7 @@ function BotpressEmbedMethod() {
           borderRadius: '8px',
           minHeight: '400px'
         }}
-        title="51Talk Training Assistant"
+        title="CM Training Q&A Assistant"
         allow="microphone"
       />
     </div>
@@ -91,9 +91,9 @@ function BotpressBubbleMethod() {
           theme: 'prism',
           themeColor: '#ea580c',
           allowedOrigins: [],
-          composerPlaceholder: 'Ask me about 51Talk training...',
-          botConversationDescription: '51Talk Training Assistant - Ask questions about training materials, class management, and platform usage.',
-          botName: '51Talk Training Assistant',
+          composerPlaceholder: 'Ask me about CM training...',
+          botConversationDescription: 'CM Training Q&A Assistant - Ask questions about training materials, class management, and platform usage.',
+          botName: 'CM Training Assistant',
           hideWidget: false
         });
       `;
