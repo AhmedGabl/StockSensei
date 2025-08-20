@@ -44,6 +44,30 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Manual recording poll test
+  const testRecordingPollMutation = useMutation({
+    mutationFn: async (ringgCallId: string) => {
+      const response = await fetch(`/api/practice-calls/poll-recording/${ringgCallId}`, {
+        method: "GET",
+      });
+      if (!response.ok) throw new Error("Failed to poll for recording");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Recording Poll Test",
+        description: `Call ${data.ringgCallId}: Transcript ${data.hasTranscript ? '✓' : '✗'}, Recording ${data.hasRecording ? '✓' : '✗'}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Poll Test Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
 
   // Fetch all practice calls
   const { data: callsData, isLoading: callsLoading } = useQuery({
@@ -229,6 +253,11 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
               </Button>
             </div>
           </div>
+          <div className="border-t pt-4 mt-4">
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Recording Poll System:</strong> Automatically captures recordings and transcripts when voice calls complete (may take 2-5 minutes).
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -348,6 +377,21 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                               title="Transcript not available"
                             >
                               <FileText className="h-3 w-3 opacity-50" />
+                            </Button>
+                          )}
+                          {call.ringgCallId && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => testRecordingPollMutation.mutate(call.ringgCallId!)}
+                              disabled={testRecordingPollMutation.isPending}
+                              title="Test recording poll status"
+                            >
+                              {testRecordingPollMutation.isPending ? (
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3 w-3" />
+                              )}
                             </Button>
                           )}
                         </div>

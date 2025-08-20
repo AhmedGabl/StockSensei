@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface VoiceWidgetProps {
   user?: any;
@@ -58,12 +59,73 @@ export function VoiceWidget({ user: passedUser, onStartCall }: VoiceWidgetProps)
     setIsExpanded(false);
   };
 
+  const startRecordingPoll = async (ringgCallId: string, userData: any) => {
+    try {
+      console.log(`Starting recording poll for Ringg call ${ringgCallId}`);
+      
+      // First, create a practice call record
+      const practiceCall = await apiRequest('/api/practice-calls/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenario: 'Voice Practice Call',
+          ringgCallId: ringgCallId
+        })
+      });
+      
+      // Then start the background polling
+      await apiRequest('/api/practice-calls/start-recording-poll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ringgCallId: ringgCallId,
+          practiceCallId: practiceCall.practiceCall.id
+        })
+      });
+      
+      toast({
+        title: "Recording Poll Started",
+        description: "System will automatically capture recordings and transcripts when available.",
+      });
+      
+    } catch (error) {
+      console.error("Error starting recording poll:", error);
+      toast({
+        title: "Recording Poll Error",
+        description: "Could not start automatic recording capture.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const initializeRinggVoiceAgent = (userData?: any): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
         // Check if Ringg AI is already loaded
         if ((window as any).loadAgent) {
           try {
+            // Hook into Ringg AI events to capture call ID
+            const originalLoadAgent = (window as any).loadAgent;
+            (window as any).loadAgent = function(config: any) {
+              // Add call event listeners
+              const originalOnCallStart = config.onCallStart;
+              config.onCallStart = (callData: any) => {
+                console.log("Ringg AI call started:", callData);
+                
+                // Start recording poll if we have a call ID
+                if (callData?.callId) {
+                  startRecordingPoll(callData.callId, userData);
+                }
+                
+                // Call original handler if it exists
+                if (originalOnCallStart) {
+                  originalOnCallStart(callData);
+                }
+              };
+              
+              return originalLoadAgent(config);
+            };
+            
             (window as any).loadAgent({
               agentId: "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
               xApiKey: "be40b1db-451c-4ede-9acd-2c4403f51ef0",

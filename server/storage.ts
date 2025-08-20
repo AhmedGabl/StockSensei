@@ -28,6 +28,13 @@ export interface IStorage {
   // Practice call operations
   createPracticeCall(call: InsertPracticeCall): Promise<PracticeCall>;
   updatePracticeCall(id: string, updates: Partial<PracticeCall>): Promise<PracticeCall>;
+  updatePracticeCallRinggData(id: string, ringgData: {
+    transcript?: string;
+    audioRecordingUrl?: string;
+    callDuration?: number;
+    callCost?: string;
+    callStatus?: string;
+  }): Promise<PracticeCall>;
   getUserPracticeCalls(userId: string): Promise<PracticeCall[]>;
   getAllPracticeCalls(): Promise<(PracticeCall & { user: Pick<User, 'name' | 'email'> })[]>;
   createOrUpdatePracticeCallFromRingg(params: {
@@ -215,6 +222,21 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(practiceCalls)
       .set(updates)
+      .where(eq(practiceCalls.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updatePracticeCallRinggData(id: string, ringgData: {
+    transcript?: string;
+    audioRecordingUrl?: string;
+    callDuration?: number;
+    callCost?: string;
+    callStatus?: string;
+  }): Promise<PracticeCall> {
+    const [updated] = await db
+      .update(practiceCalls)
+      .set(ringgData)
       .where(eq(practiceCalls.id, id))
       .returning();
     return updated;

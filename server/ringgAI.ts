@@ -71,6 +71,97 @@ export async function fetchRinggCallDetails(callId: string): Promise<RinggCallDe
 }
 
 /**
+ * Poll for call recording availability with exponential backoff
+ */
+export async function pollForCallRecording(callId: string, maxAttempts: number = 20): Promise<RinggCallDetails | null> {
+  let attempt = 0;
+  let delay = 10000; // Start with 10 seconds
+  
+  while (attempt < maxAttempts) {
+    try {
+      console.log(`Polling attempt ${attempt + 1}/${maxAttempts} for call ${callId}`);
+      
+      const callDetails = await fetchRinggCallDetails(callId);
+      
+      if (!callDetails) {
+        console.log(`Call ${callId} not found, stopping poll`);
+        return null;
+      }
+      
+      // Check if we have both transcript and recording
+      if (callDetails.transcript && callDetails.recordingUrl) {
+        console.log(`Recording and transcript ready for call ${callId}`);
+        return callDetails;
+      }
+      
+      // Check if we have at least transcript (partial success)
+      if (callDetails.transcript && !callDetails.recordingUrl) {
+        console.log(`Transcript ready for call ${callId}, recording still processing...`);
+      }
+      
+      attempt++;
+      
+      if (attempt < maxAttempts) {
+        console.log(`Waiting ${delay}ms before next poll...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Exponential backoff: increase delay but cap at 60 seconds
+        delay = Math.min(delay * 1.2, 60000);
+      }
+      
+    } catch (error) {
+      console.error(`Error during polling attempt ${attempt + 1}:`, error);
+      attempt++;
+      
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.log(`Polling timeout for call ${callId} after ${maxAttempts} attempts`);
+  
+  // Return the last known state even if recording isn't ready
+  try {
+    return await fetchRinggCallDetails(callId);
+  } catch (error) {
+    console.error(`Final fetch failed for call ${callId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Start background polling for a call's recording
+ */
+export function startCallRecordingPoll(callId: string, practiceCallId: string) {
+  console.log(`Starting background poll for recording of call ${callId}`);
+  
+  // Run polling in background without blocking
+  pollForCallRecording(callId).then(async (callDetails) => {
+    if (callDetails) {
+      try {
+        // Update the practice call with the latest data
+        const { storage } = await import('./storage');
+        
+        await storage.updatePracticeCallRinggData(practiceCallId, {
+          transcript: callDetails.transcript,
+          audioRecordingUrl: callDetails.recordingUrl,
+          callDuration: callDetails.duration,
+          callCost: callDetails.cost?.toString(),
+          callStatus: callDetails.status,
+        });
+        
+        console.log(`Updated practice call ${practiceCallId} with recording data`);
+      } catch (error) {
+        console.error(`Error updating practice call ${practiceCallId}:`, error);
+      }
+    }
+  }).catch((error) => {
+    console.error(`Background polling failed for call ${callId}:`, error);
+  });
+}
+
+/**
  * Fetch call history from Ringg AI with optional filtering
  */
 export async function fetchRinggCallHistory(params: RinggCallHistoryParams = {}): Promise<RinggCallHistory> {

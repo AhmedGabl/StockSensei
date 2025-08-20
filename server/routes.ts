@@ -8,7 +8,7 @@ import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { getChatResponse, analyzePracticeCall, scoreShortAnswer } from "./openai";
 import type { ChatMessage } from "./openai";
-import { fetchRinggCallDetails, fetchRinggCallHistory, syncCallFromRingg, testRinggConnection } from "./ringgAI";
+import { fetchRinggCallDetails, fetchRinggCallHistory, syncCallFromRingg, testRinggConnection, startCallRecordingPoll } from "./ringgAI";
 import pdfParse from "pdf-parse";
 import ffmpeg from "fluent-ffmpeg";
 import { promises as fs } from "fs";
@@ -369,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Practice call routes
   app.post("/api/practice-calls/start", requireAuth, async (req: any, res) => {
     try {
-      const { scenario } = req.body;
+      const { scenario, ringgCallId } = req.body;
       
       // Validate input
       if (!scenario || typeof scenario !== 'string') {
@@ -380,8 +380,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const practiceCall = await storage.createPracticeCall({
         userId: req.user.id,
-        scenario
+        scenario,
+        ringgCallId: ringgCallId || undefined
       });
+      
+      // If we have a Ringg call ID, start polling for recording
+      if (ringgCallId) {
+        console.log(`Starting recording poll for Ringg call ${ringgCallId}`);
+        startCallRecordingPoll(ringgCallId, practiceCall.id);
+      }
       
       console.log('Practice call created successfully:', practiceCall.id);
       res.json({ practiceCall });
@@ -467,6 +474,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ call });
     } catch (error) {
       console.error("Error syncing Ringg call:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Start polling for call recording
+  app.post("/api/practice-calls/start-recording-poll", requireAuth, async (req: any, res) => {
+    try {
+      const { ringgCallId, practiceCallId } = req.body;
+      
+      if (!ringgCallId || !practiceCallId) {
+        return res.status(400).json({ message: "Both ringgCallId and practiceCallId are required" });
+      }
+      
+      console.log(`Starting recording poll for call ${ringgCallId} -> practice call ${practiceCallId}`);
+      
+      // Start the background polling
+      startCallRecordingPoll(ringgCallId, practiceCallId);
+      
+      res.json({ 
+        message: "Recording poll started", 
+        ringgCallId, 
+        practiceCallId,
+        note: "Polling will continue in background every 10 seconds for up to 20 attempts" 
+      });
+    } catch (error) {
+      console.error("Error starting recording poll:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Manual poll for specific call recording (for testing)
+  app.get("/api/practice-calls/poll-recording/:ringgCallId", requireAuth, async (req: any, res) => {
+    try {
+      const { ringgCallId } = req.params;
+      
+      console.log(`Manual polling for recording of call ${ringgCallId}`);
+      
+      const callDetails = await fetchRinggCallDetails(ringgCallId);
+      
+      if (!callDetails) {
+        return res.status(404).json({ message: "Call not found in Ringg AI" });
+      }
+      
+      res.json({
+        ringgCallId,
+        hasTranscript: !!callDetails.transcript,
+        hasRecording: !!callDetails.recordingUrl,
+        status: callDetails.status,
+        callDetails
+      });
+    } catch (error) {
+      console.error("Error polling for recording:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
