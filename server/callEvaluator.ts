@@ -107,7 +107,15 @@ export async function analyzeAudioRecording(audioUrl: string): Promise<AudioAnal
         throw new Error('No tone analysis response');
       }
 
-      const toneAnalysis = JSON.parse(toneContent);
+      // Parse the JSON response, handling markdown code blocks
+      let jsonToneContent = toneContent.trim();
+      if (jsonToneContent.startsWith('```json')) {
+        jsonToneContent = jsonToneContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonToneContent.startsWith('```')) {
+        jsonToneContent = jsonToneContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      const toneAnalysis = JSON.parse(jsonToneContent);
       
       return {
         audioTranscript: transcription,
@@ -223,6 +231,7 @@ Please respond in the following JSON format:
   "feedback": "detailed feedback with specific examples and improvement suggestions"
 }`;
 
+  let content = '';
   try {
     const response = await openai.chat.completions.create({
       model: 'openai/gpt-4o',
@@ -240,13 +249,20 @@ Please respond in the following JSON format:
       max_tokens: 2000,
     });
 
-    const content = response.choices[0]?.message?.content;
+    content = response.choices[0]?.message?.content || '';
     if (!content) {
       throw new Error('No response from OpenAI');
     }
 
-    // Parse the JSON response
-    const evaluation = JSON.parse(content) as CallEvaluationResult;
+    // Parse the JSON response, handling markdown code blocks
+    let jsonContent = content.trim();
+    if (jsonContent.startsWith('```json')) {
+      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    const evaluation = JSON.parse(jsonContent) as CallEvaluationResult;
     
     // Validate scores are within range
     const validateScore = (score: number) => Math.max(0, Math.min(100, Math.round(score)));
@@ -261,6 +277,10 @@ Please respond in the following JSON format:
     return evaluation;
   } catch (error) {
     console.error('Error evaluating call with audio:', error);
+    if (error instanceof SyntaxError) {
+      console.error('JSON parsing error. Raw response content:', content);
+      throw new Error(`Failed to parse AI response: ${error.message}`);
+    }
     throw new Error('Failed to evaluate call');
   }
 }
