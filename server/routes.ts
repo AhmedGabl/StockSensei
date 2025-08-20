@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { getChatResponse, analyzePracticeCall, scoreShortAnswer } from "./openai";
 import type { ChatMessage } from "./openai";
+import { fetchRinggCallDetails, fetchRinggCallHistory, syncCallFromRingg, testRinggConnection } from "./ringgAI";
 import pdfParse from "pdf-parse";
 import ffmpeg from "fluent-ffmpeg";
 import { promises as fs } from "fs";
@@ -424,6 +425,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const calls = await storage.getUserPracticeCalls(req.user.id);
       res.json({ calls });
     } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Admin: Get all practice calls with recordings and transcripts
+  app.get("/api/admin/practice-calls", requireAdmin, async (req: any, res) => {
+    try {
+      const calls = await storage.getAllPracticeCalls();
+      res.json({ calls });
+    } catch (error) {
+      console.error("Error fetching all practice calls:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Sync calls from Ringg AI
+  app.post("/api/practice-calls/sync-ringg", requireAuth, async (req: any, res) => {
+    try {
+      const { ringgCallId, agentId } = req.body;
+      
+      if (!ringgCallId) {
+        return res.status(400).json({ message: "Ringg call ID is required" });
+      }
+
+      // Fetch enhanced call details from Ringg AI
+      const callDetails = await syncCallFromRingg(ringgCallId);
+      if (!callDetails) {
+        return res.status(404).json({ message: "Call not found in Ringg AI" });
+      }
+
+      // Create or update practice call with Ringg data
+      const call = await storage.createOrUpdatePracticeCallFromRingg({
+        userId: req.user.id,
+        ringgCallId,
+        agentId,
+        callDetails
+      });
+
+      res.json({ call });
+    } catch (error) {
+      console.error("Error syncing Ringg call:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Sync call history from Ringg AI (for admins)
+  app.post("/api/admin/practice-calls/sync-history", requireAdmin, async (req: any, res) => {
+    try {
+      const { startDate, endDate, agentId } = req.body;
+      
+      // Fetch call history from Ringg AI
+      const callHistory = await fetchRinggCallHistory({ startDate, endDate, agentId });
+      
+      let syncedCount = 0;
+      for (const call of callHistory.calls || []) {
+        try {
+          // Try to match with existing users or create admin record
+          await storage.createOrUpdatePracticeCallFromRingg({
+            userId: 'admin-sync', // Special admin sync user
+            ringgCallId: call.id,
+            agentId: call.agent?.id,
+            callDetails: call
+          });
+          syncedCount++;
+        } catch (error) {
+          console.error(`Error syncing call ${call.id}:`, error);
+        }
+      }
+
+      res.json({ 
+        message: `Synced ${syncedCount} calls from Ringg AI`,
+        totalCalls: callHistory.calls?.length || 0,
+        syncedCount 
+      });
+    } catch (error) {
+      console.error("Error syncing call history:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Test Ringg AI connection
+  app.get("/api/admin/ringg-test", requireAdmin, async (req: any, res) => {
+    try {
+      const isConnected = await testRinggConnection();
+      res.json({ 
+        connected: isConnected,
+        message: isConnected ? "Ringg AI connection successful" : "Ringg AI connection failed"
+      });
+    } catch (error) {
+      console.error("Error testing Ringg connection:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

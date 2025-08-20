@@ -41,6 +41,17 @@ export const practiceCalls = pgTable("practice_calls", {
   endedAt: timestamp("ended_at"),
   notes: text("notes"),
   outcome: practiceCallOutcomeEnum("outcome"),
+  
+  // Ringg AI Integration fields
+  ringgCallId: varchar("ringg_call_id"), // Ringg AI call ID
+  ringgAgentId: varchar("ringg_agent_id"), // Agent ID used
+  transcript: text("transcript"), // Call transcript
+  audioRecordingUrl: varchar("audio_recording_url"), // Audio recording URL
+  callType: varchar("call_type").default("practice"), // Call type
+  callCost: text("call_cost"), // Call cost as text to handle decimals
+  participantName: varchar("participant_name"), // User name during call
+  callDuration: integer("call_duration"), // Duration in seconds
+  callStatus: varchar("call_status"), // Ringg AI call status
 });
 
 export const materials = pgTable("materials", {

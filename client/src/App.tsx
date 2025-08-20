@@ -18,6 +18,7 @@ import ModuleAdmin from "@/pages/module-admin";
 import AdminControl from "@/pages/admin-control";
 import ProblemReports from "@/pages/problem-reports";
 import GroupManagement from "@/pages/group-management";
+import CallTracking from "@/pages/call-tracking";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("home");
@@ -66,6 +67,8 @@ function App() {
         return <ProblemReports user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "group-management":
         return <GroupManagement user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+      case "call-tracking":
+        return <CallTracking user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;
       case "home":
       default:
         return <HomePage user={user} onNavigate={setCurrentPage} onLogout={handleLogout} />;

@@ -35,6 +35,7 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
     { id: "materials", label: "Materials", icon: "fas fa-book" },
     { id: "tests", label: "Tests", icon: "fas fa-clipboard-list" },
     ...(user.role === "ADMIN" ? [
+      { id: "call-tracking", label: "Call Tracking", icon: "fas fa-phone" },
       { id: "test-builder", label: "AI Test Builder", icon: "fas fa-magic" },
       { id: "qa-assistant", label: "Q&A Assistant", icon: "fas fa-robot" }
     ] : []),

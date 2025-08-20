@@ -29,6 +29,13 @@ export interface IStorage {
   createPracticeCall(call: InsertPracticeCall): Promise<PracticeCall>;
   updatePracticeCall(id: string, updates: Partial<PracticeCall>): Promise<PracticeCall>;
   getUserPracticeCalls(userId: string): Promise<PracticeCall[]>;
+  getAllPracticeCalls(): Promise<(PracticeCall & { user: Pick<User, 'name' | 'email'> })[]>;
+  createOrUpdatePracticeCallFromRingg(params: {
+    userId: string;
+    ringgCallId: string;
+    agentId?: string;
+    callDetails: any;
+  }): Promise<PracticeCall>;
 
   // Material operations
   getMaterials(tags?: string[]): Promise<Material[]>;
@@ -219,6 +226,85 @@ export class DatabaseStorage implements IStorage {
       .from(practiceCalls)
       .where(eq(practiceCalls.userId, userId))
       .orderBy(desc(practiceCalls.startedAt));
+  }
+
+  async getAllPracticeCalls(): Promise<(PracticeCall & { user: Pick<User, 'name' | 'email'> })[]> {
+    return await db
+      .select({
+        id: practiceCalls.id,
+        userId: practiceCalls.userId,
+        scenario: practiceCalls.scenario,
+        startedAt: practiceCalls.startedAt,
+        endedAt: practiceCalls.endedAt,
+        notes: practiceCalls.notes,
+        outcome: practiceCalls.outcome,
+        ringgCallId: practiceCalls.ringgCallId,
+        ringgAgentId: practiceCalls.ringgAgentId,
+        transcript: practiceCalls.transcript,
+        audioRecordingUrl: practiceCalls.audioRecordingUrl,
+        callType: practiceCalls.callType,
+        callCost: practiceCalls.callCost,
+        participantName: practiceCalls.participantName,
+        callDuration: practiceCalls.callDuration,
+        callStatus: practiceCalls.callStatus,
+        user: {
+          name: users.name,
+          email: users.email,
+        },
+      })
+      .from(practiceCalls)
+      .innerJoin(users, eq(practiceCalls.userId, users.id))
+      .orderBy(desc(practiceCalls.startedAt));
+  }
+
+  async createOrUpdatePracticeCallFromRingg(params: {
+    userId: string;
+    ringgCallId: string;
+    agentId?: string;
+    callDetails: any;
+  }): Promise<PracticeCall> {
+    const { userId, ringgCallId, agentId, callDetails } = params;
+    
+    // Check if call already exists
+    const [existingCall] = await db
+      .select()
+      .from(practiceCalls)
+      .where(eq(practiceCalls.ringgCallId, ringgCallId));
+
+    const callData = {
+      userId,
+      scenario: callDetails.scenario || 'Practice Call',
+      ringgCallId,
+      ringgAgentId: agentId || callDetails.agent?.id,
+      transcript: callDetails.transcript,
+      audioRecordingUrl: callDetails.recordingUrl,
+      callType: callDetails.callType || 'practice',
+      callCost: callDetails.cost?.toString(),
+      participantName: callDetails.participant?.name,
+      callDuration: callDetails.duration,
+      callStatus: callDetails.status,
+      startedAt: callDetails.startTime ? new Date(callDetails.startTime) : new Date(),
+      endedAt: callDetails.endTime ? new Date(callDetails.endTime) : null,
+      notes: callDetails.notes,
+      outcome: callDetails.outcome,
+    };
+
+    if (existingCall) {
+      // Update existing call
+      const [updated] = await db
+        .update(practiceCalls)
+        .set(callData)
+        .where(eq(practiceCalls.id, existingCall.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new call
+      const [created] = await db
+        .insert(practiceCalls)
+        .values(callData)
+        .returning();
+      return created;
+    }
   }
 
   async getMaterials(tags?: string[]): Promise<Material[]> {

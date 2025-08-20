@@ -26,7 +26,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       
       toast({
         title: "Voice Agent Ready",
-        description: `Starting your practice call${user?.user?.email ? ` for ${user.user.email}` : ''}!`,
+        description: `Starting your practice call${(user as any)?.user?.email ? ` for ${(user as any).user.email}` : ''}!`,
       });
       
       onStartCall?.();
