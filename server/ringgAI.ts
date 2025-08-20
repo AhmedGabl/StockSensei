@@ -76,7 +76,6 @@ export async function fetchRinggCallDetails(callId: string): Promise<RinggCallDe
       cost: callData.call_cost,
       startTime: callData.initiation_time || callData.created_at,
       endTime: callData.end_time,
-      callType: callData.call_direction || callData.call_type,
       agent: callData.agent || { id: callData.agent_id }
     };
   } catch (error) {

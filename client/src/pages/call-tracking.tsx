@@ -92,8 +92,8 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
     },
     onSuccess: (data) => {
       toast({
-        title: "Sync Complete",
-        description: data.message,
+        title: "Sync Complete", 
+        description: `${data.message}. Found ${data.totalCalls} total calls with recordings.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/practice-calls"] });
     },
