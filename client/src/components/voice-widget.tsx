@@ -64,23 +64,16 @@ export function VoiceWidget({ user: passedUser, onStartCall }: VoiceWidgetProps)
       console.log(`Starting recording poll for Ringg call ${ringgCallId}`);
       
       // First, create a practice call record
-      const practiceCall = await apiRequest('/api/practice-calls/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scenario: 'Voice Practice Call',
-          ringgCallId: ringgCallId
-        })
+      const practiceCallResponse = await apiRequest('POST', '/api/practice-calls/start', {
+        scenario: 'Voice Practice Call with AI Assistant',
+        ringgCallId: ringgCallId
       });
+      const practiceCall = await practiceCallResponse.json();
       
       // Then start the background polling
-      await apiRequest('/api/practice-calls/start-recording-poll', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ringgCallId: ringgCallId,
-          practiceCallId: practiceCall.practiceCall.id
-        })
+      await apiRequest('POST', '/api/practice-calls/start-recording-poll', {
+        ringgCallId: ringgCallId,
+        practiceCallId: practiceCall.practiceCall.id
       });
       
       toast({
@@ -130,7 +123,7 @@ export function VoiceWidget({ user: passedUser, onStartCall }: VoiceWidgetProps)
               agentId: "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
               xApiKey: "be40b1db-451c-4ede-9acd-2c4403f51ef0",
               variables: {
-                callee_name: userData?.name || "Student",
+                callee_name: userData?.name || userData?.email?.split('@')[0] || "Student",
                 user_email: userData?.email || "",
                 user_role: userData?.role || "STUDENT",
                 platform: "CM Training Platform",

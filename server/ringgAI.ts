@@ -1,5 +1,5 @@
 // Ringg AI API Integration for call tracking and management
-const RINGG_API_BASE = 'https://api.ringg.ai';
+const RINGG_API_BASE = 'https://prod-api.ringg.ai/ca/api/v0';
 const RINGG_API_KEY = 'be40b1db-451c-4ede-9acd-2c4403f51ef0';
 
 interface RinggCallDetails {
@@ -45,10 +45,10 @@ export async function fetchRinggCallDetails(callId: string): Promise<RinggCallDe
   try {
     console.log(`Fetching call details for ID: ${callId}`);
     
-    const response = await fetch(`${RINGG_API_BASE}/calls/${callId}`, {
+    const response = await fetch(`${RINGG_API_BASE}/calling/call-details?id=${callId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${RINGG_API_KEY}`,
+        'X-API-KEY': RINGG_API_KEY,
         'Content-Type': 'application/json',
       },
     });
@@ -174,13 +174,13 @@ export async function fetchRinggCallHistory(params: RinggCallHistoryParams = {})
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
 
-    const url = `${RINGG_API_BASE}/calls/history?${queryParams.toString()}`;
+    const url = `${RINGG_API_BASE}/calling/history?${queryParams.toString()}`;
     console.log(`Fetching call history from: ${url}`);
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${RINGG_API_KEY}`,
+        'X-API-KEY': RINGG_API_KEY,
         'Content-Type': 'application/json',
       },
     });
@@ -297,10 +297,10 @@ export async function testRinggConnection(): Promise<boolean> {
   try {
     console.log('Testing Ringg AI API connection...');
     
-    const response = await fetch(`${RINGG_API_BASE}/health`, {
+    const response = await fetch(`${RINGG_API_BASE}/calling/history?limit=1`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${RINGG_API_KEY}`,
+        'X-API-KEY': RINGG_API_KEY,
         'Content-Type': 'application/json',
       },
     });

@@ -379,7 +379,7 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                               <FileText className="h-3 w-3 opacity-50" />
                             </Button>
                           )}
-                          {call.ringgCallId && (
+                          {call.ringgCallId && !call.ringgCallId.startsWith('ringg_') && (
                             <Button
                               size="sm"
                               variant="outline"
