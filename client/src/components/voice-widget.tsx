@@ -316,10 +316,10 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   };
 
   return (
-    <div className="voice-widget-container fixed bottom-28 left-6 z-40 font-medium text-left">
+    <div className="voice-widget-container fixed bottom-28 right-6 z-40 font-medium text-right">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <div className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 rounded-lg p-4 space-y-3" style={{ backgroundColor: '#000000', borderColor: '#ffffff', boxShadow: '0 0 20px rgba(255, 255, 255, 0.2)' }}>
+        <div className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2 rounded-lg p-4 space-y-3" style={{ backgroundColor: '#000000', borderColor: '#ffffff', boxShadow: '0 0 20px rgba(255, 255, 255, 0.2)' }}>
           <div className="pb-2">
             <h3 className="font-semibold text-sm text-white">🎤 Ringg AI Practice</h3>
           </div>
@@ -381,10 +381,10 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       </button>
       {/* Tooltip */}
       {!isExpanded && (
-        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block">
+        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
           <div className="bg-black border border-white text-white text-xs rounded py-2 px-3 whitespace-nowrap shadow-lg">
             🎤 Ringg AI Practice
-            <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+            <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
           </div>
         </div>
       )}
