@@ -316,7 +316,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   };
 
   return (
-    <div className="voice-widget-container fixed bottom-28 right-6 z-40">
+    <div className="voice-widget-container fixed bottom-28 right-6 z-40 font-medium text-left">
       {/* Expanded Options Menu */}
       {isExpanded && (
         <Card className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2 bg-black border-gray-600" style={{ backgroundColor: '#000000', borderColor: '#333333' }}>
@@ -355,7 +355,6 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
           </CardContent>
         </Card>
       )}
-
       {/* Main Floating Button - Force black styling */}
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -376,7 +375,6 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
           <i className="fas fa-microphone text-white text-xl"></i>
         )}
       </Button>
-      
       {/* Tooltip */}
       {!isExpanded && (
         <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
