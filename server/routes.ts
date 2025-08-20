@@ -425,6 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const calls = await storage.getUserPracticeCalls(req.user.id);
       res.json({ calls });
     } catch (error) {
+      console.error("Error fetching practice calls:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
