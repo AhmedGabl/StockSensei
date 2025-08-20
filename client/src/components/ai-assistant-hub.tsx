@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, Play, MessageCircle } from "lucide-react";
 import { User } from "@shared/schema";
-import EmbeddedBotpressChat from "./embedded-botpress-chat";
+import BotpressFloatingBubble from "./botpress-floating-bubble";
 
 interface AIAssistantHubProps {
   user: User;
@@ -159,12 +159,13 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                   <p className="text-sm text-gray-600">Chat with the AI assistant for training support and Q&A</p>
                 </div>
                 
-                <div className="flex justify-center">
-                  <div className="relative">
-                    <EmbeddedBotpressChat />
-                    <div className="absolute top-4 left-4 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
-                      Click the chat bubble to start a conversation
-                    </div>
+                <div className="text-center p-8">
+                  <BotpressFloatingBubble />
+                  <div className="text-sm text-gray-600 mb-4">
+                    The floating chat bubble will appear in the bottom-right corner of your screen
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    This tab initializes the chat widget - you can close this dialog and use the floating bubble
                   </div>
                 </div>
               </div>
