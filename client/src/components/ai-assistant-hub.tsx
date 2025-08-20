@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, Play, MessageCircle } from "lucide-react";
 import { User } from "@shared/schema";
-import { EmbeddedBotpressChat } from "./embedded-botpress-chat";
+import EmbeddedBotpressChat from "./embedded-botpress-chat";
 
 interface AIAssistantHubProps {
   user: User;
@@ -161,7 +161,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                 
                 <div className="flex justify-center">
                   <div className="relative">
-                    <EmbeddedBotpressChat user={user} />
+                    <EmbeddedBotpressChat />
                     <div className="absolute top-4 left-4 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
                       Click the chat bubble to start a conversation
                     </div>
