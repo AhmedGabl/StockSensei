@@ -369,14 +369,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/practice-calls/start", requireAuth, async (req: any, res) => {
     try {
       const { scenario } = req.body;
+      
+      // Validate input
+      if (!scenario || typeof scenario !== 'string') {
+        return res.status(400).json({ message: "Scenario is required" });
+      }
+      
+      console.log('Starting practice call for user:', req.user.id, 'with scenario:', scenario);
+      
       const practiceCall = await storage.createPracticeCall({
         userId: req.user.id,
         scenario
       });
       
+      console.log('Practice call created successfully:', practiceCall.id);
       res.json({ practiceCall });
     } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
+      console.error('Error creating practice call:', error);
+      res.status(500).json({ 
+        message: "Internal server error", 
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      });
     }
   });
 
