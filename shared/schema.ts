@@ -52,6 +52,16 @@ export const practiceCalls = pgTable("practice_calls", {
   participantName: varchar("participant_name"), // User name during call
   callDuration: text("call_duration"), // Duration as text to handle decimals
   callStatus: varchar("call_status"), // Ringg AI call status
+  
+  // AI Evaluation fields
+  aiEvaluationScore: integer("ai_evaluation_score"), // Overall score 0-100
+  toneOfVoiceScore: integer("tone_of_voice_score"), // Tone of voice 0-100 (20% weight)
+  buildingRapportScore: integer("building_rapport_score"), // Building rapport 0-100 (20% weight)
+  showingEmpathyScore: integer("showing_empathy_score"), // Showing empathy 0-100 (20% weight)
+  handlingSkillsScore: integer("handling_skills_score"), // Handling skills 0-100 (20% weight)
+  knowledgeScore: integer("knowledge_score"), // Knowledge 0-100 (20% weight)
+  aiEvaluationFeedback: text("ai_evaluation_feedback"), // Detailed AI feedback
+  evaluatedAt: timestamp("evaluated_at"), // When evaluation was completed
 });
 
 export const materials = pgTable("materials", {

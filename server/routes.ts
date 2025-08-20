@@ -594,6 +594,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Call Evaluation routes
+  app.post("/api/practice-calls/:id/evaluate", requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      const call = await storage.getPracticeCall(id);
+      if (!call) {
+        return res.status(404).json({ message: "Practice call not found" });
+      }
+      
+      if (!call.transcript || call.transcript.trim() === '') {
+        return res.status(400).json({ message: "No transcript available for evaluation" });
+      }
+      
+      if (call.aiEvaluationScore) {
+        return res.status(400).json({ message: "Call has already been evaluated" });
+      }
+      
+      const { evaluateCallTranscript } = await import('./callEvaluator');
+      
+      const evaluation = await evaluateCallTranscript(
+        call.transcript,
+        call.participantName || 'Unknown',
+        call.callDuration || '0'
+      );
+      
+      await storage.updatePracticeCallEvaluation(id, {
+        aiEvaluationScore: evaluation.overallScore,
+        toneOfVoiceScore: evaluation.toneOfVoiceScore,
+        buildingRapportScore: evaluation.buildingRapportScore,
+        showingEmpathyScore: evaluation.showingEmpathyScore,
+        handlingSkillsScore: evaluation.handlingSkillsScore,
+        knowledgeScore: evaluation.knowledgeScore,
+        aiEvaluationFeedback: evaluation.feedback,
+        evaluatedAt: new Date()
+      });
+      
+      res.json({ 
+        message: "Call evaluation completed",
+        evaluation
+      });
+    } catch (error) {
+      console.error("Error evaluating call:", error);
+      res.status(500).json({ 
+        message: "Failed to evaluate call",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/admin/practice-calls/batch-evaluate", requireAdmin, async (req: any, res) => {
+    try {
+      const { callIds } = req.body;
+      
+      if (!Array.isArray(callIds) || callIds.length === 0) {
+        return res.status(400).json({ message: "Call IDs array is required" });
+      }
+      
+      const { evaluateCallTranscript } = await import('./callEvaluator');
+      const results = [];
+      
+      for (const callId of callIds) {
+        try {
+          const call = await storage.getPracticeCall(callId);
+          
+          if (!call || !call.transcript || call.transcript.trim() === '' || call.aiEvaluationScore) {
+            results.push({ callId, status: 'skipped', reason: 'No transcript or already evaluated' });
+            continue;
+          }
+          
+          const evaluation = await evaluateCallTranscript(
+            call.transcript,
+            call.participantName || 'Unknown',
+            call.callDuration || '0'
+          );
+          
+          await storage.updatePracticeCallEvaluation(callId, {
+            aiEvaluationScore: evaluation.overallScore,
+            toneOfVoiceScore: evaluation.toneOfVoiceScore,
+            buildingRapportScore: evaluation.buildingRapportScore,
+            showingEmpathyScore: evaluation.showingEmpathyScore,
+            handlingSkillsScore: evaluation.handlingSkillsScore,
+            knowledgeScore: evaluation.knowledgeScore,
+            aiEvaluationFeedback: evaluation.feedback,
+            evaluatedAt: new Date()
+          });
+          
+          results.push({ callId, status: 'evaluated', overallScore: evaluation.overallScore });
+        } catch (error) {
+          console.error(`Error evaluating call ${callId}:`, error);
+          results.push({ callId, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      }
+      
+      const successful = results.filter(r => r.status === 'evaluated').length;
+      const skipped = results.filter(r => r.status === 'skipped').length;
+      const errors = results.filter(r => r.status === 'error').length;
+      
+      res.json({
+        message: `Batch evaluation completed: ${successful} evaluated, ${skipped} skipped, ${errors} errors`,
+        results,
+        summary: { successful, skipped, errors }
+      });
+    } catch (error) {
+      console.error("Error in batch evaluation:", error);
+      res.status(500).json({ 
+        message: "Failed to batch evaluate calls",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Admin quiz management routes
   app.post("/api/admin/tests", requireAdmin, async (req: any, res) => {
     try {

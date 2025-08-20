@@ -242,6 +242,32 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async updatePracticeCallEvaluation(id: string, evaluationData: {
+    aiEvaluationScore: number;
+    toneOfVoiceScore: number;
+    buildingRapportScore: number;
+    showingEmpathyScore: number;
+    handlingSkillsScore: number;
+    knowledgeScore: number;
+    aiEvaluationFeedback: string;
+    evaluatedAt: Date;
+  }): Promise<PracticeCall> {
+    const [updated] = await db
+      .update(practiceCalls)
+      .set(evaluationData)
+      .where(eq(practiceCalls.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getPracticeCall(id: string): Promise<PracticeCall | undefined> {
+    const [call] = await db
+      .select()
+      .from(practiceCalls)
+      .where(eq(practiceCalls.id, id));
+    return call;
+  }
+
   async getUserPracticeCalls(userId: string): Promise<PracticeCall[]> {
     return await db
       .select()
@@ -269,6 +295,15 @@ export class DatabaseStorage implements IStorage {
         participantName: practiceCalls.participantName,
         callDuration: practiceCalls.callDuration,
         callStatus: practiceCalls.callStatus,
+        // AI Evaluation fields
+        aiEvaluationScore: practiceCalls.aiEvaluationScore,
+        toneOfVoiceScore: practiceCalls.toneOfVoiceScore,
+        buildingRapportScore: practiceCalls.buildingRapportScore,
+        showingEmpathyScore: practiceCalls.showingEmpathyScore,
+        handlingSkillsScore: practiceCalls.handlingSkillsScore,
+        knowledgeScore: practiceCalls.knowledgeScore,
+        aiEvaluationFeedback: practiceCalls.aiEvaluationFeedback,
+        evaluatedAt: practiceCalls.evaluatedAt,
         user: {
           name: users.name,
           email: users.email,

@@ -5,8 +5,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { PhoneCall, Download, Play, FileText, RotateCcw, RefreshCw, Users, Clock, DollarSign, ArrowLeft, Home } from "lucide-react";
+import { PhoneCall, Download, Play, FileText, RotateCcw, RefreshCw, Users, Clock, DollarSign, ArrowLeft, Home, Brain, Star, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface PracticeCall {
@@ -24,8 +25,17 @@ interface PracticeCall {
   callType?: string;
   callCost?: string;
   participantName?: string;
-  callDuration?: number;
+  callDuration?: string;
   callStatus?: string;
+  // AI Evaluation fields
+  aiEvaluationScore?: number;
+  toneOfVoiceScore?: number;
+  buildingRapportScore?: number;
+  showingEmpathyScore?: number;
+  handlingSkillsScore?: number;
+  knowledgeScore?: number;
+  aiEvaluationFeedback?: string;
+  evaluatedAt?: string;
   user: {
     name: string;
     email: string;
@@ -42,6 +52,7 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [selectedEvaluation, setSelectedEvaluation] = useState<PracticeCall | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -110,7 +121,10 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
 
   // Calculate statistics
   const totalCalls = calls.length;
-  const totalDuration = calls.reduce((sum, call) => sum + (call.callDuration || 0), 0);
+  const totalDuration = calls.reduce((sum, call) => {
+    const duration = typeof call.callDuration === 'string' ? parseFloat(call.callDuration) : call.callDuration || 0;
+    return sum + duration;
+  }, 0);
   const totalCost = calls.reduce((sum, call) => sum + parseFloat(call.callCost || "0"), 0);
   const uniqueUsers = new Set(calls.map(call => call.userId)).size;
 
@@ -122,9 +136,80 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
     });
   };
 
-  const formatDuration = (seconds: number) => {
+  // Evaluate single call
+  const evaluateCallMutation = useMutation({
+    mutationFn: async (callId: string) => {
+      const response = await fetch(`/api/practice-calls/${callId}/evaluate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Failed to evaluate call");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Evaluation Complete",
+        description: `Call evaluated with score: ${data.evaluation.overallScore}%`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/practice-calls"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Evaluation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Batch evaluate calls with transcripts
+  const batchEvaluateMutation = useMutation({
+    mutationFn: async () => {
+      const callsWithTranscripts = calls.filter(call => 
+        call.transcript && call.transcript.trim() && !call.aiEvaluationScore
+      );
+      
+      if (callsWithTranscripts.length === 0) {
+        throw new Error("No unevaluated calls with transcripts found");
+      }
+
+      const callIds = callsWithTranscripts.map(call => call.id);
+      const response = await fetch("/api/admin/practice-calls/batch-evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callIds }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Failed to batch evaluate calls");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Batch Evaluation Complete",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/practice-calls"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Batch Evaluation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const formatDuration = (duration: string | number) => {
+    const seconds = typeof duration === 'string' ? parseFloat(duration) : duration;
+    if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -266,9 +351,31 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
             </div>
           </div>
           <div className="border-t pt-4 mt-4">
-            <p className="text-sm text-gray-600 mb-2">
-              <strong>Recording Poll System:</strong> Automatically captures recordings and transcripts when voice calls complete (may take 2-5 minutes).
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Recording Poll System:</strong> Automatically captures recordings and transcripts when voice calls complete (may take 2-5 minutes).
+                </p>
+              </div>
+              <Button
+                onClick={() => batchEvaluateMutation.mutate()}
+                disabled={batchEvaluateMutation.isPending || calls.filter(call => call.transcript && !call.aiEvaluationScore).length === 0}
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                {batchEvaluateMutation.isPending ? (
+                  <>
+                    <Brain className="mr-2 h-4 w-4 animate-spin" />
+                    Evaluating...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="mr-2 h-4 w-4" />
+                    AI Evaluate All ({calls.filter(call => call.transcript && !call.aiEvaluationScore).length})
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -301,7 +408,7 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                     <th className="text-left p-3">Scenario</th>
                     <th className="text-left p-3">Date</th>
                     <th className="text-left p-3">Duration</th>
-                    <th className="text-left p-3">Outcome</th>
+                    <th className="text-left p-3">AI Score</th>
                     <th className="text-left p-3">Cost</th>
                     <th className="text-left p-3">Actions</th>
                   </tr>
@@ -323,12 +430,114 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                         {call.callDuration ? formatDuration(call.callDuration) : '-'}
                       </td>
                       <td className="p-3">
-                        {call.outcome ? (
-                          <Badge className={getOutcomeBadgeColor(call.outcome)}>
-                            {call.outcome}
-                          </Badge>
+                        {call.aiEvaluationScore ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                                <Badge 
+                                  className={
+                                    call.aiEvaluationScore >= 80 ? 'bg-green-100 text-green-800' :
+                                    call.aiEvaluationScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                  }
+                                >
+                                  {call.aiEvaluationScore}%
+                                </Badge>
+                                <CheckCircle2 className="h-4 w-4 text-green-600" title="View AI Evaluation Details" />
+                              </div>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                  <Brain className="h-5 w-5" />
+                                  AI Call Evaluation - {call.scenario}
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <p><strong>User:</strong> {call.user.name || call.participantName}</p>
+                                    <p><strong>Date:</strong> {format(new Date(call.startedAt), 'MMM dd, yyyy HH:mm')}</p>
+                                    <p><strong>Duration:</strong> {call.callDuration ? formatDuration(call.callDuration) : 'Unknown'}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-3xl font-bold text-gray-900">
+                                      {call.aiEvaluationScore}%
+                                    </div>
+                                    <p className="text-sm text-gray-600">Overall Score</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                  <h3 className="font-semibold text-gray-900">Performance Breakdown</h3>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {[
+                                      { name: 'Tone of Voice', score: call.toneOfVoiceScore, weight: '20%' },
+                                      { name: 'Building Rapport', score: call.buildingRapportScore, weight: '20%' },
+                                      { name: 'Showing Empathy', score: call.showingEmpathyScore, weight: '20%' },
+                                      { name: 'Handling Skills', score: call.handlingSkillsScore, weight: '20%' },
+                                      { name: 'Knowledge', score: call.knowledgeScore, weight: '20%' }
+                                    ].map((criterion) => (
+                                      <div key={criterion.name} className="border rounded-lg p-3">
+                                        <div className="flex justify-between items-center mb-2">
+                                          <span className="font-medium text-sm">{criterion.name}</span>
+                                          <span className="text-xs text-gray-500">{criterion.weight}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                            <div 
+                                              className={`h-2 rounded-full ${
+                                                (criterion.score || 0) >= 80 ? 'bg-green-500' :
+                                                (criterion.score || 0) >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                              }`}
+                                              style={{ width: `${criterion.score || 0}%` }}
+                                            />
+                                          </div>
+                                          <span className="text-sm font-semibold">{criterion.score || 0}%</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {call.aiEvaluationFeedback && (
+                                  <div className="space-y-2">
+                                    <h3 className="font-semibold text-gray-900">AI Feedback</h3>
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                        {call.aiEvaluationFeedback}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {call.evaluatedAt && (
+                                  <div className="text-xs text-gray-500 border-t pt-2">
+                                    Evaluated on {format(new Date(call.evaluatedAt), 'MMM dd, yyyy HH:mm')}
+                                  </div>
+                                )}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : call.transcript ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => evaluateCallMutation.mutate(call.id)}
+                            disabled={evaluateCallMutation.isPending}
+                            className="text-xs"
+                          >
+                            {evaluateCallMutation.isPending ? (
+                              <Brain className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Brain className="h-3 w-3 mr-1" />
+                                Evaluate
+                              </>
+                            )}
+                          </Button>
                         ) : (
-                          '-'
+                          <span className="text-gray-400">No transcript</span>
                         )}
                       </td>
                       <td className="p-3">
