@@ -360,7 +360,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
         disabled={isLoading}
-        className="voice-widget-button w-16 h-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group pulse-ring"
+        className="voice-widget-button w-16 h-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group pulse-ring ml-[0px] mr-[0px] pt-[10px] pb-[10px]"
         style={{
           backgroundColor: isLoading ? '#222222' : '#000000',
           color: '#ffffff',
