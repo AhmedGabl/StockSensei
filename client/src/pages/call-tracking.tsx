@@ -245,7 +245,14 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
               No calls found. Try syncing with Ringg AI to fetch call history.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> Audio recordings are only available from live Ringg AI practice calls. 
+                  Sample data shows transcripts but requires actual voice calls to generate recordings.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b">
@@ -288,16 +295,26 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                       </td>
                       <td className="p-3">
                         <div className="flex gap-2">
-                          {call.audioRecordingUrl && (
+                          {call.audioRecordingUrl ? (
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => window.open(call.audioRecordingUrl, '_blank')}
+                              title="Play audio recording"
                             >
                               <Play className="h-3 w-3" />
                             </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              title="Audio recording not available - recordings come from live Ringg AI calls"
+                            >
+                              <Play className="h-3 w-3 opacity-50" />
+                            </Button>
                           )}
-                          {call.transcript && (
+                          {call.transcript ? (
                             <Button
                               size="sm"
                               variant="outline"
@@ -311,7 +328,7 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                                       <body style="font-family: Arial, sans-serif; padding: 20px;">
                                         <h2>Call Transcript - ${call.scenario}</h2>
                                         <p><strong>Date:</strong> ${format(new Date(call.startedAt), 'MMM dd, yyyy HH:mm')}</p>
-                                        <p><strong>User:</strong> ${call.user.name}</p>
+                                        <p><strong>User:</strong> ${call.user.name || call.participantName}</p>
                                         <hr />
                                         <pre style="white-space: pre-wrap;">${call.transcript}</pre>
                                       </body>
@@ -319,8 +336,18 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                                   `);
                                 }
                               }}
+                              title="View call transcript"
                             >
                               <FileText className="h-3 w-3" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              title="Transcript not available"
+                            >
+                              <FileText className="h-3 w-3 opacity-50" />
                             </Button>
                           )}
                         </div>
@@ -330,6 +357,7 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
