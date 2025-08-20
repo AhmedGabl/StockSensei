@@ -535,7 +535,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { startDate, endDate, agentId } = req.body;
       
+      // Check if Ringg API credentials are available
+      if (!process.env.VITE_RINGG_X_API_KEY) {
+        return res.status(400).json({ 
+          message: "Ringg AI API key not configured",
+          error: "RINGG_API_KEY_MISSING"
+        });
+      }
+      
+      // Test connection first
+      console.log("Testing Ringg AI connection before sync...");
+      const isConnected = await testRinggConnection();
+      if (!isConnected) {
+        return res.status(503).json({ 
+          message: "Cannot connect to Ringg AI service",
+          error: "RINGG_CONNECTION_FAILED"
+        });
+      }
+      
       // Fetch call history from Ringg AI
+      console.log("Fetching call history from Ringg AI...");
       const callHistory = await fetchRinggCallHistory({ startDate, endDate, agentId });
       
       let syncedCount = 0;
@@ -576,7 +595,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error syncing call history:", error);
-      res.status(500).json({ message: "Internal server error" });
+      
+      // Provide more specific error messages
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('fetch failed') || errorMessage.includes('ENOTFOUND')) {
+        return res.status(503).json({ 
+          message: "Unable to reach Ringg AI servers. Please check network connectivity.",
+          error: "NETWORK_ERROR",
+          details: errorMessage
+        });
+      }
+      
+      if (errorMessage.includes('401') || errorMessage.includes('403')) {
+        return res.status(401).json({ 
+          message: "Invalid Ringg AI API credentials",
+          error: "AUTHENTICATION_ERROR"
+        });
+      }
+      
+      if (errorMessage.includes('404')) {
+        return res.status(404).json({ 
+          message: "Ringg AI endpoint not found. Service may be temporarily unavailable.",
+          error: "ENDPOINT_NOT_FOUND"
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to sync call history", 
+        error: "SYNC_ERROR",
+        details: errorMessage 
+      });
     }
   });
 
@@ -2211,15 +2260,50 @@ Format as JSON with this exact structure:
   });
 
   // Deployment health check endpoint
-  app.get("/api/health", (req, res) => {
-    res.json({
-      status: "ok",
-      environment: process.env.NODE_ENV || "development",
-      database: process.env.DATABASE_URL ? "connected" : "missing",
-      session: req.session ? "configured" : "missing",
-      timestamp: new Date().toISOString(),
-      cookies: req.headers.cookie ? "present" : "missing"
-    });
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Test database connection by attempting a simple query
+      const dbHealthy = await storage.getUser('health-check').then(() => true).catch(() => false);
+      
+      // Check essential environment variables
+      const envCheck = {
+        database: !!process.env.DATABASE_URL,
+        session: !!process.env.SESSION_SECRET,
+        openai: !!process.env.OPENAI_API_KEY,
+        ringg: !!process.env.VITE_RINGG_X_API_KEY
+      };
+      
+      // Test Ringg AI connection if credentials are available
+      let ringgStatus = "not_configured";
+      if (envCheck.ringg) {
+        try {
+          const isConnected = await testRinggConnection();
+          ringgStatus = isConnected ? "connected" : "unreachable";
+        } catch (error) {
+          ringgStatus = "error";
+        }
+      }
+      
+      res.json({
+        status: "ok",
+        environment: process.env.NODE_ENV || "development",
+        timestamp: new Date().toISOString(),
+        database: dbHealthy ? "connected" : "disconnected",
+        session: req.session ? "configured" : "missing",
+        cookies: req.headers.cookie ? "present" : "missing",
+        services: {
+          ringg: ringgStatus
+        },
+        environment_vars: envCheck,
+        version: "1.0.0"
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: "error",
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
   });
 
   // AI Training API endpoints

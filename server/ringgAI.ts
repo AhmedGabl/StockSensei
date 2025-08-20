@@ -160,7 +160,7 @@ export function startCallRecordingPoll(callId: string, practiceCallId: string) {
         await storage.updatePracticeCallRinggData(practiceCallId, {
           transcript: callDetails.transcript,
           audioRecordingUrl: callDetails.recordingUrl,
-          callDuration: callDetails.duration,
+          callDuration: callDetails.duration?.toString(),
           callCost: callDetails.cost?.toString(),
           callStatus: callDetails.status,
         });
@@ -196,11 +196,14 @@ export async function fetchRinggCallHistory(params: RinggCallHistoryParams = {})
       headers: {
         'X-API-KEY': RINGG_API_KEY,
         'Content-Type': 'application/json',
+        'User-Agent': 'CM-Training-Platform/1.0',
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Ringg AI API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text().catch(() => 'No error details available');
+      console.error(`Ringg API error response: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Ringg AI API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const callHistory = await response.json();
@@ -208,6 +211,20 @@ export async function fetchRinggCallHistory(params: RinggCallHistoryParams = {})
     return callHistory;
   } catch (error) {
     console.error('Error fetching call history:', error);
+    
+    // Add more specific error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : '';
+    const errorCode = (error as any)?.code;
+    
+    if (errorName === 'AbortError' || errorMessage.includes('timeout')) {
+      throw new Error('Request timeout - Ringg AI service may be slow or unavailable');
+    }
+    
+    if (errorMessage.includes('fetch failed') || errorCode === 'ENOTFOUND') {
+      throw new Error('Network error - Unable to reach Ringg AI servers');
+    }
+    
     throw error;
   }
 }
@@ -311,16 +328,29 @@ export async function testRinggConnection(): Promise<boolean> {
   try {
     console.log('Testing Ringg AI API connection...');
     
+    // Check if API key is configured
+    if (!RINGG_API_KEY || RINGG_API_KEY.includes('your-ringg-api-key-here')) {
+      console.log('Ringg AI API key not properly configured');
+      return false;
+    }
+    
     const response = await fetch(`${RINGG_API_BASE}/calling/history?limit=1`, {
       method: 'GET',
       headers: {
         'X-API-KEY': RINGG_API_KEY,
         'Content-Type': 'application/json',
+        'User-Agent': 'CM-Training-Platform/1.0',
       },
     });
 
     const isConnected = response.ok;
-    console.log(`Ringg AI connection test: ${isConnected ? 'SUCCESS' : 'FAILED'}`);
+    console.log(`Ringg AI connection test: ${isConnected ? 'SUCCESS' : 'FAILED'} (${response.status})`);
+    
+    if (!isConnected) {
+      const errorText = await response.text().catch(() => 'No error details');
+      console.log(`Ringg AI connection error details:`, errorText);
+    }
+    
     return isConnected;
   } catch (error) {
     console.error('Ringg AI connection test failed:', error);
