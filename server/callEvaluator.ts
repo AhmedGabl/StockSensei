@@ -5,6 +5,7 @@ import path from 'path';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
 });
 
 export interface CallEvaluationResult {
@@ -86,7 +87,7 @@ export async function analyzeAudioRecording(audioUrl: string): Promise<AudioAnal
       }`;
 
       const toneResponse = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'openai/gpt-4o',
         messages: [
           {
             role: 'system',
@@ -224,7 +225,7 @@ Please respond in the following JSON format:
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',

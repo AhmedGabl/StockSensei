@@ -618,7 +618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         call.transcript,
         call.participantName || 'Unknown',
         call.callDuration || '0',
-        call.audioRecordingUrl
+        call.audioRecordingUrl || undefined
       );
       
       await storage.updatePracticeCallEvaluation(id, {
@@ -669,7 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             call.transcript,
             call.participantName || 'Unknown',
             call.callDuration || '0',
-            call.audioRecordingUrl
+            call.audioRecordingUrl || undefined
           );
           
           await storage.updatePracticeCallEvaluation(callId, {

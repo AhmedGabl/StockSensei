@@ -443,7 +443,7 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                                 >
                                   {call.aiEvaluationScore}%
                                 </Badge>
-                                <CheckCircle2 className="h-4 w-4 text-green-600" title="View AI Evaluation Details" />
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
                               </div>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
