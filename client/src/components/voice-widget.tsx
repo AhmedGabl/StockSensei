@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface VoiceWidgetProps {
   onStartCall?: () => void;
@@ -11,17 +10,23 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  
+  // Fetch current user data
+  const { data: user } = useQuery({
+    queryKey: ['/api/me'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const handleVoiceCall = async () => {
     setIsLoading(true);
     
     try {
-      // Try to initialize Ringg AI voice agent
-      await initializeRinggVoiceAgent();
+      // Try to initialize Ringg AI voice agent with user context
+      await initializeRinggVoiceAgent(user);
       
       toast({
         title: "Voice Agent Ready",
-        description: "Starting your practice call!",
+        description: `Starting your practice call${user?.user?.email ? ` for ${user.user.email}` : ''}!`,
       });
       
       onStartCall?.();
@@ -49,7 +54,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
     setIsExpanded(false);
   };
 
-  const initializeRinggVoiceAgent = (): Promise<void> => {
+  const initializeRinggVoiceAgent = (userData?: any): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
         // Check if Ringg AI is already loaded
@@ -278,13 +283,22 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
         loadAgentsCdn("1.0.3", () => {
           try {
             if ((window as any).loadAgent) {
+              // Extract user information for personalization
+              const userName = userData?.user?.email ? userData.user.email.split('@')[0] : 'Student';
+              const userEmail = userData?.user?.email || 'Unknown User';
+              const userRole = userData?.user?.role || 'STUDENT';
+              
               (window as any).loadAgent({
                 agentId: import.meta.env.VITE_RINGG_AGENT_ID || "373dc1f5-d841-4dc2-8b06-193e5177e0ba",
                 xApiKey: import.meta.env.VITE_RINGG_X_API_KEY || "be40b1db-451c-4ede-9acd-2c4403f51ef0",
                 variables: {
-                  callee_name: "CALLEE_NAME",
-                  mode: "MODE", 
-                  scenario_id: "practice_call"
+                  callee_name: userName,
+                  user_email: userEmail,
+                  user_role: userRole,
+                  platform: "CM_Training_Platform",
+                  mode: "practice_call", 
+                  scenario_id: "general_training",
+                  session_type: "voice_practice"
                 },
                 theme: {
                   backgroundColor: "#000000",
