@@ -319,7 +319,7 @@ export function VoiceWidget({ onStartCall }: VoiceWidgetProps) {
     <div className="voice-widget-container fixed bottom-28 right-6 z-40 font-medium text-right">
       {/* Expanded Options Menu */}
       {isExpanded && (
-        <div className="absolute bottom-20 right-0 w-64 mb-2 shadow-xl border-2 rounded-lg p-4 space-y-3" style={{ backgroundColor: '#000000', borderColor: '#ffffff', boxShadow: '0 0 20px rgba(255, 255, 255, 0.2)' }}>
+        <div className="absolute bottom-20 left-0 w-64 mb-2 shadow-xl border-2 rounded-lg p-4 space-y-3" style={{ backgroundColor: '#000000', borderColor: '#ffffff', boxShadow: '0 0 20px rgba(255, 255, 255, 0.2)' }}>
           <div className="pb-2">
             <h3 className="font-semibold text-sm text-white">🎤 Ringg AI Practice</h3>
           </div>
