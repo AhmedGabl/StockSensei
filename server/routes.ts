@@ -612,12 +612,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Call has already been evaluated" });
       }
       
-      const { evaluateCallTranscript } = await import('./callEvaluator');
+      const { evaluateCallWithAudio } = await import('./callEvaluator');
       
-      const evaluation = await evaluateCallTranscript(
+      const evaluation = await evaluateCallWithAudio(
         call.transcript,
         call.participantName || 'Unknown',
-        call.callDuration || '0'
+        call.callDuration || '0',
+        call.audioRecordingUrl
       );
       
       await storage.updatePracticeCallEvaluation(id, {
@@ -652,7 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Call IDs array is required" });
       }
       
-      const { evaluateCallTranscript } = await import('./callEvaluator');
+      const { evaluateCallWithAudio } = await import('./callEvaluator');
       const results = [];
       
       for (const callId of callIds) {
@@ -664,10 +665,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          const evaluation = await evaluateCallTranscript(
+          const evaluation = await evaluateCallWithAudio(
             call.transcript,
             call.participantName || 'Unknown',
-            call.callDuration || '0'
+            call.callDuration || '0',
+            call.audioRecordingUrl
           );
           
           await storage.updatePracticeCallEvaluation(callId, {

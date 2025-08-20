@@ -459,6 +459,7 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                                     <p><strong>User:</strong> {call.user.name || call.participantName}</p>
                                     <p><strong>Date:</strong> {format(new Date(call.startedAt), 'MMM dd, yyyy HH:mm')}</p>
                                     <p><strong>Duration:</strong> {call.callDuration ? formatDuration(call.callDuration) : 'Unknown'}</p>
+                                    <p><strong>Analysis Type:</strong> {call.audioRecordingUrl ? 'AI + Audio Analysis' : 'Transcript Only'}</p>
                                   </div>
                                   <div className="text-right">
                                     <div className="text-3xl font-bold text-gray-900">
@@ -526,13 +527,14 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
                             onClick={() => evaluateCallMutation.mutate(call.id)}
                             disabled={evaluateCallMutation.isPending}
                             className="text-xs"
+                            title={call.audioRecordingUrl ? "Evaluate with audio analysis (enhanced tone scoring)" : "Evaluate transcript only"}
                           >
                             {evaluateCallMutation.isPending ? (
                               <Brain className="h-3 w-3 animate-spin" />
                             ) : (
                               <>
                                 <Brain className="h-3 w-3 mr-1" />
-                                Evaluate
+                                {call.audioRecordingUrl ? "AI + Audio" : "AI Eval"}
                               </>
                             )}
                           </Button>
