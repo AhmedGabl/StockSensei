@@ -206,7 +206,12 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
 
       {/* Floating Voice Widget */}
       <VoiceWidget
-        user={user}
+        user={{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }}
         onStartCall={() => handleStartPracticeCall()}
       />
 

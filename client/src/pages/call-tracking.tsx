@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { PhoneCall, Download, Play, FileText, RotateCcw, RefreshCw, Users, Clock, DollarSign } from "lucide-react";
+import { PhoneCall, Download, Play, FileText, RotateCcw, RefreshCw, Users, Clock, DollarSign, ArrowLeft, Home } from "lucide-react";
 import { format } from "date-fns";
 
 interface PracticeCall {
@@ -139,9 +139,21 @@ export default function CallTracking({ user, onNavigate, onLogout }: CallTrackin
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Call Tracking Dashboard</h1>
-          <p className="text-gray-600 mt-2">Monitor and manage all practice calls with Ringg AI integration</p>
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onNavigate("dashboard")}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Home</span>
+          </Button>
+          <div className="h-8 w-px bg-gray-300" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Call Tracking Dashboard</h1>
+            <p className="text-gray-600 mt-2">Monitor and manage all practice calls with Ringg AI integration</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={(connectionData as any)?.connected ? "default" : "destructive"}>
