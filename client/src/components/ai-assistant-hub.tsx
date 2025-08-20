@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, Play, MessageCircle } from "lucide-react";
 import { User } from "@shared/schema";
-import BotpressFloatingBubble from "./botpress-floating-bubble";
+
 
 interface AIAssistantHubProps {
   user: User;
@@ -160,12 +160,14 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
                 </div>
                 
                 <div className="text-center p-8">
-                  <BotpressFloatingBubble />
+                  <div className="text-lg font-semibold text-gray-700 mb-4">
+                    💬 Chat Assistant Active
+                  </div>
                   <div className="text-sm text-gray-600 mb-4">
-                    The floating chat bubble will appear in the bottom-right corner of your screen
+                    The floating chat bubble is available in the bottom-right corner of your screen
                   </div>
                   <div className="text-xs text-gray-500">
-                    This tab initializes the chat widget - you can close this dialog and use the floating bubble
+                    Close this dialog and look for the chat bubble to start conversations
                   </div>
                 </div>
               </div>

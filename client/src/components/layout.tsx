@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { BotpressChat } from "@/components/botpress-chat";
 import { AIAssistantHub } from "@/components/ai-assistant-hub";
 import { VoiceWidget } from "@/components/voice-widget";
-import BotpressFloatingBubble from "@/components/botpress-floating-bubble";
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -208,8 +208,7 @@ export function Layout({ children, user, currentPage = "home", onNavigate, onLog
         onStartCall={() => handleStartPracticeCall()}
       />
 
-      {/* Botpress Floating Bubble */}
-      <BotpressFloatingBubble />
+
 
     </div>
   );
