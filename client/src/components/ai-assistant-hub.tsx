@@ -80,14 +80,10 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
         
         <div className="flex-1 overflow-hidden p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className="grid w-full grid-cols-1 mb-4">
               <TabsTrigger value="scenarios" className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
                 Practice Scenarios
-              </TabsTrigger>
-              <TabsTrigger value="chatbot" className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" />
-                AI Assistant Chat
               </TabsTrigger>
             </TabsList>
             
@@ -152,26 +148,7 @@ export function AIAssistantHub({ user, isOpen, onClose }: AIAssistantHubProps) {
               </div>
             </TabsContent>
             
-            <TabsContent value="chatbot" className="h-[calc(100%-3rem)]">
-              <div className="h-full">
-                <div className="text-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">51talk CM Assistant</h3>
-                  <p className="text-sm text-gray-600">Chat with the AI assistant for training support and Q&A</p>
-                </div>
-                
-                <div className="text-center p-8">
-                  <div className="text-lg font-semibold text-gray-700 mb-4">
-                    💬 Chat Assistant Active
-                  </div>
-                  <div className="text-sm text-gray-600 mb-4">
-                    The floating chat bubble is available in the bottom-right corner of your screen
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Close this dialog and look for the chat bubble to start conversations
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
+
           </Tabs>
         </div>
       </DialogContent>
