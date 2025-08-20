@@ -176,29 +176,31 @@ export function PracticeCall({ isOpen, onClose, scenario }: PracticeCallProps) {
               buttons: {
                 modalTrigger: {
                   styles: {
-                    backgroundColor: "hsl(207, 90%, 54%)",
+                    backgroundColor: "#000000",
                     color: "white",
                     borderRadius: "50%",
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+                    border: "2px solid #333333",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)"
                   }
                 },
                 mic: {
                   styles: {
-                    backgroundColor: "hsl(0, 84%, 60%)",
+                    backgroundColor: "#000000",
                     borderRadius: "50%",
-                    border: "2px solid white"
+                    border: "2px solid #333333",
+                    color: "white"
                   }
                 },
                 call: {
                   textBeforeCall: "Start Practice Call",
                   textDuringCall: "End Practice Call",
                   styles: {
-                    backgroundColor: "hsl(207, 90%, 54%)",
+                    backgroundColor: "#000000",
                     color: "white",
                     borderRadius: "8px",
                     padding: "12px 24px",
-                    fontWeight: "500"
+                    fontWeight: "500",
+                    border: "1px solid #333333"
                   }
                 }
               }

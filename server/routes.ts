@@ -388,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error creating practice call:', error);
       res.status(500).json({ 
         message: "Internal server error", 
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
       });
     }
   });
