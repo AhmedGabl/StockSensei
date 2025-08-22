@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { ModuleCard } from "@/components/module-card";
+import { PlatformOverviewChart } from "@/components/platform-overview-chart";
 
 import { PracticeCall } from "@/components/practice-call";
 import { VoiceWidget } from "@/components/voice-widget";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Progress } from "@/lib/types";
 import type { TrainingModule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -189,7 +191,13 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
   return (
     <Layout user={user} currentPage="home" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="max-w-7xl mx-auto p-4 pb-24 md:ml-24 md:mr-24 ml-20 mr-20">
-        <div className="space-y-6">
+        <Tabs defaultValue="home" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="home">My Home Page</TabsTrigger>
+            <TabsTrigger value="overview">Platform Overview</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="home" className="space-y-6">
           {/* Welcome Section */}
           <div className="bg-gradient-to-r from-primary to-primary-600 rounded-xl p-6 text-white">
             <h2 className="text-2xl font-bold mb-2">
@@ -376,7 +384,12 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
               </CardContent>
             </Card>
           </div>
-        </div>
+          </TabsContent>
+          
+          <TabsContent value="overview">
+            <PlatformOverviewChart user={user} onNavigate={onNavigate} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Practice Call Modal */}
@@ -390,7 +403,6 @@ export default function HomePage({ user, onNavigate, onLogout }: HomePageProps) 
       <VoiceWidget 
         onStartCall={() => handlePracticeCall("General Practice")}
       />
-
 
     </Layout>
   );
